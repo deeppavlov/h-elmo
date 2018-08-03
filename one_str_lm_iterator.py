@@ -22,7 +22,7 @@ class WrongCursorOrder(Exception):
 @register('one_str_lm_iterator')
 class OneStrLmIterator(DataLearningIterator):
 
-    def __init__(self, data: Dict[str, List[Tuple[Any, Any]]],
+    def __init__(self, data: Dict[str, str],
                  seed: int = None, shuffle: bool = True, start_char: str = '\n', no_intersections_in_epoch=False,
                  verbose: bool = False,
                  *args, **kwargs) -> None:
@@ -176,3 +176,7 @@ class OneStrLmIterator(DataLearningIterator):
             last_batch = batch
             cursors = self._shift_cursors(cursors, data_len)
             yield lb, batch
+
+    def get_instances(self, data_type: str = 'train') -> str:
+        return self.data[data_type]
+
