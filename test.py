@@ -1,34 +1,13 @@
-x = input("Do you need the answer? (y/n): ")
-if x.lower() == "y":
-    required = True
-else:
-    required = False
+import tensorflow as tf
+from tensorflow.contrib.memory_stats.python.ops.memory_stats_ops import BytesInUse
+with tf.device('/gpu:0'):  # Replace with device you are interested in
+  bytes_in_use = BytesInUse()
+  b = tf.Variable(tf.zeros([10000, 10000]))
+  a = tf.Variable(tf.zeros([30000, 30000]))
+
+with tf.Session() as sess:
+  print(sess.run(bytes_in_use))
+  sess.run(tf.global_variables_initializer())
+  print(sess.run(bytes_in_use))
 
 
-def the_answer(self, *args):
-    return 42
-
-
-class EssentialAnswers(type):
-    def __init__(cls, clsname, superclasses, attributedict):
-        if required:
-            cls.the_answer = the_answer
-
-
-class Philosopher1(metaclass=EssentialAnswers):
-    pass
-
-
-class Philosopher2(metaclass=EssentialAnswers):
-    pass
-
-
-class Philosopher3(metaclass=EssentialAnswers):
-    pass
-
-
-plato = Philosopher1()
-print(plato.the_answer())
-kant = Philosopher2()
-# let's see what Kant has to say :-)
-print(kant.the_answer())
