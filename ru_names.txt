@@ -1,0 +1,16 @@
+clip_norm максимальная норма
+learning_rate/init шаг
+optimizer_init_parameter параметр инициализации
+num_layers число слоев
+momentum/value аккумуляция
+chi_contribution/value $r$
+accuracy точность
+loss функция ошибки
+perplexity перплексия
+bpc функция ошибки, бит
+num_sel/value количество выборок
+selection_size/value размер выборки
+rho $\rho$
+1_minus_rho 1 - $\rho$
+1_minus_decay 1 - $\gamma$
+step итерация
