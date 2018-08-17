@@ -3,11 +3,12 @@
   "num_units": [100, 200, 500, 1000, 2000],
   "sequence_length": [10, 20, 50, 100],
   "batch_size": [16, 32, 64, 128],
-  "save_path": "results/lstm_test",
-  "lstm_type": "cudnn_stacked",
+  "save_path": "results/lab/cudnn_time",
+  "lstm_type": "cudnn",
   "mode": "train",
-  "num_steps": 500,
+  "num_steps": 100,
   "num_repeats": 10,
   "memory_per_experiment": 7500,
-  "max_num_parallel_processes": 8
+  "max_num_parallel_processes": 2,
+  "measured_spec": "time"
 }

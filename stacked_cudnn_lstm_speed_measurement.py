@@ -1,5 +1,6 @@
 import copy
 import tensorflow as tf
+from tensorflow.contrib.memory_stats.python.ops.memory_stats_ops import MaxBytesInUse
 from tensorflow.contrib.cudnn_rnn import CudnnLSTM as CudnnLSTM
 # from tensorflow.contrib.cudnn_rnn.python.ops.cudnn_rnn_ops import CudnnLSTM as CudnnLSTM
 from tensorflow.contrib.rnn import LSTMBlockFusedCell as LSTMFused
@@ -11,7 +12,8 @@ import multiprocessing as mp
 from useful_functions import all_combs, check_header_line_is_present, write_line, create_even_distribution
 
 
-EXPERIMENT_PARAMS_ORDER = ['sequence_length', 'batch_size', 'num_layers', 'num_units', 'num_parallel_launches']
+EXPERIMENT_PARAMS_ORDER = \
+    ['sequence_length', 'batch_size', 'num_layers', 'num_units', 'num_parallel_launches', 'num_steps']
 
 
 parser = argparse.ArgumentParser()
@@ -23,7 +25,8 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-class UnknownContent(Exception):
+
+class UnknownConfigContent(Exception):
     def __init__(self, field, value, message):
         self.field = field
         self.value = value
@@ -65,7 +68,7 @@ def build_lstm_cell(inps, num_layers, num_units):
     multilayer_lstm = tf.contrib.rnn.MultiRNNCell(lstms)
     zero_state = multilayer_lstm.zero_state(tf.shape(inps)[1], tf.float32)
     logits, _ = tf.nn.dynamic_rnn(
-      multilayer_lstm, inps, initial_state=zero_state, parallel_iterations=1024, time_major=True
+        multilayer_lstm, inps, initial_state=zero_state, parallel_iterations=1024, time_major=True
     )
     return logits
 
@@ -122,6 +125,17 @@ def measure_op_time(num_steps, op):
     return (end - start) / num_steps
 
 
+def measure_allocated_memory(num_steps, op):
+    bytes_in_use = MaxBytesInUse()
+    gpu_options = tf.GPUOptions(allow_growth=True)
+    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+        sess.run(tf.global_variables_initializer())
+        for _ in range(num_steps):
+            sess.run(op)
+        bytes_in_use = sess.run(bytes_in_use)
+    return bytes_in_use
+
+
 def perform_one_mesurement(config):
     train_op, logits = build_graph(config)
     if config['mode'] == 'train':
@@ -129,13 +143,18 @@ def perform_one_mesurement(config):
     elif config['mode'] == 'infer':
         op = logits
     else:
-        raise UnknownContent(
+        raise UnknownConfigContent(
             'mode',
             config['mode'],
             "Unknown config content.\n Field: '%s', value: %s" % ('mode', config['mode'])
         )
-    t = measure_op_time(config['num_steps'], op)
-    return t
+    if config['measured_spec'] == 'time':
+        spec = measure_op_time(config['num_steps'], op)
+    elif config['measured_spec'] == 'memory':
+        spec = measure_allocated_memory(config['num_steps'], op)
+    else:
+        spec = None
+    return spec
 
 
 def make_list(candidate):
@@ -160,7 +179,7 @@ def split_experiment_config_into_separate_measurement_configs(config):
         conf['num_layers'] = comb[2]
         conf['num_units'] = comb[3]
         configs.append(conf)
-    if config['num_repeats'] == 1:
+    if 'num_repeats' not in config or config['num_repeats'] == 1:
         return configs
     else:
         confs = list()
@@ -169,15 +188,30 @@ def split_experiment_config_into_separate_measurement_configs(config):
         return confs
 
 
-def save_results(configs, res, save_path):
+def verify_header(configs, save_path):
+    if configs[0]['measured_spec'] == 'time':
+        res_name = 'op_time'
+    elif configs[0]['measured_spec'] == 'memory':
+        res_name = 'op_memory'
+    else:
+        raise UnknownConfigContent(
+            'measured_spec',
+            config['measured_spec'],
+            "Unknown value in field 'measured_spec' '%s'" % config['measured_spec'],
+        )
     if not check_header_line_is_present(save_path):
-        write_line(['op_time'], EXPERIMENT_PARAMS_ORDER, save_path, clean=True)
+        write_line([res_name], [p for p in EXPERIMENT_PARAMS_ORDER if p in configs[0]], save_path, clean=True)
+
+
+def save_results(configs, res, save_path):
+    verify_header(configs, save_path)
     for m, config in zip(res, configs):
-        params = [config[p] for p in EXPERIMENT_PARAMS_ORDER]
+        params = [config[p] for p in EXPERIMENT_PARAMS_ORDER if p in config]
+        # params = [config[p] for p in EXPERIMENT_PARAMS_ORDER]
         write_line([m], params, save_path, clean=False)
 
 
-def approx_mem_consumption(config):
+def vanilla_consumption(config):
     # in MB for sequence_length=100, batch_size=128, num_layers=2, num_units=2000
     # working for all lstm variants
     base_consumption = 4500
@@ -186,6 +220,16 @@ def approx_mem_consumption(config):
         (config['num_layers'] / 2) * \
         (config['batch_size'] / 128) * \
         (config['sequence_length'] / 100)
+    return consumption
+
+
+def approx_mem_consumption(config):
+    # in MB for sequence_length=100, batch_size=128, num_layers=2, num_units=2000
+    # working for all lstm variants
+    if 'memory_table' not in config or config['memory_table'] is None:
+        consumption = vanilla_consumption(config)
+    else:
+        pass
     return consumption
 
 
@@ -241,13 +285,27 @@ configs = split_experiment_config_into_separate_measurement_configs(config)
 
 num_measurements = len(configs)
 counter = 0
-while counter < num_measurements:
-    list_of_launches, num_processed = get_configs_run_in_parallel(configs, counter)
-    for confs_to_run in list_of_launches:
-        with mp.Pool(len(confs_to_run)) as p:
-            res = p.map(perform_one_mesurement, confs_to_run)
+if config['measured_spec'] == 'time':
+    while counter < num_measurements:
+        list_of_launches, num_processed = get_configs_run_in_parallel(configs, counter)
+        for confs_to_run in list_of_launches:
+            with mp.Pool(len(confs_to_run)) as p:
+                res = p.map(perform_one_mesurement, confs_to_run)
+            print(res)
+            save_results(confs_to_run, res, config['save_path'])
+        counter += num_processed
+elif config['measured_spec'] == 'memory':
+    for i in range(num_measurements):
+        config_to_run = [configs[i]]
+        with mp.Pool(len(config_to_run)) as p:
+            res = p.map(perform_one_mesurement, config_to_run)
         print(res)
-        save_results(confs_to_run, res, config['save_path'])
-    counter += num_processed
+        save_results(config_to_run, res, config['save_path'])
+else:
+    raise UnknownConfigContent(
+        'measured_spec',
+        config['measured_spec'],
+        "Unknown value in field 'measured_spec' '%s'" % config['measured_spec'],
+    )
 
 
