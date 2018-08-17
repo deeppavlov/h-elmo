@@ -1,3 +1,4 @@
+import os
 import copy
 import tensorflow as tf
 from tensorflow.contrib.memory_stats.python.ops.memory_stats_ops import MaxBytesInUse
@@ -18,10 +19,14 @@ EXPERIMENT_PARAMS_ORDER = \
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--path_to_config',
+    'path_to_config',
     help="Path to config of experiment",
-    default="lstm_test_config.json",
-    # default="test_config.json",
+)
+parser.add_argument(
+    '--machine',
+    help="Name of machine on which computations are performed. If provided used as first directory in path to saved"
+         "results",
+    default=None,
 )
 args = parser.parse_args()
 
@@ -236,7 +241,7 @@ def approx_mem_consumption(config):
 def num_consequent_repeats(list_, idx):
     current = list_[idx]
     i = 1
-    while list_[idx+i] == current:
+    while idx + i < len(list_) and list_[idx+i] == current:
         i += 1
     return i
 
@@ -283,6 +288,17 @@ configs = split_experiment_config_into_separate_measurement_configs(config)
 #     writer.add_graph(graph)
 
 
+if args.machine is not None and len(args.machine) > 0:
+    dirs = config['save_path'].split('/')
+    if 'results' in dirs:
+        dirs.insert(dirs.index('results') + 1, args.machine)
+    else:
+        dirs = [args.machine] + dirs
+    save_path = os.path.join(*dirs)
+else:
+    save_path = config['save_path']
+
+
 num_measurements = len(configs)
 counter = 0
 if config['measured_spec'] == 'time':
@@ -292,7 +308,7 @@ if config['measured_spec'] == 'time':
             with mp.Pool(len(confs_to_run)) as p:
                 res = p.map(perform_one_mesurement, confs_to_run)
             print(res)
-            save_results(confs_to_run, res, config['save_path'])
+            save_results(confs_to_run, res, save_path)
         counter += num_processed
 elif config['measured_spec'] == 'memory':
     for i in range(num_measurements):
@@ -300,7 +316,7 @@ elif config['measured_spec'] == 'memory':
         with mp.Pool(len(config_to_run)) as p:
             res = p.map(perform_one_mesurement, config_to_run)
         print(res)
-        save_results(config_to_run, res, config['save_path'])
+        save_results(config_to_run, res, save_path)
 else:
     raise UnknownConfigContent(
         'measured_spec',
