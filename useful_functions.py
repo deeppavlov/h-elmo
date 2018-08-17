@@ -978,6 +978,7 @@ def write_line(metrics, params, save_path, clean=False):
         mode = 'w'
     else:
         mode = 'a'
+    create_path(save_path, file_name_is_in_path=True)
     metrics = [str(m) for m in metrics]
     params = [str(p) for p in params]
     with open(save_path, mode) as f:
