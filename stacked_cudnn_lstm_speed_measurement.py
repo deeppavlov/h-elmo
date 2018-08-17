@@ -102,7 +102,7 @@ def build_graph(config):
     inps, lbls = create_inps_and_lbls(config['sequence_length'], config['batch_size'], config['num_units'])
     if config['lstm_type'] == 'cudnn_stacked':
         logits = build_stacked_cudnn_lstm(inps, config['num_layers'], config['num_units'])
-    elif config['lstm_type'] == 'fuse':
+    elif config['lstm_type'] == 'fused':
         logits = build_lstm_fused(inps, config['num_layers'], config['num_units'])
     elif config['lstm_type'] == 'cudnn':
         logits = build_cudnn_lstm(inps, config['num_layers'], config['num_units'])
