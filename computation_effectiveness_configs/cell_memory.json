@@ -1,0 +1,12 @@
+{
+  "num_layers": [1, 2, 3, 4],
+  "num_units": [100, 200, 500, 1000, 2000],
+  "sequence_length": [10, 20, 50, 100],
+  "batch_size": [16, 32, 64, 128],
+  "save_path": "results/cell_memory.txt",
+  "lstm_type": "cell",
+  "mode": "train",
+  "measured_spec": "memory",
+  "num_steps": 50,
+  "memory_table": null
+}
