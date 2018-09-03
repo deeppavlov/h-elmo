@@ -1,0 +1,15 @@
+{
+  "num_layers": [2],
+  "num_units": [20],
+  "sequence_length": [100],
+  "batch_size": [16],
+  "save_path": "results/lstm_test.txt",
+  "lstm_type": "cudnn",
+  "mode": "train",
+  "num_steps": 10,
+  "num_proc_in_pool": 1,
+  "num_repeats": 1,
+  "memory_per_experiment": 7500,
+  "max_num_parallel_processes": 2,
+  "measured_spec": "time"
+}
