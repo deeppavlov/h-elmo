@@ -120,8 +120,7 @@ class StrLmIterator(DataLearningIterator):
 
     def gen_batches(self, batch_size: int, data_type: str = 'train',
                     shuffle: bool = None, reset: bool = None) -> Generator:
-        """Return a generator, which serves for generation of raw (no preprocessing such as tokenization)
-        batches
+        """Return a generator, which generates raw (no preprocessing such as tokenization) batches
         Args:
             batch_size (int): number of samples in batch
             data_type (str): can be either 'train', 'test', or 'valid'
