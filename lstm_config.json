@@ -22,7 +22,7 @@
         "id": "vocab",
         "save_path": "results/razvedopros/vocab.dict",
         "load_path": "results/razvedopros/vocab.dict",
-        "fit_on": ["x", "y"],
+        "fit_on": ["x"],
         "in": ["x"],
         "out": ["x_ids"]
       },
@@ -34,9 +34,11 @@
       {
         "name": "lstm",
         "id": "lstm",
+        "num_layers": 2,
         "num_units": [250, 250],
         "projection_size": 50,
-        "vocab_size": 11595,
+        "vocab_size": "#vocab.len"
+      ,
         "learning_rate": 3e-04,
         "save_path": "results/razvedopros/model",
         "load_path": "results/razvedopros/model",
@@ -58,5 +60,6 @@
     "batch_size": 64,
     "validation_patience": 0,
     "epochs": 20
-  }
+  },
+  "deeppavlov_root": "/home/anton/h-elmo/debug/lstm"
 }

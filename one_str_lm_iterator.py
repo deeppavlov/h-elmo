@@ -1,5 +1,5 @@
 from random import Random
-from typing import Dict, Tuple, List, Generator, Any
+from typing import Dict, Tuple, List, Generator, Any, Union
 from deeppavlov.core.data.data_learning_iterator import DataLearningIterator
 from deeppavlov.core.common.registry import register
 
@@ -134,7 +134,7 @@ class OneStrLmIterator(DataLearningIterator):
             last_batch = [self._start_char]*batch_size
         return cursors, last_batch
 
-    def gen_batches(self, batch_size: int, data_type: str = 'train',
+    def gen_batches(self, batch_size_and_num_unrollings: Union[int, List[int]], data_type: str = 'train',
                     shuffle: bool = None) -> Generator:
         """Return a generator, which generates (no preprocessing such as tokenization) batches
         Args:
@@ -146,6 +146,12 @@ class OneStrLmIterator(DataLearningIterator):
         """
         if shuffle is None:
             shuffle = self.shuffle
+        if isinstance(batch_size_and_num_unrollings, int):
+            batch_size = batch_size_and_num_unrollings
+            num_unrollings = 1
+        else:
+            batch_size = batch_size_and_num_unrollings[0]
+            num_unrollings = batch_size_and_num_unrollings[1]
 
         data = self.data[data_type]
         cursors, last_batch = self._reset_cursors(data, batch_size, shuffle)
@@ -171,11 +177,14 @@ class OneStrLmIterator(DataLearningIterator):
                       % (num_intersections, num_intersections))
         for _ in range(num_batches):
             lb = list(last_batch)
-            batch = self._create_batch(data, cursors)
-            last_batch = batch
-            cursors = self._shift_cursors(cursors, data_len)
-            yield lb, batch
+            sequence = [lb]
+            for _ in range(num_unrollings):
+                b = self._create_batch(data, cursors)
+                sequence.append(b)
+                cursors = self._shift_cursors(cursors, data_len)
+            last_batch = b
+            yield sequence[:-1], sequence[1:]
 
     def get_instances(self, data_type: str = 'train') -> str:
-        return self.data[data_type]
+        return [self.data[data_type]]
 

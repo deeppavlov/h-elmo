@@ -1,6 +1,12 @@
+import sys
+sys.path.append('/home/anton/dpenv/src/deeppavlov')
+
+import numpy as np
 import tensorflow as tf
+
 from tensorflow.contrib.cudnn_rnn import CudnnLSTM as CudnnLSTM
 from tensorflow.nn.rnn_cell import LSTMCell as LSTMCell
+from tensorflow.nn.rnn_cell import LSTMStateTuple as LSTMStateTuple
 from deeppavlov.core.common.registry import register
 from deeppavlov.core.models.tf_model import TFModel
 
@@ -42,6 +48,7 @@ def compose_save_list(*pairs, name_scope='save_list'):
 
 
 def deep_zip(objects, depth, permeable_types=(list, tuple, dict)):
+    # print("(deep_zip)objects:", objects)
     if depth != 0 and isinstance(objects[0], permeable_types):
         if isinstance(objects[0], (list, tuple)):
             zipped = list()
@@ -49,8 +56,14 @@ def deep_zip(objects, depth, permeable_types=(list, tuple, dict)):
                 zipped.append(
                     deep_zip(comb, depth-1, permeable_types=permeable_types)
                 )
-            if isinstance(objects[0], tuple):
+            if isinstance(objects[0], LSTMStateTuple):
+                zipped = LSTMStateTuple(
+                    c=zipped[0],
+                    h=zipped[1],
+                )
+            elif isinstance(objects[0], tuple):
                 zipped = tuple(zipped)
+
             return zipped
         elif isinstance(objects[0], dict):
             zipped = dict()
@@ -67,27 +80,36 @@ def apply_func_on_depth(obj, func, depth, permeable_types=(list, tuple, dict)):
             processed = list()
             for elem in obj:
                 processed.append(apply_func_on_depth(elem, func, depth-1, permeable_types=permeable_types))
-            if isinstance(obj, tuple):
+            if isinstance(obj, LSTMStateTuple):
+                processed = LSTMStateTuple(
+                    c=processed[0],
+                    h=processed[1],
+                )
+            elif isinstance(obj, tuple):
                 processed = tuple(processed)
             return processed
         elif isinstance(obj, dict):
             processed = dict()
             for key, value in obj.items():
-                processed[key] = apply_func_on_depth(value, depth-1, permeable_types=permeable_types)
+                processed[key] = apply_func_on_depth(value, func, depth-1, permeable_types=permeable_types)
             return processed
     return func(obj)
 
 
 def is_scalar_tensor(t):
+    # print("(is_scalar_tensor)t:", t)
     return tf.equal(tf.shape(tf.shape(t))[0], 0)
 
 
 def replace_empty_saved_state(saved_and_zero_state):
-    return tf.cond(
+    # print("(replace_empty_saved_state)saved_and_zero_state:", saved_and_zero_state)
+    returned = tf.cond(
         is_scalar_tensor(saved_and_zero_state[0]),
         true_fn=lambda: saved_and_zero_state[1],
-        false_fn=lambda: saved_and_zero_state[0],
+        false_fn=lambda: tf.reshape(saved_and_zero_state[0], tf.shape(saved_and_zero_state[1])),
     )
+    # print("(replace_empty_saved_state)returned:", returned)
+    return returned
 
 
 def prepare_init_state(saved_state, inps, lstms, lstm_type):
@@ -97,11 +119,16 @@ def prepare_init_state(saved_state, inps, lstms, lstm_type):
     zero_and_saved_states_zipped = deep_zip(
         [saved_state, zero_state], -1
     )
-    if lstm_type == 'cudnn_stacked':
+    # print("(prepare_init_state)zero_and_saved_states_zipped:", zero_and_saved_states_zipped)
+    if lstm_type == 'cudnn':
+        depth = 1
+    elif lstm_type == 'cudnn_stacked':
         depth = 2
     else:
-        depth = 1
-    return apply_func_on_depth(zero_and_saved_states_zipped, replace_empty_saved_state, depth)
+        depth = 0
+    returned = apply_func_on_depth(zero_and_saved_states_zipped, replace_empty_saved_state, depth)
+    # print("(prepare_init_state)returned:", returned)
+    return returned
 
 
 def add_cudnn_lstm(inps, state, num_layers, num_units):
@@ -111,8 +138,8 @@ def add_cudnn_lstm(inps, state, num_layers, num_units):
     return output, state
 
 
-def add_stacked_cudnn_lstm(inps, state, num_layers, num_units):
-    lstms = [CudnnLSTM(1, num_units, input_mode='linear_input', ) for _ in range(num_layers)]
+def add_stacked_cudnn_lstm(inps, state, num_units):
+    lstms = [CudnnLSTM(1, nu, input_mode='linear_input', ) for nu in num_units]
     state = prepare_init_state(state, inps, lstms, 'cudnn_stacked')
     inter = inps
     new_state = list()
@@ -122,12 +149,16 @@ def add_stacked_cudnn_lstm(inps, state, num_layers, num_units):
     return inter, new_state
 
 
-def add_cell_lstm(inps, state, num_layers, num_units):
-    lstms = [LSTMCell(num_units, dtype=tf.float32) for _ in range(num_layers)]
-    multilayer_lstm = tf.contrib.rnn.MultiRNNCell(lstms)
+def add_cell_lstm(inps, state, num_units):
+    lstms = [LSTMCell(nu, dtype=tf.float32, state_is_tuple=False) for nu in num_units]
+    multilayer_lstm = tf.contrib.rnn.MultiRNNCell(lstms, state_is_tuple=False)
+    # print("(add_cell_lstm)state:", state)
+    # print("(add_cell_lstm)multilayer_lstm.state_size:", multilayer_lstm.state_size)
     state = prepare_init_state(state, inps, multilayer_lstm, 'cell')
     if state is None:
         state = multilayer_lstm.zero_state(tf.shape(inps)[1], tf.float32)
+
+    # print("(add_cell_lstm)multilayer_lstm.state:", multilayer_lstm.state)
     output, state = tf.nn.dynamic_rnn(
         multilayer_lstm, inps, initial_state=state, parallel_iterations=1024, time_major=True
     )
@@ -160,28 +191,38 @@ def get_zero_state(inps, lstms, lstm_type):
         zero_state = cudnn_cell_zero_state(batch_size, lstms)
     if lstm_type == 'cudnn_stacked':
         zero_state = [cudnn_cell_zero_state(batch_size, lstm) for lstm in lstms]
+    # print("(get_zero_state)zero_state:", zero_state)
     return zero_state
 
 
 def get_saved_state_vars(num_layers, lstm_type):
     if lstm_type == 'cudnn':
         state = (
-            tf.Variable(0., trainable=False, validate_shape=False),
-            tf.Variable(0., trainable=False, validate_shape=False),
+            tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_h'),
+            tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_c'),
         )
     elif lstm_type == 'cudnn_stacked':
         state = [
             (
-                tf.Variable(0., trainable=False, validate_shape=False),
-                tf.Variable(0., trainable=False, validate_shape=False),
+                tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_stacked_h'),
+                tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_stacked_c'),
             ) for _ in range(num_layers)
         ]
     elif lstm_type == 'cell':
-        state = tuple(
-            [tf.Variable(0., trainable=False, validate_shape=False) for _ in range(num_layers*2)]
-        )
+        # state = LSTMStateTuple(
+        #     h=[
+        #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_h_%s' % i)
+        #         for i in range(num_layers)
+        #     ],
+        #     c=[
+        #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_c_%s' % i)
+        #         for i in range(num_layers)
+        #     ],
+        # )
+        state = tf.Variable(0., trainable=False, validate_shape=False, name='cell_state')
     else:
         state = None
+    # print(state)
     return state
 
 
@@ -234,7 +275,7 @@ class LSTM(TFModel):
         x = tf.one_hot(self.x_ph, self.vocab_size)
         y = tf.one_hot(self.y_ph, self.vocab_size)
 
-        x_embedded = tf.matmul(x, self.projection_matrix) + self.input_layer_bias
+        x_embedded = tf.tensordot(x, self.input_layer_matrix, axes=[[-1], [0]]) + self.input_layer_bias
         if self.device == 'gpu':
             if all([nu == self.num_units[i+1] for i, nu in enumerate(self.num_units[:-1])]):
                 lstm_type = 'cudnn'
@@ -242,24 +283,30 @@ class LSTM(TFModel):
                 lstm_type = 'cudnn_stacked'
         else:
             lstm_type = 'cell'
-
+        lstm_type = 'cell'
         saved_state = get_saved_state_vars(self.num_layers, lstm_type)
         if lstm_type == 'cudnn':
             lstm_output, state = add_cudnn_lstm(x_embedded, saved_state, self.num_layers, self.num_units[0])
         elif lstm_type == 'cudnn_stacked':
-            lstm_output, state = add_stacked_cudnn_lstm(x_embedded, saved_state, self.num_layers, self.num_units)
+            lstm_output, state = add_stacked_cudnn_lstm(x_embedded, saved_state, self.num_units)
         elif lstm_type == 'cell':
-            lstm_output, state = add_cell_lstm(x_embedded, saved_state, self.num_layers, self.num_units)
+            lstm_output, state = add_cell_lstm(x_embedded, saved_state, self.num_units)
 
-        logits = tf.matmul(lstm_output, self.softmax_layer_matrix) + self.softmax_layer_bias
+        logits = tf.tensordot(lstm_output, self.softmax_layer_matrix, axes=[[-1], [0]]) + self.softmax_layer_bias
 
         save_list = compose_save_list((saved_state, state))
         with tf.control_dependencies(save_list):
             self.predictions = tf.nn.softmax(logits)
-            self.loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-                labels=y,
-                logits=logits,
+            # print(self.predictions.get_shape().as_list())
+            self.loss = tf.reduce_mean(
+                tf.nn.softmax_cross_entropy_with_logits_v2(
+                    labels=y,
+                    logits=logits,
+                )
             )
+            opt = tf.train.AdamOptimizer(1)
+            grads_and_vars = opt.compute_gradients(self.loss)
+            # print(grads_and_vars)
 
     def add_trainable_vars(self):
         self.input_layer_matrix = tf.Variable(
@@ -285,7 +332,7 @@ class LSTM(TFModel):
             )
         )
 
-    def init_placeholders(self):
+    def add_placeholders(self):
         # placeholders for inputs
         self.x_ph = tf.placeholder(shape=(None, None), dtype=tf.int32, name='x_ph')
         self.y_ph = tf.placeholder(shape=(None, None), dtype=tf.int32, name='y_ph')
@@ -309,12 +356,15 @@ class LSTM(TFModel):
     def train_on_batch(self, x, y):
         feed_dict = self._build_feed_dict(x, y)
         loss, _ = self.sess.run([self.loss, self.train_op], feed_dict=feed_dict)
+        # print("(LSTM.train_on_batch)loss:", loss)
         return loss
 
     def __call__(self, x):
+        # print("(LSTM.__call__)x:", x)
         feed_dict = self._build_feed_dict(x)
         y_pred = self.sess.run(self.predictions, feed_dict=feed_dict)
-        return y_pred
+        # print("(LSTM.__call__)y_pred:", y_pred)
+        return np.reshape(y_pred, [-1, y_pred.shape[-1]])
 
 
 
