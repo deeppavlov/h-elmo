@@ -1,6 +1,10 @@
 from collections import Counter, defaultdict
 from itertools import chain
 from pathlib import Path
+import codecs
+
+import numpy as np
+np.set_printoptions(threshold=np.nan)
 
 from deeppavlov.core.common.registry import register
 from deeppavlov.core.common.errors import ConfigError
@@ -8,6 +12,23 @@ from deeppavlov.core.common.log import get_logger
 from deeppavlov.core.data.simple_vocab import SimpleVocabulary
 
 log = get_logger(__name__)
+
+
+def apply_func_on_depth(obj, func, depth, permeable_types=(list, tuple, dict)):
+    if depth != 0 and isinstance(obj, permeable_types):
+        if isinstance(obj, (list, tuple)):
+            processed = list()
+            for elem in obj:
+                processed.append(apply_func_on_depth(elem, func, depth-1, permeable_types=permeable_types))
+            if isinstance(obj, tuple):
+                processed = tuple(processed)
+            return processed
+        elif isinstance(obj, dict):
+            processed = dict()
+            for key, value in obj.items():
+                processed[key] = apply_func_on_depth(value, depth-1, permeable_types=permeable_types)
+            return processed
+    return func(obj)
 
 
 @register('char_lm_vocab')
@@ -50,9 +71,23 @@ class CharLMVocabulary(SimpleVocabulary):
                 self.count += 1
 
     def __call__(self, batch, **kwargs):
-        indices_batch = []
-        for token in batch:
-            indices_batch.append(self[token])
+        batch = np.array(batch)
+        if 'str' in batch.dtype.name:
+            f = np.vectorize(lambda x: self[x])
+            indices_batch = f(batch)
+
+        else:
+            # print(np.argmax(batch, axis=-1))
+            # print(len(self))
+            indices_batch = np.apply_along_axis(lambda x: self[np.argmax(x)], -1, batch)
+        if any([i.dtype.name == 'object' for i in indices_batch]):
+            print("(CharLMVocabulary.__call__)len(self):", len(self))
+            print("(CharLMVocabulary.__call__)self['\n']:", self['\n'])
+            print("(CharLMVocabulary.__call__)self._t2i:", self._t2i)
+            g = np.vectorize(lambda x: x is None)
+            mask = g(indices_batch)
+            print("(CharLMVocabulary.__call__)batch[mask]:", batch[mask])
+            print("(CharLMVocabulary.__call__)indices_batch[0]:", indices_batch[0])
         return indices_batch
 
     def save(self):
@@ -61,7 +96,7 @@ class CharLMVocabulary(SimpleVocabulary):
             for n in range(len(self)):
                 token = self._i2t[n]
                 cnt = self.freqs[token]
-                f.write('{}\t{:d}\n'.format(token, cnt))
+                f.write('{}\t{:d}\n'.format(repr(token), cnt))
 
     def load(self):
         self.reset()
@@ -71,6 +106,8 @@ class CharLMVocabulary(SimpleVocabulary):
                 tokens, counts = [], []
                 for ln in self.load_path.open('r'):
                     token, cnt = ln.split('\t', 1)
+                    token = token[1:-1]
+                    token = codecs.escape_decode(bytes(token, "utf-8"))[0].decode("utf-8")
                     tokens.append(token)
                     counts.append(int(cnt))
                 self._add_tokens_with_freqs(tokens, counts)
@@ -80,6 +117,7 @@ class CharLMVocabulary(SimpleVocabulary):
                         self.__class__.__name__))
         else:
             raise ConfigError("`load_path` for {} is not provided!".format(self))
+        print("(CharLMVocabulary.__call__)self._t2i:", self._t2i)
 
     def is_str_batch(self, batch):
         if not self.is_empty(batch):
