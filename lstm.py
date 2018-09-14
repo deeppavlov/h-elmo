@@ -246,6 +246,8 @@ class LSTM(TFModel):
         self.max_length = kwargs.get('max_length', 20)
         self.grad_clip = kwargs.get('grad_clip', 5.0)
         self.vocab_size = kwargs.get('vocab_size', 100)
+        if self.vocab_size == 80:
+            raise KeyboardInterrupt
         self.init_parameter = kwargs.get('init_parameter', 1.)
         self.device = kwargs.get('device_type', 'gpu')
 
@@ -296,7 +298,7 @@ class LSTM(TFModel):
 
         save_list = compose_save_list((saved_state, state))
         with tf.control_dependencies(save_list):
-            self.predictions = tf.nn.softmax(logits)
+            self.predictions = tf.argmax(tf.nn.softmax(logits), axis=-1)
             # print(self.predictions.get_shape().as_list())
             self.loss = tf.reduce_mean(
                 tf.nn.softmax_cross_entropy_with_logits_v2(
@@ -305,31 +307,36 @@ class LSTM(TFModel):
                 )
             )
             opt = tf.train.AdamOptimizer(1)
-            grads_and_vars = opt.compute_gradients(self.loss)
+            # grads_and_vars = opt.compute_gradients(self.loss)
             # print(grads_and_vars)
 
     def add_trainable_vars(self):
+        print("!!!ADD TRAINABLE VARS!!!")
         self.input_layer_matrix = tf.Variable(
             tf.truncated_normal(
                 [self.vocab_size, self.projection_size],
                 stddev=self.init_parameter / (self.vocab_size + self.projection_size) ** 0.5
-            )
+            ),
+            name='input_layer_matrix',
         )
         self.input_layer_bias = tf.Variable(
             tf.zeros(
                 [self.projection_size]
-            )
+            ),
+            name='input_layer_bias',
         )
         self.softmax_layer_matrix = tf.Variable(
             tf.truncated_normal(
                 [self.num_units[-1], self.vocab_size],
                 stddev=self.init_parameter / (self.num_units[-1] + self.vocab_size) ** 0.5
-            )
+            ),
+            name='softmax_layer_matrix',
         )
         self.softmax_layer_bias = tf.Variable(
             tf.zeros(
                 [self.vocab_size]
-            )
+            ),
+            name='softmax_layer_bias',
         )
 
     def add_placeholders(self):
@@ -364,7 +371,7 @@ class LSTM(TFModel):
         feed_dict = self._build_feed_dict(x)
         y_pred = self.sess.run(self.predictions, feed_dict=feed_dict)
         # print("(LSTM.__call__)y_pred:", y_pred)
-        return np.reshape(y_pred, [-1, y_pred.shape[-1]])
+        return y_pred
 
 
 

@@ -23,7 +23,7 @@ class WrongCursorOrder(Exception):
 class OneStrLmIterator(DataLearningIterator):
 
     def __init__(self, data: Dict[str, str],
-                 seed: int = None, shuffle: bool = True, start_char: str = '\n', no_intersections_in_epoch=False,
+                 seed: int = None, shuffle: bool = False, start_char: str = '\n', no_intersections_in_epoch=False,
                  verbose: bool = False,
                  *args, **kwargs) -> None:
         """ Dataiterator takes a dict with fields 'train', 'test', 'valid'. A list of samples
@@ -162,12 +162,16 @@ class OneStrLmIterator(DataLearningIterator):
         intervals, lengths = self._get_intervals_between_cursors(data_len, cursors)
         min_length = lengths[0]
         max_length = lengths[-1]
-        num_batches = min_length if self._no_intersections_in_epoch else max_length
+        num_batches = min_length // num_unrollings if self._no_intersections_in_epoch \
+            else max_length // num_unrollings + 1
+        # print("(OneStrLmIterator.gen_batches)num_batches:", num_batches)
+        # print("(OneStrLmIterator.gen_batches)lengths:", lengths)
         num_missed = 0
         num_intersections = 0
         for length in lengths:
-            num_missed += length - min_length
-            num_intersections += max_length - length
+            num_missed += length - num_batches * num_unrollings
+            num_intersections +=\
+                num_batches * num_unrollings - length
         if self._verbose:
             if self._no_intersections_in_epoch:
                 print('WARNING: %s characters will not be processed during this epoch!' % num_missed)
