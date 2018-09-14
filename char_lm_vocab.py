@@ -34,16 +34,16 @@ def apply_func_on_depth(obj, func, depth, permeable_types=(list, tuple, dict)):
 @register('char_lm_vocab')
 class CharLMVocabulary(SimpleVocabulary):
     def __init__(self,
-                 special_tokens=tuple(),
+                 special_tokens=('<UNK>',),
                  max_tokens=2**30,
                  pad_with_zeros=False,
-                 unk_token=None,
+                 unk_token='<UNK>',
                  *args,
                  **kwargs):
         super().__init__(**kwargs)
         self.special_tokens = special_tokens
         self._max_tokens = max_tokens
-        self._min_freq = 1
+        self._min_freq = 0
         self._pad_with_zeros = pad_with_zeros
         self.unk_token = unk_token
         self.reset()
@@ -55,11 +55,16 @@ class CharLMVocabulary(SimpleVocabulary):
             texts = [texts]
         self.reset()
         self.freqs = Counter(chain(*[list(text) for text in texts]))
+        for special_token in self.special_tokens:
+            self._t2i[special_token] = self.count
+            self._i2t.append(special_token)
+            self.count += 1
         for token, freq in self.freqs.most_common()[:self._max_tokens]:
             if freq >= self._min_freq:
                 self._t2i[token] = self.count
                 self._i2t.append(token)
                 self.count += 1
+        print(self._t2i)
 
     def _add_tokens_with_freqs(self, tokens, freqs):
         self.freqs = Counter()
@@ -72,14 +77,24 @@ class CharLMVocabulary(SimpleVocabulary):
 
     def __call__(self, batch, **kwargs):
         batch = np.array(batch)
-        if 'str' in batch.dtype.name:
-            f = np.vectorize(lambda x: self[x])
+        f = np.vectorize(lambda x: self[x])
+        try:
             indices_batch = f(batch)
+        except TypeError:
 
-        else:
-            # print(np.argmax(batch, axis=-1))
-            # print(len(self))
-            indices_batch = np.apply_along_axis(lambda x: self[np.argmax(x)], -1, batch)
+            for el in np.nditer(batch):
+                print(el, self[str(el)])
+            print(self._i2t)
+            print(self._t2i)
+            raise
+        # if 'str' in batch.dtype.name:
+        #     f = np.vectorize(lambda x: self[x])
+        #     indices_batch = f(batch)
+        #
+        # else:
+        #     # print(np.argmax(batch, axis=-1))
+        #     # print(len(self))
+        #     indices_batch = np.apply_along_axis(lambda x: self[np.argmax(x)], -1, batch)
         if any([i.dtype.name == 'object' for i in indices_batch]):
             print("(CharLMVocabulary.__call__)len(self):", len(self))
             print("(CharLMVocabulary.__call__)self['\n']:", self['\n'])
@@ -117,7 +132,7 @@ class CharLMVocabulary(SimpleVocabulary):
                         self.__class__.__name__))
         else:
             raise ConfigError("`load_path` for {} is not provided!".format(self))
-        print("(CharLMVocabulary.__call__)self._t2i:", self._t2i)
+        # print("(CharLMVocabulary.__call__)self._t2i:", self._t2i)
 
     def is_str_batch(self, batch):
         if not self.is_empty(batch):
@@ -127,7 +142,8 @@ class CharLMVocabulary(SimpleVocabulary):
 
     def reset(self):
         self.freqs = None
-        self._t2i = defaultdict(lambda: None)
+        self._t2i = dict()
+        # self._t2i = defaultdict(None)
         self._i2t = []
         self.count = 0
 
@@ -135,3 +151,18 @@ class CharLMVocabulary(SimpleVocabulary):
     def is_empty(batch):
         non_empty = [item for item in batch if len(item) > 0]
         return len(non_empty) == 0
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, np.integer)):
+            try:
+                return self._i2t[key]
+            except KeyError:
+                return self._i2t[0]
+        elif isinstance(key, str):
+            try:
+                return self._t2i[key]
+            except KeyError:
+                log.warning("Unknown character '{}'".format(key))
+                return self._t2i[self.unk_token]
+        else:
+            raise NotImplementedError("not implemented for type `{}`".format(type(key)))
