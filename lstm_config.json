@@ -3,7 +3,7 @@
     "name": "one_str_lm_reader",
     "data_path": "/home/anton/h-elmo/datasets/razvedopros.txt",
     "select": {
-      "train": [10000, 40000],
+      "train": [10000, 1000000],
       "valid": [2000, 8000],
       "test": [0, 2000]
     }
@@ -36,9 +36,11 @@
         "id": "lstm",
         "num_layers": 2,
         "num_units": [250, 250],
-        "projection_size": 50,
+        "projection_size": 250,
+        "init_parameter": 1.0,
         "vocab_size": "#vocab.len",
-        "learning_rate": 3e-04,
+        "learning_rate": 1e-3,
+        "learning_rate_patience": 5,
         "save_path": "results/razvedopros/model",
         "load_path": "results/razvedopros/model",
         "in": ["x_ids"],
@@ -56,6 +58,7 @@
   "train": {
     "log_every_n_batches": 100,
     "val_every_n_epochs":1,
+    "val_every_n_batches":20,
     "batch_size": [32, 30],
     "validation_patience": 0,
     "epochs": 20,

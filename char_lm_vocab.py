@@ -6,6 +6,16 @@ import codecs
 import numpy as np
 np.set_printoptions(threshold=np.nan)
 
+# from deeppavlov.core.common.registry import register
+# from deeppavlov.core.common.errors import ConfigError
+# from deeppavlov.core.common.log import get_logger
+# from deeppavlov.core.data.simple_vocab import SimpleVocabulary
+
+import sys
+
+sys.path.append('/home/anton/DeepPavlov')
+if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 from deeppavlov.core.common.registry import register
 from deeppavlov.core.common.errors import ConfigError
 from deeppavlov.core.common.log import get_logger
@@ -64,7 +74,6 @@ class CharLMVocabulary(SimpleVocabulary):
                 self._t2i[token] = self.count
                 self._i2t.append(token)
                 self.count += 1
-        print(self._t2i)
 
     def _add_tokens_with_freqs(self, tokens, freqs):
         self.freqs = Counter()
@@ -81,11 +90,11 @@ class CharLMVocabulary(SimpleVocabulary):
         try:
             indices_batch = f(batch)
         except TypeError:
-
+            print("\nBatch contents:")
             for el in np.nditer(batch):
                 print(el, self[str(el)])
-            print(self._i2t)
-            print(self._t2i)
+            print("\nindex to text:", self._i2t)
+            print("\ntext to index:", self._t2i)
             raise
         # if 'str' in batch.dtype.name:
         #     f = np.vectorize(lambda x: self[x])
@@ -95,14 +104,14 @@ class CharLMVocabulary(SimpleVocabulary):
         #     # print(np.argmax(batch, axis=-1))
         #     # print(len(self))
         #     indices_batch = np.apply_along_axis(lambda x: self[np.argmax(x)], -1, batch)
-        if any([i.dtype.name == 'object' for i in indices_batch]):
-            print("(CharLMVocabulary.__call__)len(self):", len(self))
-            print("(CharLMVocabulary.__call__)self['\n']:", self['\n'])
-            print("(CharLMVocabulary.__call__)self._t2i:", self._t2i)
-            g = np.vectorize(lambda x: x is None)
-            mask = g(indices_batch)
-            print("(CharLMVocabulary.__call__)batch[mask]:", batch[mask])
-            print("(CharLMVocabulary.__call__)indices_batch[0]:", indices_batch[0])
+        # if any([i.dtype.name == 'object' for i in indices_batch]):
+        #     print("(CharLMVocabulary.__call__)len(self):", len(self))
+        #     print("(CharLMVocabulary.__call__)self['\n']:", self['\n'])
+        #     print("(CharLMVocabulary.__call__)self._t2i:", self._t2i)
+        #     g = np.vectorize(lambda x: x is None)
+        #     mask = g(indices_batch)
+        #     print("(CharLMVocabulary.__call__)batch[mask]:", batch[mask])
+        #     print("(CharLMVocabulary.__call__)indices_batch[0]:", indices_batch[0])
         return indices_batch
 
     def save(self):

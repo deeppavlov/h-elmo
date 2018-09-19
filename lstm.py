@@ -7,9 +7,19 @@ import tensorflow as tf
 from tensorflow.contrib.cudnn_rnn import CudnnLSTM as CudnnLSTM
 from tensorflow.nn.rnn_cell import LSTMCell as LSTMCell
 from tensorflow.nn.rnn_cell import LSTMStateTuple as LSTMStateTuple
+# from deeppavlov.core.common.registry import register
+# from deeppavlov.core.models.tf_model import TFModel
+
+import sys
+
+sys.path.append('/home/anton/DeepPavlov')
+if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 from deeppavlov.core.common.registry import register
 from deeppavlov.core.models.tf_model import TFModel
+from deeppavlov.core.common.log import get_logger
 
+logger = get_logger(__name__)
 
 def synchronous_flatten(*nested):
     if not isinstance(nested[0], (tuple, list, dict)):
@@ -131,15 +141,24 @@ def prepare_init_state(saved_state, inps, lstms, lstm_type):
     return returned
 
 
-def add_cudnn_lstm(inps, state, num_layers, num_units):
-    lstm = CudnnLSTM(num_layers, num_units, input_mode='linear_input', )
+def add_cudnn_lstm(inps, state, num_layers, num_units, input_dim, init_parameter):
+    input_dim = max(input_dim, num_units)
+    stddevs = compute_stddevs([num_units], input_dim, init_parameter)
+    lstm = CudnnLSTM(
+        num_layers, num_units, input_mode='linear_input',
+        kernel_initializer=tf.truncated_normal_initializer(stddev=stddevs[0])
+    )
     state = prepare_init_state(state, inps, lstm, 'cudnn')
     output, state = lstm(inps, initial_state=state)
     return output, state
 
 
-def add_stacked_cudnn_lstm(inps, state, num_units):
-    lstms = [CudnnLSTM(1, nu, input_mode='linear_input', ) for nu in num_units]
+def add_stacked_cudnn_lstm(inps, state, num_units, input_dim, init_parameter):
+    stddevs = compute_stddevs(num_units, input_dim, init_parameter)
+    lstms = [
+        CudnnLSTM(1, nu, input_mode='linear_input', kernel_initializer=tf.truncated_normal_initializer(stddev=stddev))
+        for nu, stddev in zip(num_units, stddevs)
+    ]
     state = prepare_init_state(state, inps, lstms, 'cudnn_stacked')
     inter = inps
     new_state = list()
@@ -149,8 +168,19 @@ def add_stacked_cudnn_lstm(inps, state, num_units):
     return inter, new_state
 
 
-def add_cell_lstm(inps, state, num_units):
-    lstms = [LSTMCell(nu, dtype=tf.float32, state_is_tuple=False) for nu in num_units]
+def compute_stddevs(num_units, input_dim, init_parameter):
+    return [init_parameter / (input_dim + 2 * nu)**.5 for nu in num_units]
+
+
+def add_cell_lstm(inps, state, num_units, input_dim, init_parameter):
+    stddevs = compute_stddevs(num_units, input_dim, init_parameter)
+    lstms = [
+        LSTMCell(
+            nu, dtype=tf.float32, state_is_tuple=False,
+            initializer=tf.truncated_normal_initializer(stddev=stddev)
+        )
+        for nu, stddev in zip(num_units, stddevs)
+    ]
     multilayer_lstm = tf.contrib.rnn.MultiRNNCell(lstms, state_is_tuple=False)
     # print("(add_cell_lstm)state:", state)
     # print("(add_cell_lstm)multilayer_lstm.state_size:", multilayer_lstm.state_size)
@@ -242,6 +272,8 @@ class LSTM(TFModel):
         self.keep_prob = kwargs.get('keep_prob', 0.8)
         # learning rate
         self.learning_rate = kwargs.get('learning_rate', 3e-04)
+        self.learning_rate_patience = kwargs.get('learning_rate_patience', -1)
+        self.lr_decay_factor = kwargs.get('lr_decay_factor', .5)
         # max length of output sequence
         self.max_length = kwargs.get('max_length', 20)
         self.grad_clip = kwargs.get('grad_clip', 5.0)
@@ -249,7 +281,11 @@ class LSTM(TFModel):
         if self.vocab_size == 80:
             raise KeyboardInterrupt
         self.init_parameter = kwargs.get('init_parameter', 1.)
+        self.optimizer_type = kwargs.get('optimizer', 'adam')
         self.device = kwargs.get('device_type', 'gpu')
+
+        self.last_impatience = 0
+        self.lr_impatience = 0
 
         # create tensorflow session to run computational graph in it
         self.sess_config = tf.ConfigProto(allow_soft_placement=True)
@@ -259,8 +295,12 @@ class LSTM(TFModel):
         self.add_lstm_graph()
 
         # define train op
+        if self.optimizer_type == 'adam':
+            opt = tf.train.AdamOptimizer
+        elif self.optimizer_type == 'sgd':
+            opt = tf.train.GradientDescentOptimizer
         self.train_op = self.get_train_op(self.loss, self.lr_ph,
-                                          optimizer=tf.train.AdamOptimizer,
+                                          optimizer=opt,
                                           clip_norm=self.grad_clip)
         # initialize graph variables
         self.sess.run(tf.global_variables_initializer())
@@ -285,14 +325,17 @@ class LSTM(TFModel):
                 lstm_type = 'cudnn_stacked'
         else:
             lstm_type = 'cell'
-        lstm_type = 'cell'
+        # lstm_type = 'cudnn_stacked'
         saved_state = get_saved_state_vars(self.num_layers, lstm_type)
         if lstm_type == 'cudnn':
-            lstm_output, state = add_cudnn_lstm(x_embedded, saved_state, self.num_layers, self.num_units[0])
+            lstm_output, state = add_cudnn_lstm(
+                x_embedded, saved_state, self.num_layers, self.num_units[0], self.projection_size, self.init_parameter)
         elif lstm_type == 'cudnn_stacked':
-            lstm_output, state = add_stacked_cudnn_lstm(x_embedded, saved_state, self.num_units)
+            lstm_output, state = add_stacked_cudnn_lstm(
+                x_embedded, saved_state, self.num_units, self.projection_size, self.init_parameter)
         elif lstm_type == 'cell':
-            lstm_output, state = add_cell_lstm(x_embedded, saved_state, self.num_units)
+            lstm_output, state = add_cell_lstm(
+                x_embedded, saved_state, self.num_units, self.projection_size, self.init_parameter)
 
         logits = tf.tensordot(lstm_output, self.softmax_layer_matrix, axes=[[-1], [0]]) + self.softmax_layer_bias
 
@@ -306,12 +349,11 @@ class LSTM(TFModel):
                     logits=logits,
                 )
             )
-            opt = tf.train.AdamOptimizer(1)
+            # opt = tf.train.AdamOptimizer(1)
             # grads_and_vars = opt.compute_gradients(self.loss)
             # print(grads_and_vars)
 
     def add_trainable_vars(self):
-        print("!!!ADD TRAINABLE VARS!!!")
         self.input_layer_matrix = tf.Variable(
             tf.truncated_normal(
                 [self.vocab_size, self.projection_size],
@@ -373,7 +415,26 @@ class LSTM(TFModel):
         # print("(LSTM.__call__)y_pred:", y_pred)
         return y_pred
 
+    def process_event(self, event_name: str, data) -> None:
+        """
+        Processes events sent by trainer. Implements learning rate decay.
 
+        Args:
+            event_name: event_name sent by trainer
+            data: number of examples, epochs, metrics sent by trainer
+        """
+        if event_name == "after_validation" and self.last_impatience >= 0:
+            if data['impatience'] > self.last_impatience:
+                self.lr_impatience += 1
+            else:
+                self.lr_impatience = 0
 
+            self.last_impatience = data['impatience']
 
-
+            if self.lr_impatience >= self.learning_rate_patience:
+                self.lr_impatience = 0
+                self.learning_rate *= self.lr_decay_factor
+                logger.info('LSTM model: learning_rate changed to {}'.format(self.learning_rate))
+            logger.info(
+                'LSTM model: lr_impatience: {}, learning_rate: {}'.format(self.lr_impatience, self.learning_rate)
+            )

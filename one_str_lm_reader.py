@@ -1,4 +1,13 @@
 from typing import Dict, Tuple
+# from deeppavlov.core.data.dataset_reader import DatasetReader
+# from deeppavlov.core.common.registry import register
+
+
+import sys
+
+sys.path.append('/home/anton/DeepPavlov')
+if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 from deeppavlov.core.data.dataset_reader import DatasetReader
 from deeppavlov.core.common.registry import register
 
