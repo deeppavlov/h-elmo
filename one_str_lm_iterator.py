@@ -1,8 +1,14 @@
 from random import Random
 from typing import Dict, Tuple, List, Generator, Any, Union
+# from deeppavlov.core.data.data_learning_iterator import DataLearningIterator
+# from deeppavlov.core.common.registry import register
+
+import sys
+sys.path.append('/home/anton/DeepPavlov')
+if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 from deeppavlov.core.data.data_learning_iterator import DataLearningIterator
 from deeppavlov.core.common.registry import register
-
 
 class CursorOutOfBoundsError(Exception):
     def __init__(self, data_len, cursor, msg):
