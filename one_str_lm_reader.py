@@ -18,7 +18,7 @@ from deeppavlov.core.common.registry import register
 class OneStrLMReader(DatasetReader):
 
     def read(self, data_path: str, select: Dict[str, Tuple[int, int]]):
-        add_cephfs_to_path(data_path)
+        data_path = add_cephfs_to_path(data_path)
         dataset = {}
         with open(data_path, 'r') as f:
             text = f.read()
