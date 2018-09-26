@@ -12,7 +12,7 @@
 # train_spec.loader.exec_module(train)
 
 import sys
-from util.mod_sys_path import add_repo_2_sys_path
+from util.deal_with_cephfs import add_repo_2_sys_path
 sys.path = add_repo_2_sys_path('DeepPavlov')
 
 # sys.path.append('/home/anton/DeepPavlov')
