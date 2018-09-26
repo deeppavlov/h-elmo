@@ -1,17 +1,19 @@
 {
   "dataset_reader": {
     "name": "one_str_lm_reader",
-    "data_path": "/home/anton/h-elmo/datasets/razvedopros.txt",
+    "data_path": "/home/anton/h-elmo/datasets/enwiki1G.txt",
     "select": {
-      "train": [10000, 1000000],
-      "valid": [2000, 8000],
-      "test": [0, 2000]
+      "train": [60000, 1000000],
+      "valid": [50000, 10000],
+      "test": [0, 50000]
     }
   },
   "dataset_iterator": {
     "name": "one_str_lm_iterator",
-    "seed": 1337,
-    "shuffle": false
+    "seed": 1,
+    "shuffle": false,
+    "num_unrollings": 100,
+    "verbose": true
   },
   "chainer": {
     "in": ["x"],
@@ -20,8 +22,8 @@
       {
         "name": "char_lm_vocab",
         "id": "vocab",
-        "save_path": "results/razvedopros/vocab.dict",
-        "load_path": "results/razvedopros/vocab.dict",
+        "save_path": "results/enwiki1G/vocab.dict",
+        "load_path": "results/enwiki1G/vocab.dict",
         "fit_on": ["x"],
         "in": ["x"],
         "out": ["x_ids"]
@@ -35,17 +37,18 @@
         "name": "lstm",
         "id": "lstm",
         "num_layers": 2,
-        "num_units": [250, 250],
-        "projection_size": 250,
-        "init_parameter": 1.0,
+        "num_units": [1500, 1500],
+        "projection_size": 150,
+        "init_parameter": 3.0,
         "vocab_size": "#vocab.len",
         "learning_rate": 1e-3,
-        "learning_rate_patience": 5,
-        "save_path": "results/razvedopros/model",
-        "load_path": "results/razvedopros/model",
+        "learning_rate_patience": 10,
+        "save_path": "results/enwiki1G/model",
+        "load_path": "results/enwiki1G/model",
         "in": ["x_ids"],
         "in_y": ["y_ids"],
-        "out": ["y_predicted_ids"]
+        "out": ["y_predicted_ids"],
+        "optimizer_type": "adam"
       },
       {
         "ref": "vocab",
@@ -56,13 +59,13 @@
     "out": ["y_predicted"]
   },
   "train": {
-    "log_every_n_batches": 100,
-    "val_every_n_epochs":1,
-    "val_every_n_batches":20,
-    "batch_size": [32, 30],
+    "val_every_n_epochs": 1,
+    "val_every_n_batches": 5000,
+    "batch_size": 32,
     "validation_patience": 0,
-    "epochs": 20,
-    "metrics": ["per_token_accuracy"]
+    "epochs": -1,
+    "metrics": ["per_token_accuracy"],
+    "smooth_train": false
   },
   "deeppavlov_root": "/home/anton/h-elmo/debug/lstm"
 }
