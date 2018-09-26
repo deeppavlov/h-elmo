@@ -12,10 +12,12 @@ np.set_printoptions(threshold=np.nan)
 # from deeppavlov.core.data.simple_vocab import SimpleVocabulary
 
 import sys
+import os
+sys.path = [os.path.join(os.path.expanduser('~'), 'DeepPavlov')] + sys.path
 
-sys.path.append('/home/anton/DeepPavlov')
-if '/home/anton/dpenv/src/deeppavlov' in sys.path:
-    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
+# sys.path.append('/home/anton/DeepPavlov')
+# if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+#     sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 from deeppavlov.core.common.registry import register
 from deeppavlov.core.common.errors import ConfigError
 from deeppavlov.core.common.log import get_logger

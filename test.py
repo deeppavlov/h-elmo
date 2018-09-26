@@ -12,10 +12,12 @@
 # train_spec.loader.exec_module(train)
 
 import sys
+import os
+sys.path = [os.path.join(os.path.expanduser('~'), 'DeepPavlov')] + sys.path
 
-sys.path.append('/home/anton/DeepPavlov')
-if '/home/anton/dpenv/src/deeppavlov' in sys.path:
-    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
+# sys.path.append('/home/anton/DeepPavlov')
+# if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+#     sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 
 
 import one_str_lm_reader, one_str_lm_iterator, char_lm_vocab, lstm

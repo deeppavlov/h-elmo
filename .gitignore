@@ -3,4 +3,10 @@
 notes/.*
 datasets/**
 results/**
-__pycache__
+__pycache__/**
+.ipynb_checkpoints/**
+datasets/**
+debug/**
+.idea/**
+personachat/**
+results/**

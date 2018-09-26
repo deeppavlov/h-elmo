@@ -7,9 +7,11 @@ import numpy as np
 # from deeppavlov.core.common.registry import register
 
 import sys
-sys.path.append('/home/anton/DeepPavlov')
-if '/home/anton/dpenv/src/deeppavlov' in sys.path:
-    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
+import os
+sys.path = [os.path.join(os.path.expanduser('~'), 'DeepPavlov')] + sys.path
+# sys.path.append('/home/anton/DeepPavlov')
+# if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+#     sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 from deeppavlov.core.data.data_learning_iterator import DataLearningIterator
 from deeppavlov.core.common.registry import register
 from deeppavlov.core.common.log import get_logger
