@@ -3,3 +3,4 @@
 notes/.*
 datasets/**
 results/**
+__pycache__
