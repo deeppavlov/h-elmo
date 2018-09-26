@@ -5,9 +5,6 @@ from typing import Dict, Tuple
 import sys
 from util.deal_with_cephfs import add_repo_2_sys_path, add_cephfs_to_path
 sys.path = add_repo_2_sys_path('DeepPavlov')
-# sys.path.append('/home/anton/DeepPavlov')
-# if '/home/anton/dpenv/src/deeppavlov' in sys.path:
-#     sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 
 
 from deeppavlov.core.data.dataset_reader import DatasetReader

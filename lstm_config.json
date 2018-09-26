@@ -1,7 +1,7 @@
 {
   "dataset_reader": {
     "name": "one_str_lm_reader",
-    "data_path": "/home/anton/h-elmo/datasets/enwiki1G.txt",
+    "data_path": "datasets/enwiki1G.txt",
     "select": {
       "train": [60000, 1000000],
       "valid": [50000, 10000],
