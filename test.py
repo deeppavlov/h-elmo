@@ -12,8 +12,8 @@
 # train_spec.loader.exec_module(train)
 
 import sys
-import os
-sys.path = [os.path.join(os.path.expanduser('~'), 'DeepPavlov')] + sys.path
+from util.mod_sys_path import add_repo_2_sys_path
+sys.path = add_repo_2_sys_path('DeepPavlov')
 
 # sys.path.append('/home/anton/DeepPavlov')
 # if '/home/anton/dpenv/src/deeppavlov' in sys.path:
