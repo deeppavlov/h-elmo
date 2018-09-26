@@ -19,7 +19,7 @@ def add_repo_2_sys_path(repo_name):
 
 def add_cephfs_to_path(path):
     if not isinstance(path, str):
-        path.resolve()
+        path = str(path)
     if check_cephfs() and path[0] == '/' and path[1:7] != "cephfs":
         return "/cephfs" + path
     return path
