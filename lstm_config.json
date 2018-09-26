@@ -67,5 +67,5 @@
     "metrics": ["per_token_accuracy"],
     "smooth_train": false
   },
-  "deeppavlov_root": "/home/anton/h-elmo/debug/lstm"
+  "deeppavlov_root": "debug/lstm"
 }

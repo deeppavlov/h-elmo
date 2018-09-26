@@ -4,10 +4,13 @@ from typing import Dict, Tuple
 
 
 import sys
+import os
+sys.path = [os.path.join(os.path.expanduser('~'), 'DeepPavlov')] + sys.path
+# sys.path.append('/home/anton/DeepPavlov')
+# if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+#     sys.path.remove('/home/anton/dpenv/src/deeppavlov')
 
-sys.path.append('/home/anton/DeepPavlov')
-if '/home/anton/dpenv/src/deeppavlov' in sys.path:
-    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
+
 from deeppavlov.core.data.dataset_reader import DatasetReader
 from deeppavlov.core.common.registry import register
 

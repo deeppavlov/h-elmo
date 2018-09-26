@@ -11,10 +11,13 @@ from tensorflow.nn.rnn_cell import LSTMStateTuple as LSTMStateTuple
 # from deeppavlov.core.models.tf_model import TFModel
 
 import sys
+import os
+sys.path = [os.path.join(os.path.expanduser('~'), 'DeepPavlov')] + sys.path
 
-sys.path.append('/home/anton/DeepPavlov')
-if '/home/anton/dpenv/src/deeppavlov' in sys.path:
-    sys.path.remove('/home/anton/dpenv/src/deeppavlov')
+# sys.path.append('/home/anton/DeepPavlov')
+# if '/home/anton/dpenv/src/deeppavlov' in sys.path:
+#     sys.path.remove('/home/anton/dpenv/src/deeppavlov')
+
 from deeppavlov.core.common.registry import register
 from deeppavlov.core.models.tf_model import TFModel
 from deeppavlov.core.common.log import get_logger
