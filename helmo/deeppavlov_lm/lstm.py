@@ -1,7 +1,6 @@
 import sys
 sys.path.append('/home/anton/dpenv/src/deeppavlov')
 
-import numpy as np
 import tensorflow as tf
 
 from tensorflow.contrib.cudnn_rnn import CudnnLSTM as CudnnLSTM
@@ -11,7 +10,7 @@ from tensorflow.nn.rnn_cell import LSTMStateTuple as LSTMStateTuple
 # from deeppavlov.core.models.tf_model import TFModel
 
 import sys
-from util.deal_with_cephfs import add_repo_2_sys_path
+from helmo.util.deal_with_cephfs import add_repo_2_sys_path
 sys.path = add_repo_2_sys_path('DeepPavlov')
 
 

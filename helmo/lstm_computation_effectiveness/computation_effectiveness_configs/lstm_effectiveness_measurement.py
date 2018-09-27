@@ -1,17 +1,17 @@
-import os
+import argparse
 import copy
+import json
+import multiprocessing as mp
+import os
+import time
+
 import tensorflow as tf
-from tensorflow.contrib.memory_stats.python.ops.memory_stats_ops import MaxBytesInUse
 from tensorflow.contrib.cudnn_rnn import CudnnLSTM as CudnnLSTM
-# from tensorflow.contrib.cudnn_rnn.python.ops.cudnn_rnn_ops import CudnnLSTM as CudnnLSTM
+from tensorflow.contrib.memory_stats.python.ops.memory_stats_ops import MaxBytesInUse
 from tensorflow.contrib.rnn import LSTMBlockFusedCell as LSTMFused
 from tensorflow.nn.rnn_cell import LSTMCell as LSTMCell
-import time
-import json
-import argparse
-import multiprocessing as mp
-from useful_functions import all_combs, check_header_line_is_present, write_line, create_even_distribution
 
+from helmo.util.useful_functions import all_combs, check_header_line_is_present, write_line, create_even_distribution
 
 EXPERIMENT_PARAMS_ORDER = \
     ['sequence_length', 'batch_size', 'num_layers', 'num_units', 'num_parallel_launches', 'num_steps']

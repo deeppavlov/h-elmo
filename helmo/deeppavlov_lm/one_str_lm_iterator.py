@@ -1,13 +1,11 @@
+import sys
 from random import Random
-from typing import Dict, Tuple, List, Generator, Any, Union
+from typing import Dict, List, Generator, Union
 
 import numpy as np
 
-# from deeppavlov.core.data.data_learning_iterator import DataLearningIterator
-# from deeppavlov.core.common.registry import register
+from helmo.util.deal_with_cephfs import add_repo_2_sys_path
 
-import sys
-from util.deal_with_cephfs import add_repo_2_sys_path
 sys.path = add_repo_2_sys_path('DeepPavlov')
 
 from deeppavlov.core.data.data_learning_iterator import DataLearningIterator

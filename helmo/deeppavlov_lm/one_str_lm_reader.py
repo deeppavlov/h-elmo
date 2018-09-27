@@ -1,9 +1,8 @@
-from typing import Dict, Tuple
-# from deeppavlov.core.data.dataset_reader import DatasetReader
-# from deeppavlov.core.common.registry import register
-
 import sys
-from util.deal_with_cephfs import add_repo_2_sys_path, add_cephfs_to_path
+from typing import Dict, Tuple
+
+from helmo.util.deal_with_cephfs import add_repo_2_sys_path, add_cephfs_to_path
+
 sys.path = add_repo_2_sys_path('DeepPavlov')
 
 

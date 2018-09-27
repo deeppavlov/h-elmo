@@ -1,0 +1,3 @@
+op_time sequence_length batch_size num_layers num_units num_parallel_launches num_steps
+0.12850160598754884 100 16 2 20 1 10
+0.45926063060760497 100 16 2 20 1 10
