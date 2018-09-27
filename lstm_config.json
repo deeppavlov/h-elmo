@@ -62,7 +62,7 @@
     "val_every_n_epochs": 1,
     "val_every_n_batches": 5000,
     "batch_size": 32,
-    "validation_patience": 0,
+    "validation_patience": 20,
     "epochs": -1,
     "metrics": ["per_token_accuracy"],
     "smooth_train": false
