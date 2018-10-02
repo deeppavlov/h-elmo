@@ -18,200 +18,14 @@ from deeppavlov.core.common.registry import register
 from deeppavlov.core.models.tf_model import TFModel
 from deeppavlov.core.common.log import get_logger
 
+from helmo.util.tensor import prepare_init_state, compose_save_list, compute_lstm_stddevs, get_saved_state_vars
+
 logger = get_logger(__name__)
-
-
-def synchronous_flatten(*nested):
-    if not isinstance(nested[0], (tuple, list, dict)):
-        return [[n] for n in nested]
-    output = [list() for _ in nested]
-    if isinstance(nested[0], dict):
-        for k in nested[0].keys():
-            flattened = synchronous_flatten(*[n[k] for n in nested])
-            for o, f in zip(output, flattened):
-                o.extend(f)
-    else:
-        try:
-            for inner_nested in zip(*nested):
-                flattened = synchronous_flatten(*inner_nested)
-                for o, f in zip(output, flattened):
-                    o.extend(f)
-        except TypeError:
-            print('(synchronous_flatten)nested:', nested)
-            raise
-    return output
-
-
-def compose_save_list(*pairs, name_scope='save_list'):
-    with tf.name_scope(name_scope):
-        save_list = list()
-        for pair in pairs:
-            # print('pair:', pair)
-            [variables, new_values] = synchronous_flatten(pair[0], pair[1])
-            # print("(useful_functions.compose_save_list)variables:", variables)
-            # variables = flatten(pair[0])
-            # # print(variables)
-            # new_values = flatten(pair[1])
-            for variable, value in zip(variables, new_values):
-                save_list.append(tf.assign(variable, value, validate_shape=False))
-        return save_list
-
-
-def deep_zip(objects, depth, permeable_types=(list, tuple, dict)):
-    # print("(deep_zip)objects:", objects)
-    if depth != 0 and isinstance(objects[0], permeable_types):
-        if isinstance(objects[0], (list, tuple)):
-            zipped = list()
-            for comb in zip(*objects):
-                zipped.append(
-                    deep_zip(comb, depth-1, permeable_types=permeable_types)
-                )
-            if isinstance(objects[0], LSTMStateTuple):
-                zipped = LSTMStateTuple(
-                    c=zipped[0],
-                    h=zipped[1],
-                )
-            elif isinstance(objects[0], tuple):
-                zipped = tuple(zipped)
-
-            return zipped
-        elif isinstance(objects[0], dict):
-            zipped = dict()
-            for key in objects[0].keys():
-                values = [obj[key] for obj in objects]
-                zipped[key] = deep_zip(values, depth-1, permeable_types=permeable_types)
-            return zipped
-    return tuple(objects)
-
-
-def apply_func_on_depth(obj, func, depth, permeable_types=(list, tuple, dict)):
-    if depth != 0 and isinstance(obj, permeable_types):
-        if isinstance(obj, (list, tuple)):
-            processed = list()
-            for elem in obj:
-                processed.append(apply_func_on_depth(elem, func, depth-1, permeable_types=permeable_types))
-            if isinstance(obj, LSTMStateTuple):
-                processed = LSTMStateTuple(
-                    c=processed[0],
-                    h=processed[1],
-                )
-            elif isinstance(obj, tuple):
-                processed = tuple(processed)
-            return processed
-        elif isinstance(obj, dict):
-            processed = dict()
-            for key, value in obj.items():
-                processed[key] = apply_func_on_depth(value, func, depth-1, permeable_types=permeable_types)
-            return processed
-    return func(obj)
-
-
-def is_scalar_tensor(t):
-    # print("(is_scalar_tensor)t:", t)
-    return tf.equal(tf.shape(tf.shape(t))[0], 0)
-
-
-def adjust_saved_state(saved_and_zero_state):
-    # print("(replace_empty_saved_state)saved_and_zero_state:", saved_and_zero_state)
-
-    # returned = tf.cond(
-    #     is_scalar_tensor(saved_and_zero_state[0]),
-    #     true_fn=lambda: saved_and_zero_state[1],
-    #     false_fn=lambda: tf.reshape(
-    #         saved_and_zero_state[0],
-    #         tf.shape(saved_and_zero_state[1])
-    #     ),
-    # )
-    name = saved_and_zero_state[0].name.split('/')[-1].replace(':', '_')
-    zero_state_shape = tf.shape(saved_and_zero_state[1])
-    # zero_state_shape = tf.Print(zero_state_shape, [zero_state_shape], message="(adjust_saved_state)zero_state_shape:\n")
-    # zero_state_shape = tf.Print(
-    #     zero_state_shape, [tf.shape(saved_and_zero_state[0])], message="(adjust_saved_state)saved_and_zero_state[0]:\n")
-    returned = tf.cond(
-        is_scalar_tensor(saved_and_zero_state[0]),
-        true_fn=lambda: saved_and_zero_state[1],
-        false_fn=lambda: adjust_batch_size(saved_and_zero_state[0], zero_state_shape[-2]),
-    )
-    # print("(replace_empty_saved_state)returned:", returned)
-    return tf.reshape(returned, zero_state_shape, name=name+"_adjusted")
-
-
-def get_zero_state(inps, lstms, lstm_type):
-    batch_size = tf.shape(inps)[1]
-    if lstm_type == 'cell':
-        zero_state = lstms.zero_state(batch_size, tf.float32)
-    if lstm_type == 'cudnn':
-        zero_state = cudnn_cell_zero_state(batch_size, lstms)
-    if lstm_type == 'cudnn_stacked':
-        zero_state = [cudnn_cell_zero_state(batch_size, lstm) for lstm in lstms]
-    # print("(get_zero_state)zero_state:", zero_state)
-    return zero_state
-
-
-def adjust_batch_size(state, batch_size):
-    # batch_size = tf.Print(batch_size, [batch_size], message="(discard_redundant_states)batch_size:\n")
-    # batch_size = tf.Print(batch_size, [tf.shape(state)], message="(discard_redundant_states)tf.shape(state):\n")
-    state_shape = tf.shape(state)
-    added_states_shape = tf.concat(
-        [
-            tf.shape(state)[:-2],
-            tf.reshape(batch_size - state_shape[-2], [1]),
-            tf.shape(state)[-1:]
-        ],
-        0
-    )
-    slice_start = tf.zeros(tf.shape(tf.shape(state)), dtype=tf.int32)
-    remaining_states_shape = tf.concat(
-        [
-            tf.shape(state)[:-2],
-            tf.reshape(batch_size, [1]),
-            tf.shape(state)[-1:]
-        ],
-        0
-    )
-    return tf.cond(
-        tf.shape(state)[-2] < batch_size,
-        true_fn=lambda: tf.concat([state, tf.zeros(added_states_shape)], -2, name='extended_state'),
-        false_fn=lambda: tf.slice(state, slice_start, remaining_states_shape, name='shortened_state'),
-        name='state_with_adjusted_batch_size'
-    )
-
-
-def prepare_init_state(saved_state, inps, lstms, lstm_type):
-    # inps = tf.Print(inps, [tf.shape(inps)], message="(prepare_init_state)tf.shape(inps):\n")
-    # saved_state = list(saved_state)
-    # for idx, s in enumerate(saved_state):
-    #     saved_state[idx] = tf.Print(s, [tf.shape(s)], message="(prepare_init_state)saved_state[%s].shape:\n" % idx)
-    # saved_state = tuple(saved_state)
-    if saved_state is None:
-        return None
-    if lstm_type == 'cudnn':
-        depth = 1
-    elif lstm_type == 'cudnn_stacked':
-        depth = 2
-    else:
-        depth = 0
-    zero_state = get_zero_state(inps, lstms, lstm_type)
-    zero_and_saved_states_zipped = deep_zip(
-        [saved_state, zero_state], -1
-    )
-    # print("(prepare_init_state)zero_and_saved_states_zipped:", zero_and_saved_states_zipped)
-    returned = apply_func_on_depth(zero_and_saved_states_zipped, adjust_saved_state, depth)
-    # returned = apply_func_on_depth(
-    #     returned,
-    #     lambda x: discard_redundant_states(
-    #         x,
-    #         tf.shape(inps)[1],
-    #     ),
-    #     depth
-    # )
-    # print("(prepare_init_state)returned:", returned)
-    return returned
 
 
 def add_cudnn_lstm(inps, state, num_layers, num_units, input_dim, init_parameter):
     input_dim = max(input_dim, num_units)
-    stddevs = compute_stddevs([num_units], input_dim, init_parameter)
+    stddevs = compute_lstm_stddevs([num_units], input_dim, init_parameter)
     # print("(add_cudnn_lstm)stddevs:", stddevs)
     lstm = CudnnLSTM(
         num_layers, num_units, input_mode='linear_input',
@@ -223,7 +37,7 @@ def add_cudnn_lstm(inps, state, num_layers, num_units, input_dim, init_parameter
 
 
 def add_stacked_cudnn_lstm(inps, state, num_units, input_dim, init_parameter):
-    stddevs = compute_stddevs(num_units, input_dim, init_parameter)
+    stddevs = compute_lstm_stddevs(num_units, input_dim, init_parameter)
     lstms = [
         CudnnLSTM(1, nu, input_mode='linear_input', kernel_initializer=tf.truncated_normal_initializer(stddev=stddev))
         for nu, stddev in zip(num_units, stddevs)
@@ -239,17 +53,8 @@ def add_stacked_cudnn_lstm(inps, state, num_units, input_dim, init_parameter):
     return inter, new_state
 
 
-def compute_stddevs(num_units, input_dim, init_parameter):
-    stddevs = list()
-    prev_nu = input_dim
-    for nu in num_units:
-        stddevs.append(init_parameter / (prev_nu + 2 * nu)**.5)
-        prev_nu = nu
-    return stddevs
-
-
 def add_cell_lstm(inps, state, num_units, input_dim, init_parameter):
-    stddevs = compute_stddevs(num_units, input_dim, init_parameter)
+    stddevs = compute_lstm_stddevs(num_units, input_dim, init_parameter)
     lstms = [
         LSTMCell(
             nu, dtype=tf.float32, state_is_tuple=False,
@@ -269,55 +74,6 @@ def add_cell_lstm(inps, state, num_units, input_dim, init_parameter):
         multilayer_lstm, inps, initial_state=state, parallel_iterations=1024, time_major=True
     )
     return output, state
-
-
-def cudnn_cell_zero_state(batch_size, cell):
-    zero_state = tuple(
-        [
-            tf.zeros(
-                tf.concat(
-                    [
-                        [cell.num_dirs * cell.num_layers],
-                        tf.reshape(batch_size, [1]),
-                        [cell.num_units]
-                    ],
-                    0
-                )
-            )
-        ] * 2
-    )
-    return zero_state
-
-
-def get_saved_state_vars(num_layers, lstm_type):
-    if lstm_type == 'cudnn':
-        state = (
-            tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_h'),
-            tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_c'),
-        )
-    elif lstm_type == 'cudnn_stacked':
-        state = [
-            (
-                tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_stacked_h'),
-                tf.Variable(0., trainable=False, validate_shape=False, name='cudnn_stacked_c'),
-            ) for _ in range(num_layers)
-        ]
-    elif lstm_type == 'cell':
-        # state = LSTMStateTuple(
-        #     h=[
-        #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_h_%s' % i)
-        #         for i in range(num_layers)
-        #     ],
-        #     c=[
-        #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_c_%s' % i)
-        #         for i in range(num_layers)
-        #     ],
-        # )
-        state = tf.Variable(0., trainable=False, validate_shape=False, name='cell_state')
-    else:
-        state = None
-    # print(state)
-    return state
 
 
 @register('lstm')
