@@ -45,17 +45,17 @@ metrics = ['bpc', 'perplexity', 'accuracy']
 
 lstm_map = dict(
     module_name='char_enc_dec',
-    num_nodes=[250, 250],
+    num_nodes=[250, 125],
     input_idx=None,
     output_idx=None,
-    derived_branches=[
-        dict(
-            module_name='word_enc_dec',
-            num_nodes=[500, 500],
-            input_idx=0,
-            output_idx=1,
-        )
-    ]
+    # derived_branches=[
+    #     dict(
+    #         module_name='word_enc_dec',
+    #         num_nodes=[500, 500],
+    #         input_idx=0,
+    #         output_idx=1,
+    #     )
+    # ]
 )
 
 env.build_pupil(
