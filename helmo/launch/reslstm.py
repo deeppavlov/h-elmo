@@ -76,8 +76,8 @@ learning_rate = dict(
 env.train(
     # gpu_memory=.3,
     allow_growth=True,
-    save_path='lstm/start',
-    restore_path='lstm/start/checkpoints/best',
+    save_path='results/reslstm',
+    # restore_path='results/reslstm/checkpoints/best',
     learning_rate=learning_rate,
     batch_size=BATCH_SIZE,
     num_unrollings=NUM_UNROLLINGS,
@@ -91,6 +91,7 @@ env.train(
     # train_dataset_text='abc',
     validation_dataset_texts=[valid_text],
     results_collect_interval=100,
-    no_validation=False
+    no_validation=False,
+    validation_batch_size=32,
 )
 # log_device_placement=True)

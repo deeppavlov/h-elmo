@@ -17,91 +17,9 @@ from learning_to_learn.useful_functions import create_vocabulary, get_positions_
     append_to_nested, get_average_with_weights_func, func_on_list_in_nested
 from learning_to_learn.pupils.pupil import Pupil
 
-from learning_to_learn.tensors import compute_metrics
+from learning_to_learn.tensors import compute_metrics_raw_lbls
 
 from helmo.util.tensor import prepare_init_state, get_saved_state_vars, compute_lstm_stddevs
-
-
-class LstmBatchGenerator(object):
-    @staticmethod
-    def create_vocabulary(texts):
-        text = ''
-        for t in texts:
-            text += t
-        return create_vocabulary(text)
-
-    @staticmethod
-    def char2vec(char, character_positions_in_vocabulary, speaker_idx, speaker_flag_size):
-        return np.reshape(char2vec(char, character_positions_in_vocabulary), (1, 1, -1))
-
-    @staticmethod
-    def pred2vec(pred, speaker_idx, speaker_flag_size, batch_gen_args):
-        return np.reshape(pred2vec(pred), (1, 1, -1))
-
-    @staticmethod
-    def vec2char(vec, vocabulary):
-        return vec2char(vec, vocabulary)
-
-    @staticmethod
-    def vec2char_fast(vec, vocabulary):
-        return vec2char(vec, vocabulary)
-
-    def __init__(self, text, batch_size, num_unrollings=1, vocabulary=None, random_batch_initiation=False):
-        self._text = text
-        self._text_size = len(text)
-        self._batch_size = batch_size
-        self.vocabulary = vocabulary
-        self._vocabulary_size = len(self.vocabulary)
-        self.character_positions_in_vocabulary = get_positions_in_vocabulary(self.vocabulary)
-        self._num_unrollings = num_unrollings
-        if random_batch_initiation:
-            self._cursor = random.sample(range(self._text_size), batch_size)
-        else:
-            segment = self._text_size // batch_size
-            self._cursor = [offset * segment for offset in range(batch_size)]
-        self._last_batch = self._start_batch()
-
-    def get_num_batches(self):
-        return len(self._text)
-
-    def get_vocabulary_size(self):
-        return self._vocabulary_size
-
-    def _start_batch(self):
-        batch = np.zeros(shape=(self._batch_size, self._vocabulary_size), dtype=np.float)
-        for b in range(self._batch_size):
-            batch[b, 0] = 1.0
-        return batch
-
-    def _zero_batch(self):
-        return np.zeros(shape=(self._batch_size, self._vocabulary_size), dtype=np.float)
-
-    def _next_batch(self):
-        """Generate a single batch from the current cursor position in the data."""
-        batch = np.zeros(shape=(self._batch_size, self._vocabulary_size), dtype=np.float)
-        for b in range(self._batch_size):
-            batch[b, char2id(self._text[self._cursor[b]], self.character_positions_in_vocabulary)] = 1.0
-            self._cursor[b] = (self._cursor[b] + 1) % self._text_size
-        return batch
-
-    def char2batch(self, char):
-        return np.stack(char2vec(char, self.character_positions_in_vocabulary)), np.stack(self._zero_batch())
-
-    def pred2batch(self, pred):
-        batch = np.zeros(shape=(self._batch_size, self._vocabulary_size), dtype=np.float)
-        char_id = np.argmax(pred, 1)[-1]
-        batch[0, char_id] = 1.0
-        return np.stack([batch]), np.stack([self._zero_batch()])
-
-    def next(self):
-        """Generate the next array of batches from the data. The array consists of
-        the last batch of the previous array, followed by num_unrollings new ones.
-        """
-        batches = [self._last_batch]
-        for step in range(self._num_unrollings):
-            batches.append(self._next_batch())
-        self._last_batch = batches[-1]
-        return np.stack(batches[:-1]), np.concatenate(batches[1:], 0)
 
 
 class LstmFastBatchGenerator(object):
@@ -144,20 +62,20 @@ class LstmFastBatchGenerator(object):
         self._last_batch = self._start_batch()
 
     def get_num_batches(self):
-        return len(self._text)
+        return len(self._text) // self._batch_size
 
     def get_vocabulary_size(self):
         return self._vocabulary_size
 
     def _start_batch(self):
-        return np.array([[0] for _ in range(self._batch_size)])
+        return np.array([0 for _ in range(self._batch_size)])
 
     def _zero_batch(self):
         return -np.ones(shape=(self._batch_size), dtype=np.float)
 
     def _next_batch(self):
         """Generate a single batch from the current cursor position in the data."""
-        ret = np.array([[char2id(self._text[self._cursor[b]], self.character_positions_in_vocabulary)]
+        ret = np.array([char2id(self._text[self._cursor[b]], self.character_positions_in_vocabulary)
                         for b in range(self._batch_size)])
         for b in range(self._batch_size):
             self._cursor[b] = (self._cursor[b] + 1) % self._text_size
@@ -176,7 +94,7 @@ class LstmFastBatchGenerator(object):
         self._last_batch = batches[-1]
         # print('(LstmFastBatchGenerator.next)batches[:-1]:', batches[:-1])
         # print('(LstmFastBatchGenerator.next)batches[:-1].shape:', [b.shape for b in batches[:-1]])
-        return np.stack(batches[:-1]), np.concatenate(batches[1:], 0)
+        return np.stack(batches[:-1]), np.stack(batches[1:])
 
 
 def characters(probabilities, vocabulary):
@@ -208,7 +126,7 @@ class Lstm(Pupil):
     def _output_module(self, inp):
         with tf.name_scope('output_module'):
             for idx, out_core in enumerate(self._out_vars):
-                inp = tf.tensordot(inp, out_core['matrix'], [[-1], [0]]) + out_core['bias']
+                inp = tf.einsum('ijk,kl->ijl', inp, out_core['matrix']) + out_core['bias']
                 if idx < len(self._out_vars) - 1:
                     inp = tf.nn.relu(inp)
         return inp
@@ -279,10 +197,12 @@ class Lstm(Pupil):
             for inp, gpu_name in zip(inps_by_gpu, self._gpu_names):
                 with tf.device(gpu_name):
                     with tf.name_scope(device_name_scope(gpu_name)):
+                        x = tf.one_hot(inp, self._voc_size, dtype=tf.float32)
                         outputs.append(
-                            tf.tensordot(
-                                tf.one_hot(inp, self._voc_size, dtype=tf.float32),
-                                self._emb_vars['matrix'], [[-1], [0]]
+                            tf.einsum(
+                                'ijk,kl->ijl',
+                                x,
+                                self._emb_vars['matrix']
                             ) + self._emb_vars['bias']
                         )
         return outputs
@@ -336,7 +256,7 @@ class Lstm(Pupil):
                     with tf.name_scope(device_name_scope(gpu_name)):
                         loss = self._compute_loss(logits, lbls)
                         loss_by_gpu.append(loss)
-                        add_metrics = compute_metrics(
+                        add_metrics = compute_metrics_raw_lbls(
                             self._metrics, predictions=preds,
                             labels=lbls, loss=loss, keep_first_dim=False
                         )
@@ -589,7 +509,7 @@ class Lstm(Pupil):
                             stddev=self._init_parameter * np.sqrt(1. / (self._voc_size + self._emb_size))
                         ),
                         name='embedding_matrix',
-                        collections=[tf.GraphKeys.WEIGHTS],
+                        collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
                     ),
                     bias=tf.Variable(tf.zeros([self._emb_size]), name='embedding_bias')
                 )
@@ -603,7 +523,7 @@ class Lstm(Pupil):
                                 tf.truncated_normal([inp_dim, out_dim],
                                 stddev=stddev),
                                 name='output_matrix_%s' % layer_idx,
-                                collections=[tf.GraphKeys.WEIGHTS],
+                                collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
                             ),
                             bias=tf.Variable(
                                 tf.zeros([out_dim]),
@@ -756,6 +676,7 @@ class Lstm(Pupil):
             train_op = self._get_train_op(train_loss_by_gpu)
             self._hooks['train_op'] = train_op
 
+        self._hooks['loss'] = train_loss
         self._hooks['predictions'] = tf.concat(train_preds_by_gpu, 1)
         self._hooks['validation_predictions'] = tf.concat(valid_preds_by_gpu, 1)
         self._hooks['reset_validation_state'] = reset_valid_state
