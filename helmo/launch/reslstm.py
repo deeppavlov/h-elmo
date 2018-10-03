@@ -42,12 +42,24 @@ cpiv = get_positions_in_vocabulary(vocabulary)
 metrics = ['bpc', 'perplexity', 'accuracy']
 
 # tf.set_random_seed(1)
-NUM_UNROLLINGS = 30
-BATCH_SIZE = 32
+
+lstm_map = dict(
+    module_name='char_enc_dec',
+    num_nodes=[250, 250],
+    input_idx=None,
+    output_idx=None,
+    derived_branches=[
+        dict(
+            module_name='word_enc_dec',
+            num_nodes=[500, 500],
+            input_idx=0,
+            output_idx=1,
+        )
+    ]
+)
 
 env.build_pupil(
-    num_layers=2,
-    num_nodes=250,
+    lstm_map=lstm_map,
     num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
@@ -73,6 +85,9 @@ learning_rate = dict(
     init=1e-3,
     path_to_target_metric_storage=('default_1', 'loss')
 )
+
+NUM_UNROLLINGS = 30
+BATCH_SIZE = 32
 env.train(
     # gpu_memory=.3,
     allow_growth=True,
