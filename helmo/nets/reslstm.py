@@ -62,7 +62,7 @@ class LstmFastBatchGenerator(object):
         self._last_batch = self._start_batch()
 
     def get_num_batches(self):
-        return len(self._text) // self._batch_size
+        return len(self._text) // (self._batch_size * self._num_unrollings)
 
     def get_vocabulary_size(self):
         return self._vocabulary_size
@@ -92,9 +92,11 @@ class LstmFastBatchGenerator(object):
         for step in range(self._num_unrollings):
             batches.append(self._next_batch())
         self._last_batch = batches[-1]
-        # print('(LstmFastBatchGenerator.next)batches[:-1]:', batches[:-1])
-        # print('(LstmFastBatchGenerator.next)batches[:-1].shape:', [b.shape for b in batches[:-1]])
-        return np.stack(batches[:-1]), np.stack(batches[1:])
+        inps = np.stack(batches[:-1])
+        lbls = np.stack(batches[1:])
+        # print('(LstmFastBatchGenerator.next)inps.shape:', inps.shape)
+        # print('(LstmFastBatchGenerator.next)lbls.shape:', lbls.shape)
+        return inps, lbls
 
 
 def characters(probabilities, vocabulary):
@@ -134,7 +136,10 @@ class Lstm(Pupil):
     def _compute_output_matrix_parameters(self, idx):
         if idx == 0:
             # print('self._num_nodes:', self._num_nodes)
-            input_dim = self._num_nodes[-1]
+            if isinstance(self._num_nodes, list):
+                input_dim = self._num_nodes[-1]
+            else:
+                input_dim = self._num_nodes
         else:
             input_dim = self._num_out_nodes[idx - 1]
         if idx == self._num_out_layers - 1:
@@ -295,172 +300,6 @@ class Lstm(Pupil):
                 train_op = self._optimizer.apply_gradients(zip(grads, v))
         return train_op
 
-    # def _train_graph(self):
-    #     inputs, labels = self._prepare_inputs_and_labels(
-    #         self._train_inputs_and_labels_placeholders['inputs'], self._train_inputs_and_labels_placeholders['labels'])
-    #     inputs_by_device, labels_by_device = self._distribute_by_gpus(inputs, labels)
-    #     trainable = self._applicable_trainable
-    #     tower_grads = list()
-    #     preds = list()
-    #     losses = list()
-    #     reset_state_ops = list()
-    #
-    #     additional_metrics = dict()
-    #     for add_metric in self._additional_metrics:
-    #         additional_metrics[add_metric] = list()
-    #
-    #     with tf.name_scope('train'):
-    #         for gpu_batch_size, gpu_name, device_inputs, device_labels in zip(
-    #                 self._batch_sizes_on_gpus, self._gpu_names, inputs_by_device, labels_by_device):
-    #             with tf.device(gpu_name):
-    #                 with tf.name_scope(device_name_scope(gpu_name)):
-    #                     saved_states = list()
-    #                     for layer_idx, layer_num_nodes in enumerate(self._num_nodes):
-    #                         saved_states.append(
-    #                             (tf.Variable(
-    #                                 tf.zeros([gpu_batch_size, layer_num_nodes]),
-    #                                 trainable=False,
-    #                                 name='saved_state_%s_%s' % (layer_idx, 0)),
-    #                              tf.Variable(
-    #                                  tf.zeros([gpu_batch_size, layer_num_nodes]),
-    #                                  trainable=False,
-    #                                  name='saved_state_%s_%s' % (layer_idx, 1)))
-    #                         )
-    #                     reset_state_ops.extend(compose_reset_list(saved_states))
-    #
-    #                     all_states = saved_states
-    #                     embeddings, _ = self._embed(device_inputs, trainable['embedding_matrix'])
-    #                     rnn_outputs, all_states, _ = self._rnn_module(
-    #                         embeddings, all_states, trainable['lstm_matrices'],
-    #                         trainable['lstm_biases'])
-    #                     logits, _ = self._output_module(
-    #                         rnn_outputs, trainable['output_matrices'], trainable['output_biases'])
-    #
-    #                     save_ops = compose_save_list((saved_states, all_states))
-    #
-    #                     with tf.control_dependencies(save_ops):
-    #                         all_matrices = [trainable['embedding_matrix']]
-    #                         all_matrices.extend(trainable['lstm_matrices'])
-    #                         all_matrices.extend(trainable['output_matrices'])
-    #                         l2_loss = self._l2_loss(all_matrices)
-    #
-    #                         loss = tf.reduce_mean(
-    #                             tf.nn.softmax_cross_entropy_with_logits(labels=device_labels, logits=logits))
-    #                         concat_pred = tf.nn.softmax(logits)
-    #
-    #                         add_metrics = compute_metrics(
-    #                             self._additional_metrics, predictions=concat_pred,
-    #                             labels=device_labels, loss=loss, keep_first_dim=False
-    #                         )
-    #
-    #                         preds.append(tf.split(concat_pred, self._num_unrollings))
-    #
-    #                         losses.append(loss)
-    #
-    #                         grads_and_vars = opt.compute_gradients(loss + l2_loss)
-    #                         tower_grads.append(grads_and_vars)
-    #                         additional_metrics = append_to_nested(additional_metrics, add_metrics)
-    #
-    #                         # splitting concatenated results for different characters
-    #         with tf.device(self._base_dev):
-    #             with tf.name_scope(device_name_scope(self._base_dev) + '_gradients'):
-    #                 # print('(Lstm._train_graph)tower_grads:', tower_grads)
-    #                 grads_and_vars = average_gradients(tower_grads)
-    #                 # with tf.device('/cpu:0'):
-    #                 #     grads_and_vars = [
-    #                 #         (
-    #                 #             tf.Print(
-    #                 #                 grad, [tf.nn.l2_loss(grad), tf.nn.l2_loss(var)],
-    #                 #                 message="l2_loss(grad(%s)) and l2_loss(%s):\n" % (var.name, var.name)
-    #                 #             ),
-    #                 #             var
-    #                 #         )
-    #                 #         for grad, var in grads_and_vars
-    #                 #     ]
-    #                 grads, v = zip(*grads_and_vars)
-    #                 # grads, _ = tf.clip_by_global_norm(grads, 1.)
-    #                 self.train_op = opt.apply_gradients(zip(grads, v))
-    #                 self._hooks['train_op'] = self.train_op
-    #                 self._hooks['reset_pupil_train_state'] = tf.group(*reset_state_ops)
-    #                 # composing predictions
-    #                 preds_by_char = list()
-    #                 # print('preds:', preds)
-    #                 for one_char_preds in zip(*preds):
-    #                     # print('one_char_preds:', one_char_preds)
-    #                     preds_by_char.append(tf.concat(one_char_preds, 0))
-    #                 # print('len(preds_by_char):', len(preds_by_char))
-    #                 self.predictions = tf.concat(preds_by_char, 0)
-    #                 self._hooks['predictions'] = self.predictions
-    #                 # print('self.predictions.get_shape().as_list():', self.predictions.get_shape().as_list())
-    #                 average_func = get_average_with_weights_func(self._batch_sizes_on_gpus)
-    #                 self.loss = average_func(losses)
-    #                 additional_metrics = func_on_list_in_nested(additional_metrics, average_func)
-    #                 self._hooks['loss'] = self.loss
-    #                 for k, v in additional_metrics.items():
-    #                     self._hooks[k] = v
-    #
-    # def _validation_graph(self):
-    #     trainable = self._applicable_trainable
-    #     with tf.device(self._gpu_names[0]):
-    #         with tf.name_scope('validation'):
-    #             self.validation_labels = tf.placeholder(tf.int32, [1, 1])
-    #             self.sample_input = tf.placeholder(tf.int32,
-    #                                                shape=[1, 1, 1],
-    #                                                name='sample_input')
-    #             inputs = tf.reshape(self.sample_input, [1, -1])
-    #             sample_input = tf.one_hot(inputs, self._vocabulary_size)
-    #             labels = tf.reshape(self.validation_labels, [1])
-    #             validation_labels_prepared = tf.one_hot(labels, self._vocabulary_size)
-    #
-    #             self._hooks['validation_inputs'] = self.sample_input
-    #             self._hooks['validation_labels'] = self.validation_labels
-    #             self._hooks['validation_labels_prepared'] = validation_labels_prepared
-    #             saved_sample_state = list()
-    #             for layer_idx, layer_num_nodes in enumerate(self._num_nodes):
-    #                 saved_sample_state.append(
-    #                     (tf.Variable(
-    #                         tf.zeros([1, layer_num_nodes]),
-    #                         trainable=False,
-    #                         name='saved_sample_state_%s_%s' % (layer_idx, 0)),
-    #                      tf.Variable(
-    #                          tf.zeros([1, layer_num_nodes]),
-    #                          trainable=False,
-    #                          name='saved_sample_state_%s_%s' % (layer_idx, 1)))
-    #                 )
-    #
-    #             reset_list = compose_reset_list(saved_sample_state)
-    #
-    #             self.reset_sample_state = tf.group(*reset_list)
-    #             self._hooks['reset_validation_state'] = self.reset_sample_state
-    #
-    #             randomize_list = compose_randomize_list(saved_sample_state)
-    #
-    #             self.randomize = tf.group(*randomize_list)
-    #             self._hooks['randomize_sample_state'] = self.randomize
-    #
-    #             embeddings, _ = self._embed(sample_input, trainable['embedding_matrix'])
-    #             # print('embeddings:', embeddings)
-    #             rnn_output, sample_state, _ = self._rnn_module(
-    #                 embeddings, saved_sample_state, trainable['lstm_matrices'],
-    #                 trainable['lstm_biases'])
-    #             sample_logit, _ = self._output_module(
-    #                 rnn_output, trainable['output_matrices'], trainable['output_biases'])
-    #
-    #             sample_save_ops = compose_save_list((saved_sample_state, sample_state))
-    #
-    #             with tf.control_dependencies(sample_save_ops):
-    #                 self.sample_prediction = tf.nn.softmax(sample_logit)
-    #                 metrics = compute_metrics(
-    #                     self._additional_metrics + ['loss'],
-    #                     predictions=self.sample_prediction,
-    #                     labels=validation_labels_prepared,
-    #                     keep_first_dim=False
-    #                 )
-    #
-    #                 self._hooks['validation_predictions'] = self.sample_prediction
-    #                 for k, v in metrics.items():
-    #                     self._hooks['validation_' + k] = v
-
     def _declare_lstms(self):
         if isinstance(self._num_nodes, int) or self._num_nodes == [self._num_nodes[0]] * self._num_layers:
             if isinstance(self._num_nodes, int):
@@ -534,7 +373,11 @@ class Lstm(Pupil):
 
                 inp_shape = self._inp_and_lbl_phds['inps'].shape
                 inp_size = self._emb_size
-                for lstm, nn in zip(self._lstms, self._num_nodes):
+                if isinstance(self._num_nodes, int):
+                    num_nodes = [self._num_nodes] * len(self._lstms)
+                else:
+                    num_nodes = self._num_nodes
+                for lstm, nn in zip(self._lstms, num_nodes):
                     lstm.build(inp_shape.concatenate([inp_size]))
                     inp_size = nn
 

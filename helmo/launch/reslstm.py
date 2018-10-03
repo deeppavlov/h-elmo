@@ -29,7 +29,7 @@ if os.path.isfile(voc_file_name):
         vocabulary = list(f.read())
 else:
     vocabulary = create_vocabulary(text)
-    if not os.path.exists(voc_file_name):
+    if not os.path.exists(os.path.dirname(voc_file_name)):
         os.makedirs(os.path.dirname(voc_file_name))
     with open(voc_file_name, 'w') as f:
         f.write(''.join(vocabulary))
@@ -47,7 +47,7 @@ BATCH_SIZE = 32
 
 env.build_pupil(
     num_layers=2,
-    num_nodes=[250, 250],
+    num_nodes=250,
     num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
@@ -93,5 +93,8 @@ env.train(
     results_collect_interval=100,
     no_validation=False,
     validation_batch_size=32,
+    valid_batch_kwargs=dict(
+        num_unrollings=100,
+    )
 )
 # log_device_placement=True)
