@@ -123,12 +123,13 @@ def prepare_init_state(saved_state, inps, lstms, lstm_type):
         depth = 2
     else:
         depth = 0
-    zero_state = get_zero_state(inps, lstms, lstm_type)
-    zero_and_saved_states_zipped = deep_zip(
-        [saved_state, zero_state], -1
-    )
-    # print("(prepare_init_state)zero_and_saved_states_zipped:", zero_and_saved_states_zipped)
-    returned = apply_func_on_depth(zero_and_saved_states_zipped, adjust_saved_state, depth)
+    with tf.name_scope('prepare_init_state'):
+        zero_state = get_zero_state(inps, lstms, lstm_type)
+        zero_and_saved_states_zipped = deep_zip(
+            [saved_state, zero_state], -1
+        )
+        # print("(prepare_init_state)zero_and_saved_states_zipped:", zero_and_saved_states_zipped)
+        returned = apply_func_on_depth(zero_and_saved_states_zipped, adjust_saved_state, depth)
     # returned = apply_func_on_depth(
     #     returned,
     #     lambda x: discard_redundant_states(
@@ -150,32 +151,33 @@ def compute_lstm_stddevs(num_units, input_dim, init_parameter):
     return stddevs
 
 
-def get_saved_state_vars(num_layers, lstm_type):
-    if lstm_type == 'cudnn':
-        state = (
-            tf.Variable(0., trainable=False, validate_shape=False, name='lstm_h'),
-            tf.Variable(0., trainable=False, validate_shape=False, name='lstm_c'),
-        )
-    elif lstm_type == 'cudnn_stacked':
-        state = [
-            (
-                tf.Variable(0., trainable=False, validate_shape=False, name='lstm_%s_h' % idx),
-                tf.Variable(0., trainable=False, validate_shape=False, name='lstm_%s_c' % idx),
-            ) for idx in range(num_layers)
-        ]
-    elif lstm_type == 'cell':
-        # state = LSTMStateTuple(
-        #     h=[
-        #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_h_%s' % i)
-        #         for i in range(num_layers)
-        #     ],
-        #     c=[
-        #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_c_%s' % i)
-        #         for i in range(num_layers)
-        #     ],
-        # )
-        state = tf.Variable(0., trainable=False, validate_shape=False, name='cell_state')
-    else:
-        state = None
-    # print(state)
+def get_saved_state_vars(num_layers, lstm_type, name_scope='lstm_states'):
+    with tf.name_scope(name_scope):
+        if lstm_type == 'cudnn':
+            state = (
+                tf.Variable(0., trainable=False, validate_shape=False, name='lstm_h'),
+                tf.Variable(0., trainable=False, validate_shape=False, name='lstm_c'),
+            )
+        elif lstm_type == 'cudnn_stacked':
+            state = [
+                (
+                    tf.Variable(0., trainable=False, validate_shape=False, name='lstm_%s_h' % idx),
+                    tf.Variable(0., trainable=False, validate_shape=False, name='lstm_%s_c' % idx),
+                ) for idx in range(num_layers)
+            ]
+        elif lstm_type == 'cell':
+            # state = LSTMStateTuple(
+            #     h=[
+            #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_h_%s' % i)
+            #         for i in range(num_layers)
+            #     ],
+            #     c=[
+            #         tf.Variable(0., trainable=False, validate_shape=False, name='cell_c_%s' % i)
+            #         for i in range(num_layers)
+            #     ],
+            # )
+            state = tf.Variable(0., trainable=False, validate_shape=False, name='cell_state')
+        else:
+            state = None
+        # print(state)
     return state

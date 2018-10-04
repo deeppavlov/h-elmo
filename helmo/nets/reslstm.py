@@ -214,7 +214,8 @@ class Lstm(Pupil):
     def _add_saved_state(self, lstm_map, gpu_name):
         if 'saved_state' not in lstm_map:
             lstm_map['saved_state'] = dict()
-        lstm_map['saved_state'][gpu_name] = get_saved_state_vars(len(lstm_map['num_nodes']), 'cudnn_stacked')
+        lstm_map['saved_state'][gpu_name] = get_saved_state_vars(
+            len(lstm_map['num_nodes']), 'cudnn_stacked', lstm_map['module_name'])
         if 'derived_branches' in lstm_map:
             for branch in lstm_map['derived_branches']:
                 self._add_saved_state(branch, gpu_name)
@@ -235,14 +236,12 @@ class Lstm(Pupil):
             lstm_map['new_state'] = dict()
         lstm_map['new_state'][gpu_name] = list()
         intermediate = list()
-        prepared_state = prepare_init_state(lstm_map['saved_state'][gpu_name], inp, lstm_map['lstms'], 'cudnn_stacked')
         with tf.name_scope(lstm_map['module_name']):
+            prepared_state = prepare_init_state(
+                lstm_map['saved_state'][gpu_name], inp, lstm_map['lstms'], 'cudnn_stacked')
             for lstm_idx, (lstm, s) in enumerate(zip(lstm_map['lstms'], prepared_state)):
                 # print("(Lstm._add_lstm_graph).inp:", inp)
                 # print("(Lstm._add_lstm_graph).s:", s)
-                inp, new_s = lstm(inp, initial_state=s, training=training)
-                intermediate.append(inp)
-                lstm_map['new_state'][gpu_name].append(new_s)
                 if 'derived_branches' in lstm_map \
                         and branch_idx < len(lstm_map['derived_branches']) \
                         and lstm_map['derived_branches'][branch_idx]['output_idx'] == lstm_idx:
@@ -251,10 +250,15 @@ class Lstm(Pupil):
                         lstm_map['derived_branches'][branch_idx], gpu_name, training
                     )
                     branch_idx += 1
+                inp, new_s = lstm(inp, initial_state=s, training=training)
+                intermediate.append(inp)
+                lstm_map['new_state'][gpu_name].append(new_s)
             if 'adapter_matrix' in lstm_map:
                 inp = tf.einsum('ijk,kl->ijl', inp, lstm_map['adapter_matrix'])
             if 'adapter_bias' in lstm_map:
                 inp += lstm_map['adapter_bias']
+            # with tf.device('/cpu:0'):
+            #     inp = tf.Print(inp, [inp], message="(Lstm._add_lstm_graph)inp (%s):\n" % inp.name)
         return inp
 
     def _add_lstm_and_output_module(self, embeddings_by_gpu, training):
@@ -271,7 +275,8 @@ class Lstm(Pupil):
                 with tf.device(gpu_name):
                     with tf.name_scope(device_name_scope(gpu_name)):
                         self._add_saved_state(self._lstm_map, gpu_name)
-                        lstm_res = self._add_lstm_graph(embeddings, self._lstm_map, gpu_name, training)
+                        with tf.name_scope('lstms'):
+                            lstm_res = self._add_lstm_graph(embeddings, self._lstm_map, gpu_name, training)
                         saved_state = self._get_state_from_lstm_map(self._lstm_map, 'saved_state', gpu_name)
                         new_state = self._get_state_from_lstm_map(self._lstm_map, 'new_state', gpu_name)
                         reset_state_ops.extend(compose_reset_list(saved_state))
@@ -354,7 +359,7 @@ class Lstm(Pupil):
                 kernel_initializer=tf.truncated_normal_initializer(stddev=stddev),
                 name='lstm_%s_%s' % (lstm_map['module_name'], idx),
             )
-            lstm.build(inp_shape.concatenate(inp_size))
+            # lstm.build(inp_shape.concatenate(inp_size))
             lstms.append(lstm)
             inp_size = nn
         lstm_map['lstms'] = lstms
@@ -372,7 +377,7 @@ class Lstm(Pupil):
                 self._build_recursive(
                     branch,
                     lstm_map['num_nodes'][branch['input_idx']],
-                    lstm_map['num_nodes'][branch['output_idx']]
+                    lstm_map['num_nodes'][branch['output_idx']-1]
                 )
 
     def _build_lstm_branch_variables(self):
@@ -421,8 +426,8 @@ class Lstm(Pupil):
         if module_name is None or lstm_map['module_name'] == module_name:
             for lstm_idx, lstm in enumerate(lstm_map['lstms']):
                 save_dict["%s_lstm_%s" % (accumulated_module_name, lstm_idx)] = lstm.saveable
-                print("(Lstm._get_save_dict_for_lstms)lstm.scope_name:", lstm.scope_name)
-                print("(Lstm._get_save_dict_for_lstms)lstm.num_units:", lstm.num_units)
+                # print("(Lstm._get_save_dict_for_lstms)lstm.scope_name:", lstm.scope_name)
+                # print("(Lstm._get_save_dict_for_lstms)lstm.num_units:", lstm.num_units)
             if 'adapter_matrix' in lstm_map:
                 save_dict['%s_adapter_matrix' % accumulated_module_name] = lstm_map['adapter_matrix']
             if 'adapter_bias' in lstm_map:
@@ -431,9 +436,10 @@ class Lstm(Pupil):
             for branch in lstm_map['derived_branches']:
                 save_dict.update(
                     self._get_save_dict_for_lstms(branch, accumulated_module_name, module_name=module_name))
-        for k, v in save_dict.items():
-            print("(Lstm._get_save_dict_for_lstms)k:", k)
-            print("(Lstm._get_save_dict_for_lstms)v._OpaqueParamsToCanonical():", v._OpaqueParamsToCanonical())
+        # for k, v in save_dict.items():
+        #     if 'adapter' not in k:
+        #         print("(Lstm._get_save_dict_for_lstms)k:", k)
+        #         print("(Lstm._get_save_dict_for_lstms)v._OpaqueParamsToCanonical():", v._OpaqueParamsToCanonical())
 
         return save_dict
 
@@ -451,11 +457,11 @@ class Lstm(Pupil):
         save_dict = dict()
         save_dict.update(self._get_save_dict_for_base())
         save_dict.update(self._get_save_dict_for_lstms(self._lstm_map, ""))
-        print("(Lstm._create_saver)save_dict:")
-        for k, v in save_dict.items():
-            print(k)
-            print(v)
-            print()
+        # print("(Lstm._create_saver)save_dict:")
+        # for k, v in save_dict.items():
+        #     print(k)
+        #     print(v)
+        #     print()
         with tf.device('/cpu:0'):
             saver = tf.train.Saver(save_dict, max_to_keep=None)
         return saver
