@@ -64,7 +64,7 @@ evaluation = dict(
     result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
     datasets=[(valid_text, dataset_name)],
     batch_gen_class=BatchGenerator,
-    batch_kwargs={'vocabulary': vocabulary},
+    batch_kwargs={'vocabulary': vocabulary, 'num_unrollings': 200},
     batch_size=BATCH_SIZE,
     additional_feed_dict=[],
 )
@@ -106,7 +106,7 @@ launch_kwargs = dict(
     num_unrollings=NUM_UNROLLINGS,
     vocabulary=vocabulary,
     checkpoint_steps=None,
-    stop=1000,
+    stop=2,
     train_dataset_text=train_text,
     no_validation=True,
     printed_result_types=None,

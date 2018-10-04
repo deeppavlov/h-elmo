@@ -64,7 +64,7 @@ class LstmFastBatchGenerator(object):
         self._last_batch = self._start_batch()
 
     def get_num_batches(self):
-        print(len(self._text) // (self._batch_size * self._num_unrollings))
+        # print(len(self._text) // (self._batch_size * self._num_unrollings))
         return len(self._text) // (self._batch_size * self._num_unrollings)
 
     def get_vocabulary_size(self):
