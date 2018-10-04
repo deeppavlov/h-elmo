@@ -1,6 +1,10 @@
-import random
 import sys
 import os
+sys.path += [
+    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
+    os.path.expanduser('~/learning-to-learn')
+]
+import random
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib import container

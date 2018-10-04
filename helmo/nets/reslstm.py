@@ -64,6 +64,7 @@ class LstmFastBatchGenerator(object):
         self._last_batch = self._start_batch()
 
     def get_num_batches(self):
+        print(len(self._text) // (self._batch_size * self._num_unrollings))
         return len(self._text) // (self._batch_size * self._num_unrollings)
 
     def get_vocabulary_size(self):
@@ -542,8 +543,8 @@ class Lstm(Pupil):
         )
         self._voc_size = kwargs.get('voc_size', None)
         self._emb_size = kwargs.get('emb_size', 128)
-        self._num_out_layers = kwargs.get('num_out_layers', 1)
         self._num_out_nodes = kwargs.get('num_out_nodes', [])
+        self._num_out_layers = len(self._num_out_nodes) + 1
         self._init_parameter = kwargs.get('init_parameter', 3.)
         self._reg_rate = kwargs.get('reg_rate', 6e-6)
         self._metrics = kwargs.get('metrics', [])
@@ -551,7 +552,7 @@ class Lstm(Pupil):
         self._rho = kwargs.get('rho', 0.95)  # used for adadelta
         self._decay = kwargs.get('decay', 0.9)  # used for rmsprop
         self._num_gpus = kwargs.get('num_gpus', 1)
-        self._dropout_rate = kwargs.get('dropout_rate', 0.9)
+        self._dropout_rate = kwargs.get('dropout_rate', 0.1)
         self._clip_norm = kwargs.get('clip_norm', 1.)
         self._regime = kwargs.get('regime', 'train')
 

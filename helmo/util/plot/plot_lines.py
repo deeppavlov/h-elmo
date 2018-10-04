@@ -1,6 +1,9 @@
 import sys
 import os
-
+sys.path += [
+    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
+    os.path.expanduser('~/learning-to-learn')
+]
 from pathlib import Path  # if you haven't already done so
 file = Path(__file__).resolve()
 parent, root = file.parent, file.parents[2]

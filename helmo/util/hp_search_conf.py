@@ -1,7 +1,12 @@
-import os
-import argparse
-
 import sys
+import os
+sys.path += [
+    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
+    os.path.expanduser('~/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
+    os.path.expanduser('~/h-elmo'),
+]
+import argparse
 from pathlib import Path  # if you haven't already done so
 file = Path(__file__).resolve()
 parent, root = file.parent, file.parents[2]
@@ -12,13 +17,16 @@ except ValueError:  # Already removed
     pass
 
 from learning_to_learn.useful_functions import create_path, parse_path_comb, get_points_from_range, get_tmpl
+import helmo.util.organise as organise
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "confs",
-    help="Path to configs used for hp search. \nTo process several configs"
+    help="Paths to created configs used for hp search. \nTo process several configs"
          " use following format '<path1>,<path2>,...<pathi>:<pathi+1>,..:..'.\nAll possible combinations of sets"
-         " separated by colons (in specified order) will be processed. \nYou have to provide paths relative to "
+         " separated by colons (in specified order) will be processed. Combinations are formed in the following way: "
+         "from each set one name is chosen\nYou have to provide paths relative to "
          "script. Edge characters of <path> can't be '/'"
 )
 parser.add_argument(
@@ -31,7 +39,7 @@ parser.add_argument(
     '-s',
     "--span",
     help="Range of hyper parameters values. Specify start, end, number of points and scale, separating them with commas"
-         ". Ranges for  several hps separated by colons. Example\n1e-5,1,20,log"
+         ". Ranges for  several hps separated by colons. Example:\n1e-5,1,20,log"
 )
 parser.add_argument(
     '-n',
@@ -54,9 +62,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
+base_path = organise.path_rel_to_root(os.path.join('helmo', 'experiments'))
 
 confs = parse_path_comb(args.confs, filter_=False)
 
@@ -78,7 +84,8 @@ for string in span:
 
 indent = 4
 for conf in confs:
-    create_path(conf, file_name_is_in_path=True)
+    path_to_conf = os.path.join(base_path, conf)
+    create_path(path_to_conf, file_name_is_in_path=True)
     tmpl = get_tmpl(hp_names)
     file_string = ''
 
@@ -87,7 +94,7 @@ for conf in confs:
     for values in points:
         file_string += get_tmpl(values) % tuple(values) + '\n'
     file_string += '%s' % args.num_repeats
-    with open(conf, 'w') as f:
+    with open(path_to_conf, 'w') as f:
         f.write(file_string)
     if args.verbose:
         print('\n' + ' '*indent + conf)

@@ -2,7 +2,9 @@ import sys
 import os
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn')
+    os.path.expanduser('~/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
+    os.path.expanduser('~/h-elmo'),
 ]
 import tensorflow as tf
 
@@ -136,9 +138,9 @@ lstm_map = dict(
         )
     ]
 )
+
 env.build_pupil(
     lstm_map=lstm_map,
-    num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
     emb_size=150,

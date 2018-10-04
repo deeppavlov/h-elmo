@@ -1,5 +1,9 @@
 import sys
 import os
+sys.path += [
+    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
+    os.path.expanduser('~/learning-to-learn')
+]
 import matplotlib.pyplot as plt
 from matplotlib import rc
 
