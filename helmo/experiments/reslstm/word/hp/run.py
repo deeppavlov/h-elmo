@@ -94,7 +94,7 @@ kwargs_for_building = dict(
     metrics=metrics,
     optimizer='adam',
     dropout_rate=0.1,
-    clip_norm=5.,
+    clip_norm=1.,
 )
 
 launch_kwargs = dict(

@@ -65,7 +65,7 @@ parser.add_argument(
     '-hpnf',
     "--hp_names_file",
     help="File with hyper parameter names. All available files are in the same directory with this script",
-    default='hp_plot_names_english.conf'
+    default='en_names.txt'
 )
 parser.add_argument(
     '-m',
@@ -125,11 +125,12 @@ eval_dirs = parse_path_comb(args.eval_dir)
 metric_scales = parse_metric_scales_str(args.metric_scales)
 
 hp_plot_order = args.hp_order.split(',')
-abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
-
-plot_parameter_names = get_parameter_names(args.hp_names_file)
+# abspath = os.path.abspath(__file__)
+# dname = os.path.dirname(abspath)
+# os.chdir(dname)
+plot_parameter_names = get_parameter_names(
+    os.path.join(*(os.path.split(os.path.abspath(__file__))[:-1] + (args.hp_names_file,)))
+)
 xscale = args.xscale
 
 for eval_dir in eval_dirs:
