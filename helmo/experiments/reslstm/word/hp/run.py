@@ -15,15 +15,16 @@ from learning_to_learn.useful_functions import create_vocabulary, get_positions_
 from helmo.nets.reslstm import Lstm, LstmFastBatchGenerator as BatchGenerator
 import helmo.util.organise as organise
 
+dataset_name = 'valid'
+
 parameter_set_file_name = sys.argv[1]
 if len(sys.argv) > 2:
     chop_last_experiment = bool(sys.argv[2])
 else:
     chop_last_experiment = False
 conf_name = os.path.join(*parameter_set_file_name.split('.')[:-1])
-rel_path = os.path.join(*os.path.split(os.path.abspath(__file__).split('/experiments/')[-1])[:-1])
-dataset_name = 'valid'
-save_path = os.path.join(organise.path_rel_to_root('expres'), rel_path, conf_name)
+results_dir = organise.get_path_to_dir_with_results(__file__)
+save_path = os.path.join(results_dir, conf_name)
 results_file_name = os.path.join(save_path, dataset_name + '.txt')
 confs, _ = compose_hp_confs(
     parameter_set_file_name, results_file_name, chop_last_experiment=chop_last_experiment, model='pupil')

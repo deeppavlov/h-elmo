@@ -53,3 +53,9 @@ def split_text(text, test_size, valid_size, train_size):
     return test_text, valid_text, train_text
 
 
+def get_path_to_dir_with_results(path_to_conf_or_script):
+    rel_path = os.path.join(*os.path.split(os.path.abspath(path_to_conf_or_script).split('/experiments/')[-1])[:-1])
+    results_dir = os.path.join(path_rel_to_root('expres'), rel_path)
+    return results_dir
+
+
