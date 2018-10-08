@@ -75,17 +75,18 @@ lstm_map = dict(
     num_nodes=[1500, 1500],
     input_idx=None,
     output_idx=None,
-    derived_branches=[
-        dict(
-            module_name='word_enc_dec',
-            num_nodes=[3000, 3000],
-            input_idx=0,
-            output_idx=1,
-        )
-    ]
+    # derived_branches=[
+    #     dict(
+    #         module_name='word_enc_dec',
+    #         num_nodes=[3000, 3000],
+    #         input_idx=0,
+    #         output_idx=1,
+    #     )
+    # ]
 )
 kwargs_for_building = dict(
     lstm_map=lstm_map,
+    num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
     emb_size=256,
@@ -94,7 +95,6 @@ kwargs_for_building = dict(
     metrics=metrics,
     optimizer='adam',
     dropout_rate=0.1,
-    clip_norm=1.,
 )
 
 launch_kwargs = dict(
@@ -102,7 +102,7 @@ launch_kwargs = dict(
     # restore_path=dict(
     #     char_enc_dec='results/reslstm/checkpoints/all_vars/best',
     # ),
-    learning_rate=-1,
+    learning_rate={'type': 'fixed', 'value': 9e-4},
     batch_size=BATCH_SIZE,
     num_unrollings=NUM_UNROLLINGS,
     vocabulary=vocabulary,
@@ -115,17 +115,10 @@ launch_kwargs = dict(
 
 for conf in confs:
     build_hyperparameters = dict(
-        init_parameter=conf['init_parameter']
+        dropout=conf['dropout'],
+        reg_rate=conf['reg_rate'],
     )
-    other_hyperparameters = dict(
-        learning_rate=dict(
-            varying=dict(
-                value=conf['learning_rate/value']
-            ),
-            hp_type='built-in',
-            type='fixed'
-        )
-    )
+    other_hyperparameters = dict()
 
     # tf.set_random_seed(1)
     _, biggest_idx, _ = get_num_exps_and_res_files(save_path)
