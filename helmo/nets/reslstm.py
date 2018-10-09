@@ -2,7 +2,13 @@ import sys
 import os
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn')
+    os.path.expanduser('~/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
+    os.path.expanduser('~/h-elmo'),
+    '/cephfs/home/peganov/learning-to-learn',
+    '/home/peganov/learning-to-learn',
+    '/cephfs/home/peganov/h-elmo',
+    '/home/peganov/h-elmo',
 ]
 
 from copy import deepcopy
