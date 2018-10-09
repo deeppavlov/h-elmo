@@ -114,7 +114,7 @@ launch_kwargs = dict(
 
 for conf in confs:
     build_hyperparameters = dict(
-        dropout_rate=conf['dropout'],
+        dropout_rate=conf['dropout_rate'],
         reg_rate=conf['reg_rate'],
     )
     other_hyperparameters = dict()

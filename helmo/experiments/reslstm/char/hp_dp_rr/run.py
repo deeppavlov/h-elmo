@@ -94,7 +94,7 @@ kwargs_for_building = dict(
     num_gpus=1,
     metrics=metrics,
     optimizer='adam',
-    dropout=0.1,
+    dropout_rate=0.1,
 )
 
 launch_kwargs = dict(
@@ -115,7 +115,7 @@ launch_kwargs = dict(
 
 for conf in confs:
     build_hyperparameters = dict(
-        dropout=conf['dropout'],
+        dropout_rate=conf['dropout_rate'],
         reg_rate=conf['reg_rate'],
     )
     other_hyperparameters = dict()
