@@ -27,21 +27,9 @@ vocabulary, vocabulary_size = organise.get_vocab(voc_file_name, text)
 
 env = Environment(Lstm, BatchGenerator, vocabulary=vocabulary)
 
-cpiv = get_positions_in_vocabulary(vocabulary)
-
 metrics = ['bpc', 'perplexity', 'accuracy']
 
 # tf.set_random_seed(1)
-
-
-print('building is finished')
-stop_specs = dict(
-    type='while_progress',
-    max_no_progress_points=10,
-    changing_parameter_name='learning_rate',
-    path_to_target_metric_storage=('default_1', 'loss')
-)
-
 
 NUM_UNROLLINGS = 200
 BATCH_SIZE = 32
