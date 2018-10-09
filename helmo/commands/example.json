@@ -1,0 +1,40 @@
+{
+  "classes": {
+    "batch_gen": {
+      "file": "reslstm",
+      "cls_name": "LstmFastBatchGenerator"
+    },
+    "net": {
+      "file": "reslstm",
+      "cls_name": "Lstm"
+    }
+  },
+  "dataset": {
+    "name": "enwiki1G",
+    "file": "enwiki1G.txt",
+    "test_size": 6.4e6,
+    "valid_size": 6.4e5
+  },
+  "evaluation": {
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "batch_kwargs": {
+      "num_unrollings": 200
+    },
+    "batch_size": 32
+  },
+  "kwargs_for_building": {
+    "lstm_map": {
+      "module_name": "char_enc_dec",
+      "num_nodes": [1500, 1500],
+      "input_idx": null,
+      "output_idx": null
+    },
+    "num_output_nodes": [],
+    "emb_size": 256,
+    "init_parameter": 3.0,
+    "num_gpus": 1,
+    "metrics": ["bpc", "perplexity", "accuracy"],
+    "optimizer": "adam",
+    "dropout"
+  }
+}

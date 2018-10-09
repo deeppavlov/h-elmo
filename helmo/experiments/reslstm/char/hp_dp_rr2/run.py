@@ -86,7 +86,6 @@ lstm_map = dict(
 )
 kwargs_for_building = dict(
     lstm_map=lstm_map,
-    num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
     emb_size=256,
@@ -115,7 +114,7 @@ launch_kwargs = dict(
 
 for conf in confs:
     build_hyperparameters = dict(
-        dropout=conf['dropout'],
+        dropout_rate=conf['dropout'],
         reg_rate=conf['reg_rate'],
     )
     other_hyperparameters = dict()

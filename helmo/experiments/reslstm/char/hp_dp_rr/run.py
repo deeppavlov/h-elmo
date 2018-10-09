@@ -94,7 +94,7 @@ kwargs_for_building = dict(
     num_gpus=1,
     metrics=metrics,
     optimizer='adam',
-    dropout_rate=0.1,
+    dropout=0.1,
 )
 
 launch_kwargs = dict(
