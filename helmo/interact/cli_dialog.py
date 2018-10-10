@@ -30,7 +30,13 @@ parser.add_argument(
     action="store_true"
 )
 parser.add_argument(
-    "--dialog",
+    "--cli_dialog",
+    help="If provided model is dialog is started. To load trained model provide --restore_path. To finish dialog"
+         " type FINISH.",
+    action="store_true"
+)
+parser.add_argument(
+    "--file_dialog",
     help="If provided model is dialog is started. To load trained model provide --restore_path",
     action="store_true"
 )
@@ -60,6 +66,21 @@ parser.add_argument(
     "--save_path",
     help="Path to directory where training and inference results and model is saved",
     default='results'
+)
+parser.add_argument(
+    "--cli_dialog_file",
+    help="Name of a file for saving dialog logs",
+    default='dialog_logs.txt'
+)
+parser.add_argument(
+    "--input_replica_file",
+    help="Name of a file with replicas for inference",
+    default=None,
+)
+parser.add_argument(
+    "--file_dialog_answers_file",
+    help="Name of a file with bot answers in file dialog regime",
+    default=None,
 )
 parser.add_argument(
     "--test_size",
@@ -93,7 +114,7 @@ tf.set_random_seed(1)
 
 lstm_map = dict(
     module_name='char_enc_dec',
-    num_nodes=[1500, 1500],
+    num_nodes=[150, 150],
     input_idx=None,
     output_idx=None,
 )
@@ -109,7 +130,7 @@ env.build_pupil(
     dropout_rate=0.1,
 )
 
-NUM_UNROLLINGS = 200
+NUM_UNROLLINGS = 20
 BATCH_SIZE = 32
 if args.train:
     learning_rate = dict(
@@ -119,13 +140,13 @@ if args.train:
         init=9e-4,
         path_to_target_metric_storage=('default_1', 'loss')
     )
-    stop_specs = dict(
-        type='while_progress',
-        max_no_progress_points=10,
-        changing_parameter_name='learning_rate',
-        path_to_target_metric_storage=('default_1', 'loss')
-    )
-    # stop_specs = 2000
+    # stop_specs = dict(
+    #     type='while_progress',
+    #     max_no_progress_points=10,
+    #     changing_parameter_name='learning_rate',
+    #     path_to_target_metric_storage=('default_1', 'loss')
+    # )
+    stop_specs = 1000
     env.train(
         allow_growth=True,
         save_path=args.save_path,
@@ -164,12 +185,27 @@ if args.test:
             num_unrollings=NUM_UNROLLINGS,
         ),
     )
-
-if args.dialog:
-    env.dialog(
+if args.file_dialog:
+    env.file_dialog(
         restore_path=restore_path,
-        log_path=args.save_path + '/dialog_logs.txt',
+        vocabulary=vocabulary,
+        input_replica_file=args.input_replica_file,
+        result_file=args.file_dialog_answers_file,
+        character_positions_in_vocabulary=cpiv,
+        batch_generator_class=BatchGenerator,
+        reset_state_after_model_answer=False,  # if True after bot answer hidden state is reset
+        answer_len_limit=500.,  # max number of characters in bot answer
+        randomize=False,  # if True model hidden state is initialized with random numbers
+    )
+if args.cli_dialog:
+    env.cli_dialog(
+        restore_path=restore_path,
+        log_file=os.path.join(args.save_path, args.cli_dialog_file),
         vocabulary=vocabulary,
         character_positions_in_vocabulary=cpiv,
         batch_generator_class=BatchGenerator,
+        reset_state_after_model_answer=False,  # if True after bot answer hidden state is reset
+        append_logs=False,  # if False and log_file already exists logs are put in to log_file + `#[index]`
+        answer_len_limit=500.,  # max number of characters in bot answer
+        randomize=False,  # if True model hidden state is initialized with random numbers
     )
