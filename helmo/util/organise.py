@@ -7,15 +7,42 @@ sys.path += [
 from learning_to_learn.useful_functions import create_vocabulary
 
 
-def path_rel_to_root(path):
-    abspath_to_current_file = os.path.abspath(os.getcwd())
-    relative_to_repo_root = abspath_to_current_file.split('/h-elmo/')[-1]
-    root_depth = len(relative_to_repo_root.split('/'))
-    return os.path.join(*['..'] * root_depth, path)
+def full_path_split(path):
+    splitted_path = list()
+    head, tail = os.path.split(path)
+    while len(head) > 0 and len(tail) > 0:
+        splitted_path = [tail] + splitted_path
+        head, tail = os.path.split(head)
+    splitted_path = [head] + splitted_path if len(head) > 0 else [tail] + splitted_path
+    return splitted_path
 
+
+def get_path_from_path_rel_to_repo_root(path):
+    abspath_to_cwd = full_path_split(os.path.abspath(os.getcwd()))
+    # print("(organise.get_path_from_path_rel_to_repo_root)abspath_to_cwd:", abspath_to_cwd)
+    if 'h-elmo' in abspath_to_cwd:
+        cwd_relative_to_repo_root = abspath_to_cwd[abspath_to_cwd.index('h-elmo')+1:]
+        if len(cwd_relative_to_repo_root) == 0:
+            return path
+        # print("(organise.get_path_from_path_rel_to_repo_root)cwd_relative_to_repo_root:", cwd_relative_to_repo_root)
+        root_depth = len(cwd_relative_to_repo_root)
+        return os.path.join(*['..'] * root_depth, path)
+    elif 'h-elmo' in os.listdir(os.path.expanduser('~')):
+        return os.path.join(os.path.expanduser('~/h-elmo'), path)
+    else:
+        if os.path.exists('/cephfs/home/peganov/h-elmo'):
+            return os.path.join('/cephfs/home/peganov/h-elmo', path)
+        elif os.path.exists('/home/peganov/h-elmo'):
+            return os.path.join('/home/peganov/h-elmo', path)
+        elif os.path.exists('/home/anton/h-elmo'):
+            return os.path.join('/home/anton/h-elmo', path)
+        else:
+            return None
 
 def get_text(text_file_name):
-    dataset_file_path = os.path.join(path_rel_to_root('datasets'), text_file_name)
+    # print("(organise.get_text)path_rel_to_root('datasets'):", get_path_from_path_rel_to_repo_root('datasets'))
+    # print("(organise.get_text)os.getcwd():", os.getcwd())
+    dataset_file_path = os.path.join(get_path_from_path_rel_to_repo_root('datasets'), text_file_name)
     with open(dataset_file_path, 'r') as f:
         text = f.read()
     return text
@@ -36,7 +63,7 @@ def get_vocab_by_given_path(file_name, text, create=False):
 
 
 def get_vocab(file_name, text, create=False):
-    file_name = os.path.join(path_rel_to_root('vocabs'), file_name)
+    file_name = os.path.join(get_path_from_path_rel_to_repo_root('vocabs'), file_name)
     return get_vocab_by_given_path(file_name, text, create=create)
 
 
@@ -63,7 +90,7 @@ def split_text(text, test_size, valid_size, train_size, by_lines=False):
 
 def get_path_to_dir_with_results(path_to_conf_or_script):
     rel_path = os.path.join(*os.path.split(os.path.abspath(path_to_conf_or_script).split('/experiments/')[-1])[:-1])
-    results_dir = os.path.join(path_rel_to_root('expres'), rel_path)
+    results_dir = os.path.join(get_path_from_path_rel_to_repo_root('expres'), rel_path)
     return results_dir
 
 

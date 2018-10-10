@@ -25,8 +25,13 @@ exec(organise.form_load_cmd(config['batch_gen']['path'], config['batch_gen']['cl
 exec(organise.form_load_cmd(config['net']['path'], config['net']['cls_name'], "Net"))
 
 save_path_relative_to_expres = os.path.join(*config_path.split('.')[:-1])
-results_dir = organise.get_path_to_dir_with_results(__file__)
-save_path = os.path.join(results_dir, save_path_relative_to_expres)
+print(save_path_relative_to_expres)
+results_dir = os.path.join(
+    organise.get_path_to_dir_with_results(save_path_relative_to_expres),
+    os.path.split(save_path_relative_to_expres)[-1]
+)
+print(results_dir)
+save_path = results_dir
 results_file_name = os.path.join(save_path, 'valid.txt')
 confs, _ = compose_hp_confs(
     config_path, results_file_name, chop_last_experiment=False, model='pupil')
@@ -45,6 +50,19 @@ env = Environment(Net, BatchGenerator, vocabulary=vocabulary)
 
 cpiv = get_positions_in_vocabulary(vocabulary)
 
+evaluation = config['evaluation'].copy()
+evaluation['save_path'] = save_path
+evaluation['datasets'] = [(valid_text, 'valid')]
+evaluation['batch_gen_class'] = BatchGenerator
+evaluation['batch_kwargs']['vocabulary'] = vocabulary
+evaluation['additional_feed_dict'] = []
+kwargs_for_building = config["kwargs_for_building"]
+kwargs_for_building['voc_size'] = vocabulary_size
+launch_kwargs = config['launch_kwargs']
+launch_kwargs['train_dataset_text'] = train_text
+launch_kwargs['vocabulary'] = vocabulary
+
+
 for conf in confs:
     build_hyperparameters = dict()
     for name in config['build_hyperparameters']:
@@ -58,7 +76,7 @@ for conf in confs:
     else:
         initial_experiment_counter_value = biggest_idx + 1
     env.grid_search(
-        config['evaluation'],
+        evaluation,
         config['kwargs_for_building'],
         build_hyperparameters=build_hyperparameters,
         other_hyperparameters=other_hyperparameters,
