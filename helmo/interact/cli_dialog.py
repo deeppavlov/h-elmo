@@ -3,17 +3,15 @@ import os
 
 import tensorflow as tf
 sys.path += [
+    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
+    os.path.expanduser('~/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
+    os.path.expanduser('~/h-elmo'),
     '/cephfs/home/peganov/learning-to-learn',
     '/home/peganov/learning-to-learn',
     '/cephfs/home/peganov/h-elmo',
     '/home/peganov/h-elmo',
 ]
-# sys.path += [
-#     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-#     os.path.expanduser('~/learning-to-learn'),
-#     os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-#     os.path.expanduser('~/h-elmo'),
-# ]
 from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary
 from helmo.nets.reslstm import Lstm, LstmFastBatchGenerator as BatchGenerator

@@ -2,7 +2,13 @@ import sys
 import os
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn')
+    os.path.expanduser('~/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
+    os.path.expanduser('~/h-elmo'),
+    '/cephfs/home/peganov/learning-to-learn',
+    '/home/peganov/learning-to-learn',
+    '/cephfs/home/peganov/h-elmo',
+    '/home/peganov/h-elmo',
 ]
 from learning_to_learn.useful_functions import create_vocabulary
 
@@ -54,7 +60,7 @@ def get_vocab_by_given_path(file_name, text, create=False):
             vocabulary = list(f.read())
     else:
         vocabulary = create_vocabulary(text)
-        if not os.path.exists(os.path.dirname(file_name)):
+        if not os.path.exists(os.path.dirname(file_name)) and len(os.path.dirname(file_name)) > 0:
             os.makedirs(os.path.dirname(file_name))
         with open(file_name, 'w') as f:
             f.write(''.join(vocabulary))
