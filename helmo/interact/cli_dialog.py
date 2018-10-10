@@ -30,7 +30,7 @@ parser.add_argument(
     action="store_true"
 )
 parser.add_argument(
-    "--inference",
+    "--dialog",
     help="If provided model is dialog is started. To load trained model provide --restore_path",
     action="store_true"
 )
@@ -165,8 +165,8 @@ if args.test:
         ),
     )
 
-if args.inference:
-    env.inference(
+if args.dialog:
+    env.dialog(
         restore_path=restore_path,
         log_path=args.save_path + '/dialog_logs.txt',
         vocabulary=vocabulary,
