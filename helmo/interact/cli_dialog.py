@@ -31,7 +31,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--inference",
-    help="If provided model is dialog is started",
+    help="If provided model is dialog is started. To load trained model provide --restore_path",
     action="store_true"
 )
 parser.add_argument(
@@ -99,7 +99,6 @@ lstm_map = dict(
 )
 env.build_pupil(
     lstm_map=lstm_map,
-    num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
     emb_size=256,
@@ -115,7 +114,7 @@ BATCH_SIZE = 32
 if args.train:
     learning_rate = dict(
         type='adaptive_change',
-        max_no_progress_points=1000,
+        max_no_progress_points=10,
         decay=.5,
         init=9e-4,
         path_to_target_metric_storage=('default_1', 'loss')

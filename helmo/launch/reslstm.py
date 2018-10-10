@@ -58,7 +58,7 @@ env.build_pupil(
     num_gpus=1,
     metrics=metrics,
     optimizer='adam',
-    dropout_rate=0.1,
+    dropout_rate=0.5,
 )
 learning_rate = dict(
     type='adaptive_change',
