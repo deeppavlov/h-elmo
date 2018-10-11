@@ -25,12 +25,12 @@ exec(organise.form_load_cmd(config['batch_gen']['path'], config['batch_gen']['cl
 exec(organise.form_load_cmd(config['net']['path'], config['net']['cls_name'], "Net"))
 
 save_path_relative_to_expres = os.path.join(*config_path.split('.')[:-1])
-print(save_path_relative_to_expres)
+# print(save_path_relative_to_expres)
 results_dir = os.path.join(
     organise.get_path_to_dir_with_results(save_path_relative_to_expres),
     os.path.split(save_path_relative_to_expres)[-1]
 )
-print(results_dir)
+# print(results_dir)
 save_path = results_dir
 results_file_name = os.path.join(save_path, 'valid.txt')
 confs, _ = compose_hp_confs(
@@ -56,12 +56,14 @@ evaluation['datasets'] = [(valid_text, 'valid')]
 evaluation['batch_gen_class'] = BatchGenerator
 evaluation['batch_kwargs']['vocabulary'] = vocabulary
 evaluation['additional_feed_dict'] = []
-kwargs_for_building = config["kwargs_for_building"]
+kwargs_for_building = config["build"]
 kwargs_for_building['voc_size'] = vocabulary_size
-launch_kwargs = config['launch_kwargs']
+launch_kwargs = config['launch']
 launch_kwargs['train_dataset_text'] = train_text
 launch_kwargs['vocabulary'] = vocabulary
 
+if config['seed'] is not None:
+    tf.set_random_seed(config['seed'])
 
 for conf in confs:
     build_hyperparameters = dict()

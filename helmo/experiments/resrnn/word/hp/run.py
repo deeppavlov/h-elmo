@@ -44,18 +44,9 @@ vocabulary, vocabulary_size = organise.get_vocab(voc_file_name, text)
 
 env = Environment(Rnn, BatchGenerator, vocabulary=vocabulary)
 
-cpiv = get_positions_in_vocabulary(vocabulary)
-
 metrics = ['bpc', 'perplexity', 'accuracy']
 
 # tf.set_random_seed(1)
-
-stop_specs = dict(
-    type='while_progress',
-    max_no_progress_points=10,
-    changing_parameter_name='learning_rate',
-    path_to_target_metric_storage=('valid', 'loss')
-)
 
 NUM_UNROLLINGS = 200
 BATCH_SIZE = 32
@@ -75,14 +66,14 @@ rnn_map = dict(
     num_nodes=[1500, 1500],
     input_idx=None,
     output_idx=None,
-    # derived_branches=[
-    #     dict(
-    #         module_name='word_enc_dec',
-    #         num_nodes=[3000, 3000],
-    #         input_idx=0,
-    #         output_idx=1,
-    #     )
-    # ]
+    derived_branches=[
+        dict(
+            module_name='word_enc_dec',
+            num_nodes=[3000, 3000],
+            input_idx=0,
+            output_idx=1,
+        )
+    ]
 )
 kwargs_for_building = dict(
     rnn_map=rnn_map,
@@ -94,14 +85,15 @@ kwargs_for_building = dict(
     metrics=metrics,
     optimizer='adam',
     dropout_rate=0.1,
+    clip_norm=1.,
 )
 
 launch_kwargs = dict(
     allow_growth=True,
     # restore_path=dict(
-    #     char_enc_dec='results/reslstm/checkpoints/all_vars/best',
+    #     char_enc_dec='results/resrnn/checkpoints/all_vars/best',
     # ),
-    learning_rate={'type': 'fixed', 'value': 4e-4},
+    learning_rate=-1,
     batch_size=BATCH_SIZE,
     num_unrollings=NUM_UNROLLINGS,
     vocabulary=vocabulary,
@@ -114,10 +106,17 @@ launch_kwargs = dict(
 
 for conf in confs:
     build_hyperparameters = dict(
-        dropout_rate=conf['dropout_rate'],
-        reg_rate=conf['reg_rate'],
+        init_parameter=conf['init_parameter']
     )
-    other_hyperparameters = dict()
+    other_hyperparameters = dict(
+        learning_rate=dict(
+            varying=dict(
+                value=conf['learning_rate/value']
+            ),
+            hp_type='built-in',
+            type='fixed'
+        )
+    )
 
     # tf.set_random_seed(1)
     _, biggest_idx, _ = get_num_exps_and_res_files(save_path)

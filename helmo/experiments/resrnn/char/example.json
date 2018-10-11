@@ -1,15 +1,14 @@
 {
   "seed": null,
   "batch_gen": {
-    "path": "reslstm",
+    "path": "resrnn",
     "cls_name": "LmFastBatchGenerator"
   },
   "net": {
-    "path": "reslstm",
+    "path": "resrnn",
     "cls_name": "Rnn"
   },
   "dataset": {
-    "name": "enwiki1G",
     "path": "enwiki1G.txt",
     "test_size": 6.4e6,
     "valid_size": 6.4e5,
@@ -22,7 +21,7 @@
     },
     "batch_size": 32
   },
-  "kwargs_for_building": {
+  "build": {
     "rnn_map": {
       "module_name": "char_enc_dec",
       "num_nodes": [1500, 1500],
@@ -37,7 +36,7 @@
     "optimizer": "adam",
     "dropout_rate": 0.1
   },
-  "launch_kwargs": {
+  "launch": {
     "allow_growth": true,
     "learning_rate": {
       "type": "fixed",

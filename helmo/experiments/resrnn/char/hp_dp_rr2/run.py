@@ -50,6 +50,13 @@ metrics = ['bpc', 'perplexity', 'accuracy']
 
 # tf.set_random_seed(1)
 
+stop_specs = dict(
+    type='while_progress',
+    max_no_progress_points=10,
+    changing_parameter_name='learning_rate',
+    path_to_target_metric_storage=('valid', 'loss')
+)
+
 NUM_UNROLLINGS = 200
 BATCH_SIZE = 32
 
@@ -79,7 +86,6 @@ rnn_map = dict(
 )
 kwargs_for_building = dict(
     rnn_map=rnn_map,
-    num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
     emb_size=256,
@@ -93,9 +99,9 @@ kwargs_for_building = dict(
 launch_kwargs = dict(
     allow_growth=True,
     # restore_path=dict(
-    #     char_enc_dec='results/reslstm/checkpoints/all_vars/best',
+    #     char_enc_dec='results/resrnn/checkpoints/all_vars/best',
     # ),
-    learning_rate={'type': 'fixed', 'value': 9e-4},
+    learning_rate={'type': 'fixed', 'value': 4e-4},
     batch_size=BATCH_SIZE,
     num_unrollings=NUM_UNROLLINGS,
     vocabulary=vocabulary,

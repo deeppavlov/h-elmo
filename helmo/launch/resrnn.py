@@ -52,7 +52,6 @@ env.build_pupil(
     rnn_type='lstm',
     embed_inputs=True,
     rnn_map=rnn_map,
-    num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
     emb_size=256,
@@ -140,9 +139,9 @@ env.train(
 # env.train(
 #     # gpu_memory=.3,
 #     allow_growth=True,
-#     save_path='results/reslstm',
+#     save_path='results/resrnn',
 #     restore_path=dict(
-#         char_enc_dec='results/reslstm/checkpoints/all_vars/best',
+#         char_enc_dec='results/resrnn/checkpoints/all_vars/best',
 #     ),
 #     learning_rate=learning_rate,
 #     batch_size=BATCH_SIZE,

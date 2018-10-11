@@ -91,7 +91,7 @@ kwargs_for_building = dict(
 launch_kwargs = dict(
     allow_growth=True,
     # restore_path=dict(
-    #     char_enc_dec='results/reslstm/checkpoints/all_vars/best',
+    #     char_enc_dec='results/resrnn/checkpoints/all_vars/best',
     # ),
     learning_rate=-1,
     batch_size=BATCH_SIZE,
