@@ -11,7 +11,7 @@ import tensorflow as tf
 from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary
 
-from helmo.nets.reslstm import Lstm, LstmFastBatchGenerator as BatchGenerator
+from helmo.nets.resrnn import Rnn, LmFastBatchGenerator as BatchGenerator
 import helmo.util.organise as organise
 
 dataset_file_name = 'enwiki1G.txt'
@@ -25,7 +25,7 @@ test_text, valid_text, train_text = organise.split_text(text, test_size, valid_s
 voc_file_name = 'enwiki1G_voc.txt'
 vocabulary, vocabulary_size = organise.get_vocab(voc_file_name, text)
 
-env = Environment(Lstm, BatchGenerator, vocabulary=vocabulary)
+env = Environment(Rnn, BatchGenerator, vocabulary=vocabulary)
 
 metrics = ['bpc', 'perplexity', 'accuracy']
 
@@ -34,7 +34,7 @@ metrics = ['bpc', 'perplexity', 'accuracy']
 NUM_UNROLLINGS = 200
 BATCH_SIZE = 32
 
-lstm_map = dict(
+rnn_map = dict(
     module_name='char_enc_dec',
     num_nodes=[1500, 1500],
     input_idx=None,
@@ -49,7 +49,9 @@ lstm_map = dict(
     # ]
 )
 env.build_pupil(
-    lstm_map=lstm_map,
+    rnn_type='lstm',
+    embed_inputs=True,
+    rnn_map=rnn_map,
     num_out_layers=1,
     num_out_nodes=[],
     voc_size=vocabulary_size,
@@ -59,12 +61,13 @@ env.build_pupil(
     metrics=metrics,
     optimizer='adam',
     dropout_rate=0.5,
+    # regime='inference',
 )
 learning_rate = dict(
     type='adaptive_change',
     max_no_progress_points=1000,
     decay=.5,
-    init=9e-4,
+    init=4e-4,
     # init=1e-3,
     path_to_target_metric_storage=('default_1', 'loss')
 )
@@ -72,10 +75,10 @@ learning_rate = dict(
 env.train(
     # gpu_memory=.3,
     allow_growth=True,
-    save_path='results/reslstm',
-    # restore_path='results/reslstm/checkpoints/best',
+    save_path='results/resrnn',
+    # restore_path='results/resrnn/checkpoints/all_vars/best',
     # restore_path=dict(
-    #     char_enc_dec='results/reslstm/checkpoints/all_vars/best',
+    #     char_enc_dec='results/resrnn/checkpoints/all_vars/best',
     # ),
     learning_rate=learning_rate,
     batch_size=BATCH_SIZE,
@@ -100,7 +103,7 @@ env.train(
     add_graph_to_summary=True,
 )
 
-# lstm_map = dict(
+# rnn_map = dict(
 #     module_name='char_enc_dec',
 #     num_nodes=[250, 125],
 #     input_idx=None,
@@ -116,7 +119,7 @@ env.train(
 # )
 #
 # env.build_pupil(
-#     lstm_map=lstm_map,
+#     rnn_map=rnn_map,
 #     num_out_nodes=[],
 #     voc_size=vocabulary_size,
 #     emb_size=150,

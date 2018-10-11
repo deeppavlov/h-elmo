@@ -18,31 +18,31 @@ from deeppavlov.core.common.registry import register
 from deeppavlov.core.models.tf_model import TFModel
 from deeppavlov.core.common.log import get_logger
 
-from helmo.util.tensor import prepare_init_state, compose_save_list, compute_lstm_stddevs, get_saved_state_vars
+from helmo.util.tensor import prepare_init_state, compose_save_list, compute_lstm_gru_stddevs, get_saved_state_vars
 
 logger = get_logger(__name__)
 
 
 def add_cudnn_lstm(inps, state, num_layers, num_units, input_dim, init_parameter):
     input_dim = max(input_dim, num_units)
-    stddevs = compute_lstm_stddevs([num_units], input_dim, init_parameter)
+    stddevs = compute_lstm_gru_stddevs([num_units], input_dim, init_parameter)
     # print("(add_cudnn_lstm)stddevs:", stddevs)
     lstm = CudnnLSTM(
         num_layers, num_units, input_mode='linear_input',
         kernel_initializer=tf.truncated_normal_initializer(stddev=stddevs[0])
     )
-    state = prepare_init_state(state, inps, lstm, 'cudnn')
+    state = prepare_init_state(state, inps, lstm, 'cudnn_lstm')
     output, state = lstm(inps, initial_state=state)
     return output, state
 
 
 def add_stacked_cudnn_lstm(inps, state, num_units, input_dim, init_parameter):
-    stddevs = compute_lstm_stddevs(num_units, input_dim, init_parameter)
+    stddevs = compute_lstm_gru_stddevs(num_units, input_dim, init_parameter)
     lstms = [
         CudnnLSTM(1, nu, input_mode='linear_input', kernel_initializer=tf.truncated_normal_initializer(stddev=stddev))
         for nu, stddev in zip(num_units, stddevs)
     ]
-    state = prepare_init_state(state, inps, lstms, 'cudnn_stacked')
+    state = prepare_init_state(state, inps, lstms, 'cudnn_lstm_stacked')
     inter = inps
     new_state = list()
     # print("(add_stacked_cudnn_lstm)state:", state)
@@ -54,7 +54,7 @@ def add_stacked_cudnn_lstm(inps, state, num_units, input_dim, init_parameter):
 
 
 def add_cell_lstm(inps, state, num_units, input_dim, init_parameter):
-    stddevs = compute_lstm_stddevs(num_units, input_dim, init_parameter)
+    stddevs = compute_lstm_gru_stddevs(num_units, input_dim, init_parameter)
     lstms = [
         LSTMCell(
             nu, dtype=tf.float32, state_is_tuple=False,
@@ -140,9 +140,9 @@ class LSTM(TFModel):
         x_embedded = tf.tensordot(x, self.input_layer_matrix, axes=[[-1], [0]]) + self.input_layer_bias
         if self.device == 'gpu':
             if all([nu == self.num_units[i+1] for i, nu in enumerate(self.num_units[:-1])]):
-                lstm_type = 'cudnn'
+                lstm_type = 'cudnn_lstm'
             else:
-                lstm_type = 'cudnn_stacked'
+                lstm_type = 'cudnn_lstm_stacked'
         else:
             lstm_type = 'cell'
         # lstm_type = 'cell'
@@ -151,10 +151,10 @@ class LSTM(TFModel):
         # for idx, s in enumerate(saved_state):
         #     x_embedded = tf.Print(x_embedded, [tf.shape(s)], message="(add_lstm_graph)saved_state[%s].shape:\n" % idx)
         # saved_state = tuple(saved_state)
-        if lstm_type == 'cudnn':
+        if lstm_type == 'cudnn_lstm':
             lstm_output, state = add_cudnn_lstm(
                 x_embedded, saved_state, self.num_layers, self.num_units[0], self.projection_size, self.init_parameter)
-        elif lstm_type == 'cudnn_stacked':
+        elif lstm_type == 'cudnn_lstm_stacked':
             lstm_output, state = add_stacked_cudnn_lstm(
                 x_embedded, saved_state, self.num_units, self.projection_size, self.init_parameter)
         elif lstm_type == 'cell':

@@ -2,11 +2,11 @@
   "seed": null,
   "batch_gen": {
     "path": "reslstm",
-    "cls_name": "LstmFastBatchGenerator"
+    "cls_name": "LmFastBatchGenerator"
   },
   "net": {
     "path": "reslstm",
-    "cls_name": "Lstm"
+    "cls_name": "Rnn"
   },
   "dataset": {
     "name": "enwiki1G",
@@ -23,7 +23,7 @@
     "batch_size": 32
   },
   "kwargs_for_building": {
-    "lstm_map": {
+    "rnn_map": {
       "module_name": "char_enc_dec",
       "num_nodes": [1500, 1500],
       "input_idx": null,

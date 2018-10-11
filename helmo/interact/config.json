@@ -1,0 +1,7 @@
+{
+  "cli_dialog": true,
+  "file_dialog": true,
+  "text_path": "~/h-elmo/datasets/clean_subs.txt",
+  "voc_path": "~/h-elmo/vocabs/clean_subs_voc.txt",
+  "input_replica_file": "~/h-elmo/helmo/interact/replicas.txt"
+}

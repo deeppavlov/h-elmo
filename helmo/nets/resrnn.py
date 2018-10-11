@@ -18,6 +18,7 @@ import random
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.cudnn_rnn import CudnnLSTM as CudnnLSTM
+from tensorflow.contrib.cudnn_rnn import CudnnGRU as CudnnGRU
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary, char2vec, pred2vec, \
     pred2vec_fast, vec2char, vec2char_fast, char2id, id2char, get_available_gpus, device_name_scope, \
     average_gradients, InvalidArgumentError, \
@@ -27,10 +28,10 @@ from learning_to_learn.pupils.pupil import Pupil
 
 from learning_to_learn.tensors import compute_metrics_raw_lbls
 
-from helmo.util.tensor import prepare_init_state, get_saved_state_vars, compute_lstm_stddevs
+from helmo.util.tensor import prepare_init_state, get_saved_state_vars, compute_lstm_gru_stddevs
 
 
-class LstmFastBatchGenerator(object):
+class LmFastBatchGenerator(object):
     @staticmethod
     def create_vocabulary(texts):
         text = ''
@@ -103,8 +104,8 @@ class LstmFastBatchGenerator(object):
         self._last_batch = batches[-1]
         inps = np.stack(batches[:-1])
         lbls = np.stack(batches[1:])
-        # print('(LstmFastBatchGenerator.next)inps.shape:', inps.shape)
-        # print('(LstmFastBatchGenerator.next)lbls.shape:', lbls.shape)
+        # print('(LmFastBatchGenerator.next)inps.shape:', inps.shape)
+        # print('(LmFastBatchGenerator.next)lbls.shape:', lbls.shape)
         return inps, lbls
 
 
@@ -123,8 +124,8 @@ def batches2string(batches, vocabulary):
     return s
 
 
-class Lstm(Pupil):
-    _name = 'lstm'
+class Rnn(Pupil):
+    _name = 'rnn'
 
     @classmethod
     def check_kwargs(cls,
@@ -145,7 +146,7 @@ class Lstm(Pupil):
     def _compute_output_matrix_parameters(self, idx):
         if idx == 0:
             # print('self._num_nodes:', self._num_nodes)
-            input_dim = self._lstm_map['num_nodes'][-1]
+            input_dim = self._rnn_map['num_nodes'][-1]
         else:
             input_dim = self._num_out_nodes[idx - 1]
         if idx == self._num_out_layers - 1:
@@ -209,66 +210,71 @@ class Lstm(Pupil):
                 with tf.device(gpu_name):
                     with tf.name_scope(device_name_scope(gpu_name)):
                         x = tf.one_hot(inp, self._voc_size, dtype=tf.float32)
-                        outputs.append(
-                            tf.einsum(
-                                'ijk,kl->ijl',
-                                x,
-                                self._emb_vars['matrix']
-                            ) + self._emb_vars['bias']
-                        )
+                        if self._embed_inputs:
+                            outputs.append(
+                                tf.einsum(
+                                    'ijk,kl->ijl',
+                                    x,
+                                    self._emb_vars['matrix']
+                                ) + self._emb_vars['bias']
+                            )
+                        else:
+                            outputs.append(x)
         return outputs
 
-    def _add_saved_state(self, lstm_map, gpu_name):
-        if 'saved_state' not in lstm_map:
-            lstm_map['saved_state'] = dict()
-        lstm_map['saved_state'][gpu_name] = get_saved_state_vars(
-            len(lstm_map['num_nodes']), 'cudnn_stacked', lstm_map['module_name'])
-        if 'derived_branches' in lstm_map:
-            for branch in lstm_map['derived_branches']:
-                self._add_saved_state(branch, gpu_name)
+    def _add_saved_state(self, rnn_map, gpu_name, state_name):
+        if state_name not in rnn_map:
+            rnn_map[state_name] = dict()
+        rnn_map[state_name][gpu_name] = get_saved_state_vars(
+            len(rnn_map['num_nodes']), self._network_type, rnn_map['module_name'])
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
+                self._add_saved_state(branch, gpu_name, state_name)
 
-    def _get_state_from_lstm_map(self, lstm_map, key, gpu_name):
+    def _get_state_from_rnn_map(self, rnn_map, key, gpu_name):
         res = list()
-        res.append(lstm_map[key][gpu_name])
-        if 'derived_branches' in lstm_map:
-            for branch in lstm_map['derived_branches']:
-                res.extend(self._get_state_from_lstm_map(branch, key, gpu_name))
+        res.append(rnn_map[key][gpu_name])
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
+                res.extend(self._get_state_from_rnn_map(branch, key, gpu_name))
         return res
 
-    def _add_lstm_graph(self, inp, lstm_map, gpu_name, training):
-        if 'derived_branches' in lstm_map:
-            lstm_map['derived_branches'] = sorted(lstm_map['derived_branches'], key=lambda x: x['output_idx'])
+    def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
+        if 'derived_branches' in rnn_map:
+            rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
         branch_idx = 0
-        if 'new_state' not in lstm_map:
-            lstm_map['new_state'] = dict()
-        lstm_map['new_state'][gpu_name] = list()
+        if new_state_name not in rnn_map:
+            rnn_map[new_state_name] = dict()
+        rnn_map[new_state_name][gpu_name] = list()
         intermediate = list()
-        with tf.name_scope(lstm_map['module_name']):
+        with tf.name_scope(rnn_map['module_name']):
             prepared_state = prepare_init_state(
-                lstm_map['saved_state'][gpu_name], inp, lstm_map['lstms'], 'cudnn_stacked')
-            for lstm_idx, (lstm, s) in enumerate(zip(lstm_map['lstms'], prepared_state)):
-                # print("(Lstm._add_lstm_graph).inp:", inp)
-                # print("(Lstm._add_lstm_graph).s:", s)
-                if 'derived_branches' in lstm_map \
-                        and branch_idx < len(lstm_map['derived_branches']) \
-                        and lstm_map['derived_branches'][branch_idx]['output_idx'] == lstm_idx:
-                    inp += self._add_lstm_graph(
-                        intermediate[lstm_map['derived_branches'][branch_idx]['input_idx']],
-                        lstm_map['derived_branches'][branch_idx], gpu_name, training
+                rnn_map[saved_state_name][gpu_name], inp, rnn_map['rnns'], self._network_type)
+            # print("(Rnn._add_rnn_graph).prepared_state:", prepared_state)
+            for rnn_idx, (rnn, s) in enumerate(zip(rnn_map['rnns'], prepared_state)):
+                # print("(Rnn._add_rnn_graph).inp:", inp)
+                # print("(Rnn._add_rnn_graph).s:", s)
+                if 'derived_branches' in rnn_map \
+                        and branch_idx < len(rnn_map['derived_branches']) \
+                        and rnn_map['derived_branches'][branch_idx]['output_idx'] == rnn_idx:
+                    inp += self._add_rnn_graph(
+                        intermediate[rnn_map['derived_branches'][branch_idx]['input_idx']],
+                        rnn_map['derived_branches'][branch_idx], gpu_name, training,
+                        saved_state_name, new_state_name,
                     )
                     branch_idx += 1
-                inp, new_s = lstm(inp, initial_state=s, training=training)
+                inp, new_s = rnn(inp, initial_state=s, training=training)
                 intermediate.append(inp)
-                lstm_map['new_state'][gpu_name].append(new_s)
-            if 'adapter_matrix' in lstm_map:
-                inp = tf.einsum('ijk,kl->ijl', inp, lstm_map['adapter_matrix'])
-            if 'adapter_bias' in lstm_map:
-                inp += lstm_map['adapter_bias']
+                rnn_map[new_state_name][gpu_name].append(new_s)
+            if 'adapter_matrix' in rnn_map:
+                inp = tf.einsum('ijk,kl->ijl', inp, rnn_map['adapter_matrix'])
+            if 'adapter_bias' in rnn_map:
+                inp += rnn_map['adapter_bias']
             # with tf.device('/cpu:0'):
-            #     inp = tf.Print(inp, [inp], message="(Lstm._add_lstm_graph)inp (%s):\n" % inp.name)
+            #     inp = tf.Print(inp, [inp], message="(Rnn._add_rnn_graph)inp (%s):\n" % inp.name)
         return inp
 
-    def _add_lstm_and_output_module(self, embeddings_by_gpu, training):
+    def _add_rnn_and_output_module(self, embeddings_by_gpu, training):
         logits_by_gpu = list()
         preds_by_gpu = list()
         reset_state_ops = list()
@@ -281,17 +287,21 @@ class Lstm(Pupil):
             for embeddings, gpu_name in zip(embeddings_by_gpu, self._gpu_names):
                 with tf.device(gpu_name):
                     with tf.name_scope(device_name_scope(gpu_name)):
-                        self._add_saved_state(self._lstm_map, gpu_name)
-                        with tf.name_scope('lstms'):
-                            lstm_res = self._add_lstm_graph(embeddings, self._lstm_map, gpu_name, training)
-                        saved_state = self._get_state_from_lstm_map(self._lstm_map, 'saved_state', gpu_name)
-                        new_state = self._get_state_from_lstm_map(self._lstm_map, 'new_state', gpu_name)
+                        saved_state_name = 'saved_state_' + name_scope
+                        new_state_name = 'new_state_' + name_scope
+                        self._add_saved_state(self._rnn_map, gpu_name, saved_state_name)
+                        with tf.name_scope('rnns'):
+                            rnn_res = self._add_rnn_graph(
+                                embeddings, self._rnn_map, gpu_name, training, saved_state_name, new_state_name)
+                        saved_state = self._get_state_from_rnn_map(self._rnn_map, saved_state_name, gpu_name)
+                        new_state = self._get_state_from_rnn_map(self._rnn_map, new_state_name, gpu_name)
+                        # print("(Rnn._add_rnn_and_output_module)self._rnn_map:", self._rnn_map)
                         reset_state_ops.extend(compose_reset_list(saved_state))
                         if training:
                             randomize_state_ops.extend(compose_randomize_list(saved_state))
                         save_list = compose_save_list((saved_state, new_state))
                         with tf.control_dependencies(save_list):
-                            logits = self._output_module(lstm_res)
+                            logits = self._output_module(rnn_res)
                         logits_by_gpu.append(logits)
                         preds_by_gpu.append(tf.nn.softmax(logits))
             reset_state = tf.group(*reset_state_ops)
@@ -354,57 +364,63 @@ class Lstm(Pupil):
                 train_op = self._optimizer.apply_gradients(zip(grads, v))
         return train_op
 
-    def _build_recursive(self, lstm_map, inp_size, out_size, add_adapter=True):
-        lstms = list()
-        stddevs = compute_lstm_stddevs(lstm_map['num_nodes'], self._voc_size, self._init_parameter)
+    def _build_recursive(self, rnn_map, inp_size, out_size, add_adapter=True):
+        rnns = list()
+        stddevs = compute_lstm_gru_stddevs(rnn_map['num_nodes'], self._voc_size, self._init_parameter)
         inp_shape = self._inp_and_lbl_phds['inps'].shape
-        for idx, (nn, stddev) in enumerate(zip(lstm_map['num_nodes'], stddevs)):
-            lstm = CudnnLSTM(
+        if self._rnn_type == 'lstm':
+            Rnn = CudnnLSTM
+        elif self._rnn_type == 'gru':
+            Rnn = CudnnGRU
+        for idx, (nn, stddev) in enumerate(zip(rnn_map['num_nodes'], stddevs)):
+            rnn = Rnn(
                 1,
                 nn,
                 dropout=self._dropout_rate,
                 kernel_initializer=tf.truncated_normal_initializer(stddev=stddev),
-                name='lstm_%s_%s' % (lstm_map['module_name'], idx),
+                name='%s_%s_%s' % (self._rnn_type, rnn_map['module_name'], idx),
             )
-            # lstm.build(inp_shape.concatenate(inp_size))
-            lstms.append(lstm)
+            # rnn.build(inp_shape.concatenate(inp_size))
+            rnns.append(rnn)
             inp_size = nn
-        lstm_map['lstms'] = lstms
+        rnn_map['rnns'] = rnns
         if add_adapter:
-            lstm_map['adapter_matrix'] = tf.Variable(
-                tf.zeros([lstm_map['num_nodes'][-1], out_size]),
-                name='adapter_matrix_%s' % lstm_map['module_name']
+            rnn_map['adapter_matrix'] = tf.Variable(
+                tf.zeros([rnn_map['num_nodes'][-1], out_size]),
+                name='adapter_matrix_%s' % rnn_map['module_name']
             )
-            lstm_map['adapter_bias'] = tf.Variable(
+            rnn_map['adapter_bias'] = tf.Variable(
                 tf.zeros([out_size]),
-                name='adapter_bias_%s' % lstm_map['module_name']
+                name='adapter_bias_%s' % rnn_map['module_name']
             )
-        if 'derived_branches' in lstm_map:
-            for branch in lstm_map['derived_branches']:
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
                 self._build_recursive(
                     branch,
-                    lstm_map['num_nodes'][branch['input_idx']],
-                    lstm_map['num_nodes'][branch['output_idx']-1]
+                    rnn_map['num_nodes'][branch['input_idx']],
+                    rnn_map['num_nodes'][branch['output_idx']-1]
                 )
 
-    def _build_lstm_branch_variables(self):
-        self._build_recursive(self._lstm_map, self._emb_size, None, add_adapter=False)
+    def _build_rnn_branch_variables(self):
+        inp_size = self._emb_size if self._embed_inputs else self._voc_size
+        self._build_recursive(self._rnn_map, inp_size, None, add_adapter=False)
 
     def _build_variables(self):
         with tf.device(self._base_dev):
             with tf.name_scope('build_vars'):
 
-                self._emb_vars = dict(
-                    matrix=tf.Variable(
-                        tf.truncated_normal(
-                            [self._voc_size, self._emb_size],
-                            stddev=self._init_parameter * np.sqrt(1. / (self._voc_size + self._emb_size))
+                if self._embed_inputs:
+                    self._emb_vars = dict(
+                        matrix=tf.Variable(
+                            tf.truncated_normal(
+                                [self._voc_size, self._emb_size],
+                                stddev=self._init_parameter * np.sqrt(1. / (self._voc_size + self._emb_size))
+                            ),
+                            name='embedding_matrix',
+                            collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
                         ),
-                        name='embedding_matrix',
-                        collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
-                    ),
-                    bias=tf.Variable(tf.zeros([self._emb_size]), name='embedding_bias')
-                )
+                        bias=tf.Variable(tf.zeros([self._emb_size]), name='embedding_bias')
+                    )
 
                 self._out_vars = list()
                 for layer_idx in range(self._num_out_layers):
@@ -423,48 +439,49 @@ class Lstm(Pupil):
                             )
                         )
                     )
-                self._build_lstm_branch_variables()
+                self._build_rnn_branch_variables()
 
-    def _get_save_dict_for_lstms(self, lstm_map, accumulated_module_name, module_name=None):
+    def _get_save_dict_for_rnns(self, rnn_map, accumulated_module_name, module_name=None):
         save_dict = dict()
         if len(accumulated_module_name) > 0:
             accumulated_module_name += '_'
-        accumulated_module_name += lstm_map['module_name']
-        if module_name is None or lstm_map['module_name'] == module_name:
-            for lstm_idx, lstm in enumerate(lstm_map['lstms']):
-                save_dict["%s_lstm_%s" % (accumulated_module_name, lstm_idx)] = lstm.saveable
-                # print("(Lstm._get_save_dict_for_lstms)lstm.scope_name:", lstm.scope_name)
-                # print("(Lstm._get_save_dict_for_lstms)lstm.num_units:", lstm.num_units)
-            if 'adapter_matrix' in lstm_map:
-                save_dict['%s_adapter_matrix' % accumulated_module_name] = lstm_map['adapter_matrix']
-            if 'adapter_bias' in lstm_map:
-                save_dict['%s_adapter_bias' % accumulated_module_name] = lstm_map['adapter_bias']
-        if 'derived_branches' in lstm_map:
-            for branch in lstm_map['derived_branches']:
+        accumulated_module_name += rnn_map['module_name']
+        if module_name is None or rnn_map['module_name'] == module_name:
+            for rnn_idx, rnn in enumerate(rnn_map['rnns']):
+                save_dict["%s_rnn_%s" % (accumulated_module_name, rnn_idx)] = rnn.saveable
+                # print("(Rnn._get_save_dict_for_rnns)rnn.scope_name:", rnn.scope_name)
+                # print("(Rnn._get_save_dict_for_rnns)rnn.num_units:", rnn.num_units)
+            if 'adapter_matrix' in rnn_map:
+                save_dict['%s_adapter_matrix' % accumulated_module_name] = rnn_map['adapter_matrix']
+            if 'adapter_bias' in rnn_map:
+                save_dict['%s_adapter_bias' % accumulated_module_name] = rnn_map['adapter_bias']
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
                 save_dict.update(
-                    self._get_save_dict_for_lstms(branch, accumulated_module_name, module_name=module_name))
+                    self._get_save_dict_for_rnns(branch, accumulated_module_name, module_name=module_name))
         # for k, v in save_dict.items():
         #     if 'adapter' not in k:
-        #         print("(Lstm._get_save_dict_for_lstms)k:", k)
-        #         print("(Lstm._get_save_dict_for_lstms)v._OpaqueParamsToCanonical():", v._OpaqueParamsToCanonical())
+        #         print("(Rnn._get_save_dict_for_rnns)k:", k)
+        #         print("(Rnn._get_save_dict_for_rnns)v._OpaqueParamsToCanonical():", v._OpaqueParamsToCanonical())
 
         return save_dict
 
     def _get_save_dict_for_base(self):
         save_dict = dict()
-        save_dict['embedding_matrix'] = self._emb_vars['matrix']
-        save_dict['embedding_bias'] = self._emb_vars['bias']
+        if self._embed_inputs:
+            save_dict['embedding_matrix'] = self._emb_vars['matrix']
+            save_dict['embedding_bias'] = self._emb_vars['bias']
         for layer_idx, out_core in enumerate(self._out_vars):
             save_dict['output_matrix_%s' % layer_idx] = out_core['matrix']
             save_dict['output_bias_%s' % layer_idx] = out_core['bias']
         return save_dict
 
     def _create_saver(self):
-        # print("(Lstm.create_saver)var_dict:", var_dict)
+        # print("(Rnn.create_saver)var_dict:", var_dict)
         save_dict = dict()
         save_dict.update(self._get_save_dict_for_base())
-        save_dict.update(self._get_save_dict_for_lstms(self._lstm_map, ""))
-        # print("(Lstm._create_saver)save_dict:")
+        save_dict.update(self._get_save_dict_for_rnns(self._rnn_map, ""))
+        # print("(Rnn._create_saver)save_dict:")
         # for k, v in save_dict.items():
         #     print(k)
         #     print(v)
@@ -473,24 +490,24 @@ class Lstm(Pupil):
             saver = tf.train.Saver(save_dict, max_to_keep=None)
         return saver
 
-    def _get_module_names(self, lstm_map):
-        names = {lstm_map['module_name']}
-        if 'derived_branches' in lstm_map:
-            for branch in lstm_map['derived_branches']:
+    def _get_module_names(self, rnn_map):
+        names = {rnn_map['module_name']}
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
                 names |= self._get_module_names(branch)
         return names
 
     def _create_subgraph_savers(self):
         save_dict = dict()
         save_dict.update(self._get_save_dict_for_base())
-        save_dict.update(self._get_save_dict_for_lstms(self._lstm_map, "", module_name=self._lstm_map['module_name']))
+        save_dict.update(self._get_save_dict_for_rnns(self._rnn_map, "", module_name=self._rnn_map['module_name']))
         with tf.device('/cpu:0'):
             base_saver = tf.train.Saver(save_dict, max_to_keep=None)
-        module_names = self._get_module_names(self._lstm_map)
-        module_names.remove(self._lstm_map['module_name'])
-        savers = {self._lstm_map['module_name']: base_saver}
+        module_names = self._get_module_names(self._rnn_map)
+        module_names.remove(self._rnn_map['module_name'])
+        savers = {self._rnn_map['module_name']: base_saver}
         for name in module_names:
-            module_save_dict = self._get_save_dict_for_lstms(self._lstm_map, "", module_name=name)
+            module_save_dict = self._get_save_dict_for_rnns(self._rnn_map, "", module_name=name)
             with tf.device('/cpu:0'):
                 savers[name] = tf.train.Saver(module_save_dict, max_to_keep=None)
         return savers
@@ -536,9 +553,9 @@ class Lstm(Pupil):
 
     def __init__(self, **kwargs):
 
-        self._lstm_map = deepcopy(
+        self._rnn_map = deepcopy(
             kwargs.get(
-                'lstm_map',
+                'rnn_map',
                 dict(
                     module_name='char_enc_dec',
                     num_nodes=[250],
@@ -547,6 +564,8 @@ class Lstm(Pupil):
                 )
             )
         )
+        self._rnn_type = kwargs.get('rnn_type', 'lstm')
+        self._embed_inputs = kwargs.get('embed_inputs', True)
         self._voc_size = kwargs.get('voc_size', None)
         self._emb_size = kwargs.get('emb_size', 128)
         self._num_out_nodes = kwargs.get('num_out_nodes', [])
@@ -561,6 +580,13 @@ class Lstm(Pupil):
         self._dropout_rate = kwargs.get('dropout_rate', 0.1)
         self._clip_norm = kwargs.get('clip_norm', 1.)
         self._regime = kwargs.get('regime', 'train')
+
+        if self._rnn_type == 'lstm':
+            self._network_type = 'cudnn_lstm_stacked'
+        elif self._rnn_type == 'gru':
+            self._network_type = 'cudnn_gru_stacked'
+        else:
+            self._network_type = None
 
         self._hooks = dict(
             inputs=None,
@@ -587,9 +613,10 @@ class Lstm(Pupil):
         else:
             self._base_dev = '/cpu:0'
 
-        self._emb_vars = None
+        if self._embed_inputs:
+            self._emb_vars = None
         self._out_vars = None
-        self._lstms_branches = dict()
+        self._rnn_branches = dict()
 
         self._applicable_trainable = dict()
 
@@ -608,33 +635,38 @@ class Lstm(Pupil):
         inps_by_gpu = tf.split(self._inp_and_lbl_phds['inps'], self._bs_by_gpu, axis=1)
         lbls_by_gpu = tf.split(self._inp_and_lbl_phds['lbls'], self._bs_by_gpu, axis=1)
         embeddings_by_gpu = self._add_embeding_graph(inps_by_gpu)
-        train_logits_by_gpu, train_preds_by_gpu, reset_train_state, _ = \
-            self._add_lstm_and_output_module(embeddings_by_gpu, True)
+
+        if self._regime == 'train':
+            train_logits_by_gpu, train_preds_by_gpu, reset_train_state, _ = \
+                self._add_rnn_and_output_module(embeddings_by_gpu, True)
+            train_loss, train_loss_by_gpu, train_metrics = self._compute_loss_and_metrics(
+                train_logits_by_gpu,
+                train_preds_by_gpu,
+                lbls_by_gpu,
+            )
+            self._select_optimizer()
+            train_op = self._get_train_op(train_loss_by_gpu)
+
+            self._hooks['train_op'] = train_op
+            self._hooks['loss'] = train_loss
+            self._hooks['predictions'] = tf.concat(train_preds_by_gpu, 1)
+            for metric_name in self._metrics:
+                self._hooks[metric_name] = train_metrics[metric_name]
+
         valid_logits_by_gpu, valid_preds_by_gpu, reset_valid_state, randomize_valid_state = \
-            self._add_lstm_and_output_module(embeddings_by_gpu, False)
-        train_loss, train_loss_by_gpu, train_metrics = self._compute_loss_and_metrics(
-            train_logits_by_gpu,
-            train_preds_by_gpu,
-            lbls_by_gpu,
-        )
+            self._add_rnn_and_output_module(embeddings_by_gpu, False)
+
         valid_loss, _, valid_metrics = self._compute_loss_and_metrics(
             valid_logits_by_gpu,
             valid_preds_by_gpu,
             lbls_by_gpu,
         )
-        if self._regime == 'train':
-            self._select_optimizer()
-            train_op = self._get_train_op(train_loss_by_gpu)
-            self._hooks['train_op'] = train_op
 
-        self._hooks['loss'] = train_loss
-        self._hooks['predictions'] = tf.concat(train_preds_by_gpu, 1)
         self._hooks['validation_predictions'] = tf.concat(valid_preds_by_gpu, 1)
         self._hooks['reset_validation_state'] = reset_valid_state
         self._hooks['randomize_sample_state'] = randomize_valid_state
         self._hooks['validation_loss'] = valid_loss
         for metric_name in self._metrics:
-            self._hooks[metric_name] = train_metrics[metric_name]
             self._hooks['validation_' + metric_name] = valid_metrics[metric_name]
 
         self._hooks['saver'] = self._create_saver()

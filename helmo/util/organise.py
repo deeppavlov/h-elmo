@@ -45,6 +45,7 @@ def get_path_from_path_rel_to_repo_root(path):
         else:
             return None
 
+
 def get_text(text_file_name):
     # print("(organise.get_text)path_rel_to_root('datasets'):", get_path_from_path_rel_to_repo_root('datasets'))
     # print("(organise.get_text)os.getcwd():", os.getcwd())
@@ -56,10 +57,9 @@ def get_text(text_file_name):
 
 def get_vocab_by_given_path(file_name, text, create=False):
     if os.path.isfile(file_name) and not create:
-        with open(file_name, 'r') as f:
-            vocabulary = list(f.read())
+        vocabulary = load_vocabulary_with_unk(file_name)
     else:
-        vocabulary = create_vocabulary(text)
+        vocabulary = create_vocabulary(text, with_unk=True)
         if not os.path.exists(os.path.dirname(file_name)) and len(os.path.dirname(file_name)) > 0:
             os.makedirs(os.path.dirname(file_name))
         with open(file_name, 'w') as f:
@@ -103,3 +103,14 @@ def get_path_to_dir_with_results(path_to_conf_or_script):
 def form_load_cmd(file_name, obj_name, imported_as):
     file_name.replace('/', '.')
     return "from helmo.nets.%s import %s as %s" % (file_name, obj_name, imported_as)
+
+
+def load_vocabulary_with_unk(file_name):
+    vocabulary = list()
+    with open(file_name, 'r') as f:
+        text = f.read()
+        if '<UNK>' in text:
+            vocabulary.append('<UNK>')
+            text = text.replace('<UNK>', '')
+        vocabulary += list(text)
+    return vocabulary

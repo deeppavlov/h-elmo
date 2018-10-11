@@ -12,7 +12,7 @@ from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary, \
     compose_hp_confs, get_num_exps_and_res_files
 
-from helmo.nets.reslstm import Lstm, LstmFastBatchGenerator as BatchGenerator
+from helmo.nets.resrnn import Rnn, LmFastBatchGenerator as BatchGenerator
 import helmo.util.organise as organise
 
 dataset_name = 'valid'
@@ -42,7 +42,7 @@ voc_file_name = 'enwiki1G_voc.txt'
 vocabulary, vocabulary_size = organise.get_vocab(voc_file_name, text)
 
 
-env = Environment(Lstm, BatchGenerator, vocabulary=vocabulary)
+env = Environment(Rnn, BatchGenerator, vocabulary=vocabulary)
 
 metrics = ['bpc', 'perplexity', 'accuracy']
 
@@ -61,7 +61,7 @@ evaluation = dict(
     additional_feed_dict=[],
 )
 
-lstm_map = dict(
+rnn_map = dict(
     module_name='char_enc_dec',
     num_nodes=[1500, 1500],
     input_idx=None,
@@ -76,7 +76,7 @@ lstm_map = dict(
     # ]
 )
 kwargs_for_building = dict(
-    lstm_map=lstm_map,
+    rnn_map=rnn_map,
     num_out_nodes=[],
     voc_size=vocabulary_size,
     emb_size=256,
