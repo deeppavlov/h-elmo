@@ -59,7 +59,7 @@
       "changing_parameter_name": "learning_rate",
       "path_to_target_metric_storage": ["valid", "loss"]
     },
-    "no_validation": true,
+    "no_validation": false,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "results_collect_interval": 1000,
