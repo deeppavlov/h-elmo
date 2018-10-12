@@ -69,6 +69,8 @@ class LmFastBatchGenerator(object):
             segment = self._text_size // batch_size
             self._cursor = [offset * segment for offset in range(batch_size)]
         self._last_batch = self._start_batch()
+        # print("(resrnn.LmFastBatchGenerator.__init__)num batches in epoch:",
+        #       len(self._text) // (self._num_unrollings * self._batch_size))
 
     def get_num_batches(self):
         # print(len(self._text) // (self._batch_size * self._num_unrollings))

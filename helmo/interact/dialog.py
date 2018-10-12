@@ -122,6 +122,38 @@ parser.add_argument(
          " specifying arguments from command line. Attention: relative paths in json_config are provided relative"
          " to current working directory.",
 )
+parser.add_argument(
+    "--num_unrollings",
+    help="Number of characters in sequence model processes in one run."
+         " It is also depth of backpropagation through time.",
+    type=int,
+    default=200,
+)
+parser.add_argument(
+    "--results_collect_interval",
+    help="Number of steps done between logging",
+    type=int,
+    default=1000,
+)
+parser.add_argument(
+    "--optimizer",
+    help="Optimizer for training. Default is 'adam'. 'sgd', 'adadelta', 'momentum',"
+         " 'rmsprop', 'nesterov', 'adagrad' are available.",
+    default='adam',
+)
+parser.add_argument(
+    "--stop_specs",
+    help="Specifies on which conditions training is stopped. If stop_specs is integer training is"
+         " stopped after 'stop_specs' operations. Alternatively you can pass a dict "
+         " through json config. Dictionary has to have item "
+         "'max_no_progress_points'. If loss on validation dataset did not improve "
+         "over stop_specs['max_no_progress_points'] last validations and learning_rate"
+         " did not change or learning_rate changed twice while no progress were made"
+         " during stop_specs['max_no_progress_points'] last validations "
+         " after last time learning_rate has changed,"
+         " training is stopped.",
+    default='adam',
+)
 args = parser.parse_args()
 
 config = vars(args)
@@ -136,9 +168,14 @@ if config['train'] or config['test']:
     with open(os.path.expanduser(config['text_path']), 'r') as f:
         text = f.read()
     train_size = len(text.split('\n')) - config['test_size'] - config['valid_size']
-    test_text, valid_text, train_text = organise.split_text(text, config['test_size'], config['valid_size'], train_size)
+    test_text, valid_text, train_text = organise.split_text(
+        text, config['test_size'], config['valid_size'], train_size, by_lines=True)
 else:
     text = None
+# print("(dialog)len(text):", len(text))
+# print("(dialog)len(valid_text):", len(valid_text))
+# print("(dialog)len(train_text):", len(train_text))
+# print("(dialog)len(test_text):", len(test_text))
 
 vocabulary, vocabulary_size = organise.get_vocab_by_given_path(
     os.path.expanduser(config['voc_path']), text, create=config['create_vocabulary'])
@@ -171,7 +208,6 @@ env.build_pupil(
     dropout_rate=0.1,
 )
 
-NUM_UNROLLINGS = 200
 BATCH_SIZE = 32
 restore_path = None if config['restore_path'] is None else os.path.expanduser(config['restore_path'])
 if config['train']:
@@ -182,13 +218,11 @@ if config['train']:
         init=4e-4,
         path_to_target_metric_storage=('valid', 'loss')
     )
-    # stop_specs = dict(
-    #     type='while_progress',
-    #     max_no_progress_points=10,
-    #     changing_parameter_name='learning_rate',
-    #     path_to_target_metric_storage=('valid', 'loss')
-    # )
-    stop_specs = 2000
+    stop_specs = config['stop_specs']
+    if isinstance(stop_specs, dict):
+        stop_specs['changing_parameter_name'] = "learning_rate"
+        stop_specs['path_to_target_metric_storage'] = ["valid", "loss"]
+        stop_specs['type'] = "while_progress"
     env.train(
         allow_growth=True,
         save_path=os.path.expanduser(config['save_path']),
@@ -201,14 +235,14 @@ if config['train']:
         subgraphs_to_save=dict(char_enc_dec='base'),
         result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
         printed_result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
-        stop=config['stop_specs'],
+        stop=stop_specs,
         train_dataset_text=train_text,
         validation_datasets={'valid': valid_text},
         results_collect_interval=config['results_collect_interval'],
         no_validation=False,
         validation_batch_size=BATCH_SIZE,
         valid_batch_kwargs=dict(
-            num_unrollings=NUM_UNROLLINGS,
+            num_unrollings=config['num_unrollings'],
         ),
         log_launch=False,
     )
@@ -224,7 +258,7 @@ if config['test']:
         printed_result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
         validation_batch_size=BATCH_SIZE,
         valid_batch_kwargs=dict(
-            num_unrollings=NUM_UNROLLINGS,
+            num_unrollings=config['num_unrollings'],
         ),
         log_launch=False,
     )
