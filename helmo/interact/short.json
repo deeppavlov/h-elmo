@@ -7,11 +7,5 @@
   "num_unrollings": 200,
   "results_collect_interval": 1000,
   "optimizer": "adam",
-  "stop_specs": {
-    "type": "adaptive_change",
-    "max_no_progress_points": 10,
-    "decay": 0.5,
-    "init": 4e-4,
-    "path_to_target_metric_storage": ["valid", "loss"]
-  }
+  "stop_specs": 2000
 }

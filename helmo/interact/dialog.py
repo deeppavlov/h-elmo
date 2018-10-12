@@ -65,27 +65,34 @@ parser.add_argument(
 parser.add_argument(
     "--save_path",
     help="Path to directory where training and inference results and model is saved. Default is 'results'.",
-    default=None,
+    default='results',
 )
 parser.add_argument(
     "--cli_dialog_file",
     help="Name of a file for saving dialog logs. Default is dialog_logs.txt",
+    default='dialogs.txt',
 )
 parser.add_argument(
     "--input_replica_file",
-    help="Name of a file with replicas for inference",
+    help="Name of a file with replicas for inference. Default is 'replicas.txt'",
+    default='replicas.txt'
 )
 parser.add_argument(
     "--file_dialog_answers_file",
     help="Name of a file with bot answers in file dialog regime. Default is answers.txt",
+    default='answers.txt',
 )
 parser.add_argument(
     "--test_size",
     help="Test dataset size in number of lines. Default is 100000",
+    type=int,
+    default=100000,
 )
 parser.add_argument(
     "--valid_size",
     help="Validation dataset size in number of lines. Default is 10000",
+    type=int,
+    default=10000,
 )
 parser.add_argument(
     "--reset_state_after_model_answer",
@@ -93,8 +100,10 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
-    "--randomize_hidden_state",
-    help="Reset rnn hidden state with random values. Default is False."
+    "--do_not_randomize_hidden_state",
+    help="Reset rnn hidden state with zeroes. If is not set hidden states "
+         "are initialized with random values",
+    action='store_true',
 )
 parser.add_argument(
     "--embed_inputs",
@@ -104,6 +113,8 @@ parser.add_argument(
 parser.add_argument(
     "--rnn_type",
     help="Type of rnn used in model. 'lstm' and 'gru' options are available."
+         " Default is 'gru'",
+    default='gru',
 )
 parser.add_argument(
     "--json_config",
@@ -113,27 +124,12 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-defaults = dict(
-    test_size=int(1e5),
-    valid_size=int(1e4),
-    cli_dialog_file='dialog_logs.txt',
-    save_path='results',
-    file_dialog_answers_file='answers.txt',
-    reset_state_after_model_answer=False,
-    randomize_hidden_state=False,
-    embed_inputs=False,
-    rnn_type='gru',
-)
-
 config = vars(args)
 if args.json_config is not None:
     with open(args.json_config, 'r') as f:
         json_config = json.load(f)
-    for k, v in config.items():
-        if config[k] is None and k in json_config:
-            config[k] = json_config[k]
-        if config[k] is None and k in defaults:
-            config[k] = defaults[k]
+    for k, v in json_config.items():
+        config[k] = v
     del config['json_config']
 
 if config['train'] or config['test']:
@@ -171,7 +167,7 @@ env.build_pupil(
     init_parameter=3.,
     num_gpus=1,
     metrics=metrics,
-    optimizer='adam',
+    optimizer=config['optimizer'],
     dropout_rate=0.1,
 )
 
@@ -199,21 +195,22 @@ if config['train']:
         restore_path=restore_path,
         learning_rate=learning_rate,
         batch_size=BATCH_SIZE,
-        num_unrollings=NUM_UNROLLINGS,
+        num_unrollings=config['num_unrollings'],
         vocabulary=vocabulary,
         checkpoint_steps=None,
         subgraphs_to_save=dict(char_enc_dec='base'),
         result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
         printed_result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
-        stop=stop_specs,
+        stop=config['stop_specs'],
         train_dataset_text=train_text,
         validation_datasets={'valid': valid_text},
-        results_collect_interval=1000,
+        results_collect_interval=config['results_collect_interval'],
         no_validation=False,
         validation_batch_size=BATCH_SIZE,
         valid_batch_kwargs=dict(
             num_unrollings=NUM_UNROLLINGS,
         ),
+        log_launch=False,
     )
 
 if config['train']:
@@ -229,6 +226,7 @@ if config['test']:
         valid_batch_kwargs=dict(
             num_unrollings=NUM_UNROLLINGS,
         ),
+        log_launch=False,
     )
 if config['file_dialog']:
     env.file_dialog(
@@ -240,7 +238,7 @@ if config['file_dialog']:
         batch_generator_class=BatchGenerator,
         reset_state_after_model_answer=args.reset_state_after_model_answer,  # if True after bot answer hidden state is reset
         answer_len_limit=500.,  # max number of characters in bot answer
-        randomize=False,  # if True model hidden state is initialized with random numbers
+        randomize=not config['do_not_randomize_hidden_state'],  # if True model hidden state is initialized with random numbers
     )
 if config['cli_dialog']:
     env.cli_dialog(
@@ -252,5 +250,5 @@ if config['cli_dialog']:
         reset_state_after_model_answer=args.reset_state_after_model_answer,  # if True after bot answer hidden state is reset
         append_logs=False,  # if False and log_file already exists logs are put in to log_file + `#[index]`
         answer_len_limit=500.,  # max number of characters in bot answer
-        randomize=True,  # if True model hidden state is initialized with random numbers
+        randomize=not config['do_not_randomize_hidden_state'],  # if True model hidden state is initialized with random numbers
     )
