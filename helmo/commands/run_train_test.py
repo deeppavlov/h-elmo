@@ -70,6 +70,7 @@ def train(q, idx):
     if config['seed'] is not None:
         tf.set_random_seed(config['seed'])
     test_kwargs['save_path'] += '/' + str(idx)
+    train_kwargs['save_path'] += '/' + str(idx)
     env.build_pupil(**kwargs_for_building)
     env.train(**train_kwargs)
     _, _, mean_metrics = env.test(**test_kwargs)
