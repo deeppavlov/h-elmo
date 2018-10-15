@@ -23,7 +23,7 @@ from learning_to_learn.useful_functions import create_vocabulary, get_positions_
     pred2vec_fast, vec2char, vec2char_fast, char2id, id2char, get_available_gpus, device_name_scope, \
     average_gradients, InvalidArgumentError, \
     compose_save_list, compose_reset_list, compose_randomize_list, construct_dict_without_none_entries, \
-    append_to_nested, get_average_with_weights_func, func_on_list_in_nested
+    append_to_nested, get_average_with_weights_func, func_on_list_in_nested, tensor_stats
 from learning_to_learn.pupils.pupil import Pupil
 
 from learning_to_learn.tensors import compute_metrics_raw_lbls
@@ -265,6 +265,18 @@ class Rnn(Pupil):
                         saved_state_name, new_state_name,
                     )
                     branch_idx += 1
+                with tf.device('/cpu:0'):
+                    ps = []
+                    for t in s:
+                        ps.append(
+                            tf.Print(
+                                t, list(tensor_stats(t, ['mean', 'variance', 'min', 'max']).values()),
+                                message="\n\n(Rnn._add_rnn_graph)mean, variance, min, max of "
+                                        "%s in rnn %s:\n" % (t.name, rnn_idx)
+                            )
+                        )
+
+                    s = tuple(ps)
                 inp, new_s = rnn(inp, initial_state=s, training=training)
                 intermediate.append(inp)
                 rnn_map[new_state_name][gpu_name].append(new_s)
@@ -299,8 +311,7 @@ class Rnn(Pupil):
                         new_state = self._get_state_from_rnn_map(self._rnn_map, new_state_name, gpu_name)
                         # print("(Rnn._add_rnn_and_output_module)self._rnn_map:", self._rnn_map)
                         reset_state_ops.extend(compose_reset_list(saved_state))
-                        if training:
-                            randomize_state_ops.extend(compose_randomize_list(saved_state))
+                        randomize_state_ops.extend(compose_randomize_list(saved_state))
                         save_list = compose_save_list((saved_state, new_state))
                         with tf.control_dependencies(save_list):
                             logits = self._output_module(rnn_res)
@@ -589,6 +600,8 @@ class Rnn(Pupil):
             self._network_type = 'cudnn_gru_stacked'
         else:
             self._network_type = None
+
+        print("(Rnn.__init__)self._network_type:", self._network_type)
 
         self._hooks = dict(
             inputs=None,
