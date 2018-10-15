@@ -616,6 +616,8 @@ class Rnn(Pupil):
             validation_predictions=None,
             reset_validation_state=None,
             randomize_sample_state=None,
+            reset_train_state=None,
+            randomize_train_state=None,
             dropout=None,
             saver=None)
         for metric_name in self._metrics:
@@ -652,7 +654,7 @@ class Rnn(Pupil):
         embeddings_by_gpu = self._add_embeding_graph(inps_by_gpu)
 
         if self._regime == 'train':
-            train_logits_by_gpu, train_preds_by_gpu, reset_train_state, _ = \
+            train_logits_by_gpu, train_preds_by_gpu, reset_train_state, randomize_train_state = \
                 self._add_rnn_and_output_module(embeddings_by_gpu, True)
             train_loss, train_loss_by_gpu, train_metrics = self._compute_loss_and_metrics(
                 train_logits_by_gpu,
@@ -665,6 +667,8 @@ class Rnn(Pupil):
             self._hooks['train_op'] = train_op
             self._hooks['loss'] = train_loss
             self._hooks['predictions'] = tf.concat(train_preds_by_gpu, 1)
+            self._hooks['reset_train_state'] = reset_train_state
+            self._hooks['randomize_train_state'] = randomize_train_state
             for metric_name in self._metrics:
                 self._hooks[metric_name] = train_metrics[metric_name]
 

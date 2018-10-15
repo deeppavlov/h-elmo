@@ -100,6 +100,7 @@ env.train(
         num_unrollings=100,
     ),
     add_graph_to_summary=True,
+    state_reset_period=10,
 )
 
 # rnn_map = dict(
