@@ -152,7 +152,7 @@ parser.add_argument(
          " during stop_specs['max_no_progress_points'] last validations "
          " after last time learning_rate has changed,"
          " training is stopped.",
-    default='adam',
+    default='1000',
 )
 args = parser.parse_args()
 
@@ -198,7 +198,7 @@ rnn_map = dict(
     output_idx=None,
 )
 env.build_pupil(
-    rnn_types=config['rnn_type'],
+    rnn_type=config['rnn_type'],
     embed_inputs=config['embed_inputs'],
     rnn_map=rnn_map,
     num_out_nodes=[],
