@@ -7,5 +7,5 @@
   "num_unrollings": 200,
   "results_collect_interval": 1000,
   "optimizer": "adam",
-  "stop_specs": 2000
+  "stop_specs": 200
 }
