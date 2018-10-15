@@ -156,6 +156,9 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+if args.stop_specs.isdigit():
+    args.stop_specs = int(args.stop_specs)
+
 config = vars(args)
 if args.json_config is not None:
     with open(args.json_config, 'r') as f:
