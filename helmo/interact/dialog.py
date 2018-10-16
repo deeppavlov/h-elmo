@@ -125,6 +125,13 @@ parser.add_argument(
     default='gru',
 )
 parser.add_argument(
+    "--num_nodes",
+    help="Number of nodes in recurrent neural network.",
+    nargs='+',
+    type=int,
+    default=[1500, 1500]
+)
+parser.add_argument(
     "--json_config",
     help="File with this script arguments. If provided values from file used as default but can be overridden by"
          " specifying arguments from command line. Attention: relative paths in json_config are provided relative"
@@ -201,7 +208,7 @@ metrics = ['bpc', 'perplexity', 'accuracy']
 
 rnn_map = dict(
     module_name='char_enc_dec',
-    num_nodes=[1500, 1500],
+    num_nodes=args.num_nodes,
     input_idx=None,
     output_idx=None,
 )

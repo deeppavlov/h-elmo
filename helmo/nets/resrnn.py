@@ -578,6 +578,7 @@ class Rnn(Pupil):
                 )
             )
         )
+        # print("(Rnn.__init__)self._rnn_map:", self._rnn_map)
         self._rnn_type = kwargs.get('rnn_type', 'lstm')
         self._embed_inputs = kwargs.get('embed_inputs', True)
         self._voc_size = kwargs.get('voc_size', None)
