@@ -17,6 +17,7 @@ from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary
 from helmo.nets.resrnn import Rnn, LmFastBatchGenerator as BatchGenerator
 import helmo.util.organise as organise
+from helmo.util.text import preprocessing, postprocessing
 import argparse
 parser = argparse.ArgumentParser()
 
@@ -95,6 +96,20 @@ parser.add_argument(
     default=10000,
 )
 parser.add_argument(
+    "--preprocessing",
+    help="name of function in helmo/util/text/preprocessing.py applied to text"
+         "before creating vocabulary and feeding text to model. Available options"
+         " are: (1) 'hat_uppercase' replaces uppercase letter with corresponding"
+         " lowercase letter preceded by hat '^'. Default is None."
+)
+parser.add_argument(
+    "--postprocessing",
+    help="name of function in helmo/util/text/postprocessing.py applied to bot replica"
+         "before saving and printing. Available options are: (1) 'hat_uppercase'"
+         " replaces hat '^' followed by lowercase letter with uppercase letter"
+         " by hat '^'. Default is None."
+)
+parser.add_argument(
     "--reset_state_after_model_answer",
     help="Reset rnn hidden state after each model answer",
     action="store_true",
@@ -132,10 +147,10 @@ parser.add_argument(
     default=[1500, 1500]
 )
 parser.add_argument(
-    "--json_config",
-    help="File with this script arguments. If provided values from file used as default but can be overridden by"
-         " specifying arguments from command line. Attention: relative paths in json_config are provided relative"
-         " to current working directory.",
+    "--optimizer",
+    help="Optimizer for training. Default is 'adam'. 'sgd', 'adadelta', 'momentum',"
+         " 'rmsprop', 'nesterov', 'adagrad' are available.",
+    default='adam',
 )
 parser.add_argument(
     "--num_unrollings",
@@ -151,12 +166,6 @@ parser.add_argument(
     default=1000,
 )
 parser.add_argument(
-    "--optimizer",
-    help="Optimizer for training. Default is 'adam'. 'sgd', 'adadelta', 'momentum',"
-         " 'rmsprop', 'nesterov', 'adagrad' are available.",
-    default='adam',
-)
-parser.add_argument(
     "--stop_specs",
     help="Specifies on which conditions training is stopped. If stop_specs is integer training is"
          " stopped after 'stop_specs' operations. Alternatively you can pass a dict "
@@ -168,6 +177,12 @@ parser.add_argument(
          " after last time learning_rate has changed,"
          " training is stopped.",
     default='1000',
+)
+parser.add_argument(
+    "--json_config",
+    help="File with this script arguments. If provided values from file used as default but can be overridden by"
+         " specifying arguments from command line. Attention: relative paths in json_config are provided relative"
+         " to current working directory.",
 )
 args = parser.parse_args()
 
@@ -181,6 +196,15 @@ if args.json_config is not None:
     for k, v in json_config.items():
         config[k] = v
     del config['json_config']
+    
+if config['preprocessing'] is not None:
+    preprocess_f = getattr(preprocessing, config['preprocessing'])
+else:
+    preprocess_f = None
+if config['postprocessing'] is not None:
+    postprocess_f = getattr(postprocessing, config['postprocessing'])
+else:
+    postprocess_f = None
 
 if config['train'] or config['test']:
     with open(os.path.expanduser(config['text_path']), 'r') as f:
@@ -188,8 +212,14 @@ if config['train'] or config['test']:
     train_size = len(text.split('\n')) - config['test_size'] - config['valid_size']
     test_text, valid_text, train_text = organise.split_text(
         text, config['test_size'], config['valid_size'], train_size, by_lines=True)
+    if preprocess_f is not None:
+        text = preprocess_f(text)
+        valid_text = preprocess_f(valid_text)
+        test_text = preprocess_f(test_text)
+        train_text = preprocess_f(train_text)
 else:
     text = None
+
 # print("(dialog)len(text):", len(text))
 # print("(dialog)len(valid_text):", len(valid_text))
 # print("(dialog)len(train_text):", len(train_text))
@@ -292,6 +322,8 @@ if config['file_dialog']:
         reset_state_after_model_answer=args.reset_state_after_model_answer,  # if True after bot answer hidden state is reset
         answer_len_limit=500.,  # max number of characters in bot answer
         randomize=not config['do_not_randomize_hidden_state'],  # if True model hidden state is initialized with random numbers
+        preprocess_f=preprocess_f,
+        postprocess_f=postprocess_f,
     )
 if config['cli_dialog']:
     env.cli_dialog(
@@ -304,4 +336,6 @@ if config['cli_dialog']:
         append_logs=False,  # if False and log_file already exists logs are put in to log_file + `#[index]`
         answer_len_limit=500.,  # max number of characters in bot answer
         randomize=not config['do_not_randomize_hidden_state'],  # if True model hidden state is initialized with random numbers
+        preprocess_f=preprocess_f,
+        postprocess_f=postprocess_f,
     )

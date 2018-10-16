@@ -1,0 +1,16 @@
+{
+  "cli_dialog": true,
+  "test": true,
+  "voc_path": "/home/anton/h-elmo/vocabs/clean_subs_hat_voc.txt",
+  "reset_state_after_model_answer": true,
+  "cli_dialog_file": "preppost_dialogs.txt",
+  "replicas_file": "replicas.txt",
+  "file_dialog": true,
+  "text_path": "/home/anton/h-elmo/datasets/clean_subs.txt",
+  "rnn_type": "lstm",
+  "save_path": "results_pp",
+  "randomize_state_stddev": 0.4,
+  "preprocessing": "hat_uppercase",
+  "postprocessing": "hat_uppercase",
+  "restore_path": "results_pp/checkpoints/all_vars/best"
+}

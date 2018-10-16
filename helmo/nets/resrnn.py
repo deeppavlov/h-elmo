@@ -265,18 +265,18 @@ class Rnn(Pupil):
                         saved_state_name, new_state_name,
                     )
                     branch_idx += 1
-                with tf.device('/cpu:0'):
-                    ps = []
-                    for t in s:
-                        ps.append(
-                            tf.Print(
-                                t, list(tensor_stats(t, ['mean', 'variance', 'min', 'max']).values()),
-                                message="\n\n(Rnn._add_rnn_graph)mean, variance, min, max of "
-                                        "%s in rnn %s:\n" % (t.name, rnn_idx)
-                            )
-                        )
-
-                    s = tuple(ps)
+                # with tf.device('/cpu:0'):
+                #     ps = []
+                #     for t in s:
+                #         ps.append(
+                #             tf.Print(
+                #                 t, list(tensor_stats(t, ['mean', 'variance', 'min', 'max']).values()),
+                #                 message="\n\n(Rnn._add_rnn_graph)mean, variance, min, max of "
+                #                         "%s in rnn %s:\n" % (t.name, rnn_idx)
+                #             )
+                #         )
+                #
+                #     s = tuple(ps)
                 inp, new_s = rnn(inp, initial_state=s, training=training)
                 intermediate.append(inp)
                 rnn_map[new_state_name][gpu_name].append(new_s)
