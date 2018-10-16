@@ -2,7 +2,17 @@ import sys
 import os
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn')
+    os.path.expanduser('~/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
+    os.path.expanduser('~/h-elmo'),
+    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
+    os.path.expanduser('~/repos/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
+    os.path.expanduser('~/repos/h-elmo'),
+    '/cephfs/home/peganov/learning-to-learn',
+    '/home/peganov/learning-to-learn',
+    '/cephfs/home/peganov/h-elmo',
+    '/home/peganov/h-elmo',
 ]
 
 from pathlib import Path  # if you haven't already done so
