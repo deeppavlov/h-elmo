@@ -130,11 +130,11 @@ class Rnn(Pupil):
     _name = 'rnn'
 
     @classmethod
-    def check_kwargs(cls,
-                     **kwargs):
+    def check_kwargs(cls, **kwargs):
         pass
 
-    def get_special_args(self):
+    @staticmethod
+    def get_special_args():
         return dict()
 
     def _output_module(self, inp):
@@ -265,18 +265,18 @@ class Rnn(Pupil):
                         saved_state_name, new_state_name,
                     )
                     branch_idx += 1
-                # with tf.device('/cpu:0'):
-                #     ps = []
-                #     for t in s:
-                #         ps.append(
-                #             tf.Print(
-                #                 t, list(tensor_stats(t, ['mean', 'variance', 'min', 'max']).values()),
-                #                 message="\n\n(Rnn._add_rnn_graph)mean, variance, min, max of "
-                #                         "%s in rnn %s:\n" % (t.name, rnn_idx)
-                #             )
-                #         )
-                #
-                #     s = tuple(ps)
+                with tf.device('/cpu:0'):
+                    ps = []
+                    for t in s:
+                        ps.append(
+                            tf.Print(
+                                t, list(tensor_stats(t, ['mean', 'variance', 'min', 'max']).values()),
+                                message="\n\n(Rnn._add_rnn_graph)mean, variance, min, max of "
+                                        "%s in rnn %s:\n" % (t.name, rnn_idx)
+                            )
+                        )
+
+                    s = tuple(ps)
                 inp, new_s = rnn(inp, initial_state=s, training=training)
                 intermediate.append(inp)
                 rnn_map[new_state_name][gpu_name].append(new_s)
@@ -311,7 +311,8 @@ class Rnn(Pupil):
                         new_state = self._get_state_from_rnn_map(self._rnn_map, new_state_name, gpu_name)
                         # print("(Rnn._add_rnn_and_output_module)self._rnn_map:", self._rnn_map)
                         reset_state_ops.extend(compose_reset_list(saved_state))
-                        randomize_state_ops.extend(compose_randomize_list(saved_state))
+                        randomize_state_ops.extend(compose_randomize_list(
+                            saved_state, stddev=self._randomize_state_stddev))
                         save_list = compose_save_list((saved_state, new_state))
                         with tf.control_dependencies(save_list):
                             logits = self._output_module(rnn_res)
@@ -592,6 +593,7 @@ class Rnn(Pupil):
         self._num_gpus = kwargs.get('num_gpus', 1)
         self._dropout_rate = kwargs.get('dropout_rate', 0.1)
         self._clip_norm = kwargs.get('clip_norm', 1.)
+        self._randomize_state_stddev = kwargs.get('randomize_state_stddev', 0.5)
         self._regime = kwargs.get('regime', 'train')
 
         if self._rnn_type == 'lstm':
