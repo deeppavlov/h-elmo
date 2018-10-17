@@ -72,22 +72,28 @@ env.build_pupil(
 )
 learning_rate = dict(
     type='adaptive_change',
-    max_no_progress_points=1000,
+    max_no_progress_points=1,
     decay=.5,
     init=4e-4,
     # init=1e-3,
     path_to_target_metric_storage=('default_1', 'loss')
 )
-
+stop_specs = {
+      "type": "while_progress",
+      "max_no_progress_points": 1,
+      "changing_parameter_name": "learning_rate",
+      "path_to_target_metric_storage": ["default_1", "loss"]
+    }
 env.train(
     # gpu_memory=.3,
     allow_growth=True,
     save_path='results/resrnn',
-    # restore_path='results/resrnn/checkpoints/all_vars/best',
+    restore_path='results/resrnn/checkpoints/all_vars/best',
     # restore_path=dict(
     #     char_enc_dec='results/resrnn/checkpoints/all_vars/best',
     # ),
     learning_rate=learning_rate,
+    lr_restore_saver_name='saver',
     batch_size=BATCH_SIZE,
     num_unrollings=NUM_UNROLLINGS,
     vocabulary=vocabulary,
@@ -96,8 +102,8 @@ env.train(
     # subgraphs_to_save=['char_enc_dec', 'word_enc_dec'],
     result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
     printed_result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
-    # stop=stop_specs,
-    stop=40000,
+    stop=stop_specs,
+    # stop=40000,
     train_dataset_text=train_text,
     # train_dataset_text='abc',
     validation_dataset_texts=[valid_text],

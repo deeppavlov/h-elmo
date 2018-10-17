@@ -60,6 +60,7 @@
   },
   "test": {
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "validation_batch_size": 32,
     "valid_batch_kwargs": {"num_unrollings": 200}
   }

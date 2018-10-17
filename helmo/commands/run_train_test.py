@@ -24,7 +24,7 @@ from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary, \
     compose_hp_confs, get_num_exps_and_res_files, compute_stddev
 
-import helmo.util.organise as organise
+from helmo.util import organise
 
 config_path = sys.argv[1]
 
@@ -43,6 +43,7 @@ results_dir = os.path.join(
 # print(results_dir)
 save_path = results_dir
 
+metrics, launches_for_testing, trained_launches = organise.load_tt_results(save_path, config['test']['result_types'])
 
 text = organise.get_text(config['dataset']['path'])
 test_size = int(config['dataset']['test_size'])
@@ -63,32 +64,49 @@ train_kwargs = config['train']
 train_kwargs['train_dataset_text'] = train_text
 train_kwargs['vocabulary'] = vocabulary
 train_kwargs['validation_datasets'] = dict(valid=valid_text)
-train_kwargs['save_path'] = save_path
 
 test_kwargs = config['test']
 test_kwargs['vocabulary'] = vocabulary
 test_kwargs['validation_datasets'] = dict(test=test_text)
 if 'restore_path' not in test_kwargs:
     checkpoint_appendix = 'checkpoints/all_vars/best' if 'subgraphs_to_save' in train_kwargs else 'checkpoints/best'
-    test_kwargs['restore_path'] = os.path.join(save_path, checkpoint_appendix)
-test_kwargs['save_path'] = os.path.join(save_path, 'testing')
 
 
-def train(q, idx):
+def test(q, launch_folder):
+    test_kwargs['save_path'] = os.path.join(save_path, launch_folder, 'testing')
+    test_kwargs['restore_path'] = os.path.join(save_path, launch_folder, checkpoint_appendix)
+    env.build_pupil(**kwargs_for_building)
+    _, _, mean_metrics = env.test(**test_kwargs)
+    q.put(mean_metrics)
+
+
+def train(q, launch_folder):
     if config['seed'] is not None:
         tf.set_random_seed(config['seed'])
-    test_kwargs['save_path'] += '/' + str(idx)
-    train_kwargs['save_path'] += '/' + str(idx)
+    test_kwargs['save_path'] = os.path.join(save_path, launch_folder, 'testing')
+    train_kwargs['save_path'] = os.path.join(save_path, launch_folder)
+    test_kwargs['restore_path'] = os.path.join(train_kwargs['save_path'], checkpoint_appendix)
+    if os.path.isfile(test_kwargs['restore_path']):
+        train_kwargs['restore_path'] = test_kwargs['restore_path']
     env.build_pupil(**kwargs_for_building)
     env.train(**train_kwargs)
     _, _, mean_metrics = env.test(**test_kwargs)
     q.put(mean_metrics)
 
-metrics = list()
-for idx in range(config['num_repeats']):
-    print("LAUNCH NUMBER %s" % idx)
+
+for launch_folder in launches_for_testing:
+    print("LAUNCH NUMBER %s" % launch_folder)
     q = mp.Queue()
-    p = mp.Process(target=train, args=(q, idx))
+    p = mp.Process(target=test, args=(q, launch_folder))
+    p.start()
+    metrics.append(q.get())
+    p.join()
+
+
+for launch_folder in set(map(str, range(config['num_repeats']))) - set(trained_launches):
+    print("LAUNCH NUMBER %s" % launch_folder)
+    q = mp.Queue()
+    p = mp.Process(target=train, args=(q, launch_folder))
     p.start()
     metrics.append(q.get())
     p.join()
