@@ -88,7 +88,8 @@ env.train(
     # gpu_memory=.3,
     allow_growth=True,
     save_path='results/resrnn',
-    restore_path='results/resrnn/checkpoints/all_vars/best',
+    # restore_path='results/resrnn/checkpoints/all_vars/best',
+    restore_path='results/resrnn/checkpoints/best',
     # restore_path=dict(
     #     char_enc_dec='results/resrnn/checkpoints/all_vars/best',
     # ),
@@ -98,7 +99,7 @@ env.train(
     num_unrollings=NUM_UNROLLINGS,
     vocabulary=vocabulary,
     checkpoint_steps=None,
-    subgraphs_to_save=dict(char_enc_dec='base'),
+    # subgraphs_to_save=dict(char_enc_dec='base'),
     # subgraphs_to_save=['char_enc_dec', 'word_enc_dec'],
     result_types=['perplexity', 'loss', 'bpc', 'accuracy'],
     printed_result_types=['perplexity', 'loss', 'bpc', 'accuracy'],

@@ -44,14 +44,19 @@ results_dir = os.path.join(
 save_path = results_dir
 
 metrics, launches_for_testing, trained_launches = organise.load_tt_results(save_path, config['test']['result_types'])
+# print("(run_train_test)metrics:", metrics)
+# print("(run_train_test)launches_for_testing:", launches_for_testing)
+# print("(run_train_test)trained_launches:", trained_launches)
 
-text = organise.get_text(config['dataset']['path'])
-test_size = int(config['dataset']['test_size'])
-valid_size = int(config['dataset']['valid_size'])
-train_size = len(text) - test_size - valid_size
+
+dconf = config['dataset']
+text = organise.get_text(dconf['path'])
+test_size = int(dconf['test_size'])
+valid_size = int(dconf['valid_size'])
+train_size = int(dconf['train_size']) if 'train_size' in dconf else len(text) - test_size - valid_size
 test_text, valid_text, train_text = organise.split_text(text, test_size, valid_size, train_size)
 
-vocabulary, vocabulary_size = organise.get_vocab(config['dataset']['vocab_path'], text)
+vocabulary, vocabulary_size = organise.get_vocab(dconf['vocab_path'], text)
 
 env = Environment(Net, BatchGenerator, vocabulary=vocabulary)
 
@@ -86,7 +91,9 @@ def train(q, launch_folder):
     test_kwargs['save_path'] = os.path.join(save_path, launch_folder, 'testing')
     train_kwargs['save_path'] = os.path.join(save_path, launch_folder)
     test_kwargs['restore_path'] = os.path.join(train_kwargs['save_path'], checkpoint_appendix)
-    if os.path.isfile(test_kwargs['restore_path']):
+    print("(run_train_test)test_kwargs['restore_path']:", test_kwargs['restore_path'])
+    if os.path.isfile(test_kwargs['restore_path'] + '.index'):
+        print("(run_train_test)setting restore_path")
         train_kwargs['restore_path'] = test_kwargs['restore_path']
     env.build_pupil(**kwargs_for_building)
     env.train(**train_kwargs)
@@ -99,27 +106,26 @@ for launch_folder in launches_for_testing:
     q = mp.Queue()
     p = mp.Process(target=test, args=(q, launch_folder))
     p.start()
-    metrics.append(q.get())
+    metrics.append(q.get()['test'])
     p.join()
 
 
-for launch_folder in set(map(str, range(config['num_repeats']))) - set(trained_launches):
+for launch_folder in sorted(set(map(str, range(config['num_repeats']))) - set(trained_launches)):
     print("LAUNCH NUMBER %s" % launch_folder)
     q = mp.Queue()
     p = mp.Process(target=train, args=(q, launch_folder))
     p.start()
-    metrics.append(q.get())
+    metrics.append(q.get()['test'])
     p.join()
 
-keys = list(metrics[0]['test'].keys())
+keys = list(metrics[0].keys())
 metrics_ = {key: list() for key in keys}
-# print('(run_train_test)metrics:', metrics)
 for launch_res in metrics:
     for key in keys:
         # print('(run_train_test)launch_res:', launch_res)
         # print('(run_train_test)key:', key)
         # print('(run_train_test)metrics_:', metrics_)
-        metrics_[key].append(launch_res['test'][key])
+        metrics_[key].append(launch_res[key])
 
 with open(os.path.join(save_path, 'test_mean_and_stddev.txt'), 'w') as f:
     for key, metric_values in metrics_.items():

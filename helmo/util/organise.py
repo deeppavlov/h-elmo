@@ -116,7 +116,7 @@ def load_vocabulary_with_unk(file_name):
 
 
 def load_tt_results(result_dir, required_metric_names):
-    folders = filter(lambda x: x.isdigit(), os.listdir(result_dir))
+    folders = filter(lambda x: x.isdigit(), os.listdir(result_dir)) if os.path.exists(result_dir) else []
     metrics = list()
     launches_for_testing = list()
     trained_launches = list()
