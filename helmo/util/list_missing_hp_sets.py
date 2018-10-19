@@ -58,7 +58,7 @@ confs = parse_path_comb(args.confs)
 eval_dirs = list()
 for conf in confs:
     conf_name = '.'.join(os.path.split(conf)[-1].split('.')[:-1])
-    base = os.path.join(organise.get_path_to_dir_with_results(conf), conf_name)
+    base = os.path.join(organise.append_path_after_experiments_to_expres_rm_head(conf), conf_name)
     dirs = list()
     for eval_file in os.listdir(base):
         if 'launch_log' not in eval_file:

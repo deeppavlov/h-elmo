@@ -31,7 +31,7 @@ if len(sys.argv) > 2:
 else:
     chop_last_experiment = False
 conf_name = os.path.join(*parameter_set_file_name.split('.')[:-1])
-results_dir = organise.get_path_to_dir_with_results(__file__)
+results_dir = organise.append_path_after_experiments_to_expres_rm_head(__file__)
 save_path = os.path.join(results_dir, conf_name)
 results_file_name = os.path.join(save_path, dataset_name + '.txt')
 confs, _ = compose_hp_confs(

@@ -93,8 +93,14 @@ def split_text(text, test_size, valid_size, train_size, by_lines=False):
     return test_text, valid_text, train_text
 
 
-def get_path_to_dir_with_results(path_to_conf_or_script):
-    rel_path = os.path.join(*os.path.split(os.path.abspath(path_to_conf_or_script).split('/experiments/')[-1])[:-1])
+def append_path_after_experiments_to_expres_rm_head(path_to_conf_or_script):
+    """Takes path to file in h-elmo/helmo/experiments than takes path
+    starting after experiments and removes head"""
+    rel_path = os.path.join(
+        *os.path.split(
+            os.path.abspath(path_to_conf_or_script).split('/experiments/')[-1]
+        )[:-1]
+    )
     results_dir = os.path.join(get_path_from_path_rel_to_repo_root('expres'), rel_path)
     return results_dir
 
@@ -137,5 +143,10 @@ def load_tt_results(result_dir, required_metric_names):
     return metrics, launches_for_testing, trained_launches
 
 
-
-
+def prepend_restore_path_with_expres(restore_path):
+    if isinstance(restore_path, str):
+        return os.path.join(get_path_from_path_rel_to_repo_root('expres'), restore_path)
+    restore_path = restore_path.copy()
+    for k, v in restore_path.items():
+        restore_path[k] = os.path.join(get_path_from_path_rel_to_repo_root('expres'), v)
+    return restore_path

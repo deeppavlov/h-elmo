@@ -37,7 +37,7 @@ exec(organise.form_load_cmd(config['net']['path'], config['net']['cls_name'], "N
 save_path_relative_to_expres = os.path.join(*config_path.split('.')[:-1])
 # print(save_path_relative_to_expres)
 results_dir = os.path.join(
-    organise.get_path_to_dir_with_results(save_path_relative_to_expres),
+    organise.append_path_after_experiments_to_expres_rm_head(save_path_relative_to_expres),
     os.path.split(save_path_relative_to_expres)[-1]
 )
 # print(results_dir)

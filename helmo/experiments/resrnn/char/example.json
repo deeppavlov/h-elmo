@@ -47,7 +47,8 @@
     "checkpoint_steps": null,
     "stop": 200,
     "no_validation": true,
-    "printed_result_types": null
+    "printed_result_types": null,
+    "restore_path": "resrnn/char/tt/first/0/checkpoints/all_vars/best"
   },
   "build_hyperparameters": {
     "dropout_rate": {

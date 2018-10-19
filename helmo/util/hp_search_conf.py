@@ -41,7 +41,7 @@ parser.add_argument(
     '-hp',
     "--hyper_parameters",
     help="Hyper parameters in conf. You have to specify hyper parameter name and type separating them with comma. "
-         "To pass several hyper parameters to script separate thei specs with colons"
+         "To pass several hyper parameters to script separate their specs with colons"
 )
 parser.add_argument(
     '-s',

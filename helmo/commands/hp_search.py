@@ -35,7 +35,7 @@ exec(organise.form_load_cmd(config['net']['path'], config['net']['cls_name'], "N
 save_path_relative_to_expres = os.path.join(*config_path.split('.')[:-1])
 # print(save_path_relative_to_expres)
 results_dir = os.path.join(
-    organise.get_path_to_dir_with_results(save_path_relative_to_expres),
+    organise.append_path_after_experiments_to_expres_rm_head(save_path_relative_to_expres),
     os.path.split(save_path_relative_to_expres)[-1]
 )
 # print(results_dir)
@@ -64,11 +64,12 @@ evaluation['datasets'] = [(valid_text, 'valid')]
 evaluation['batch_gen_class'] = BatchGenerator
 evaluation['batch_kwargs']['vocabulary'] = vocabulary
 evaluation['additional_feed_dict'] = []
-kwargs_for_building = config["build"]
+kwargs_for_building = config["build"].copy()
 kwargs_for_building['voc_size'] = vocabulary_size
-launch_kwargs = config['launch']
+launch_kwargs = config['launch'].copy()
 launch_kwargs['train_dataset_text'] = train_text
 launch_kwargs['vocabulary'] = vocabulary
+launch_kwargs['restore_path'] = organise.prepend_restore_path_with_expres(launch_kwargs['restore_path'])
 
 if config['seed'] is not None:
     tf.set_random_seed(config['seed'])
@@ -87,9 +88,9 @@ for conf in confs:
         initial_experiment_counter_value = biggest_idx + 1
     env.grid_search(
         evaluation,
-        config['kwargs_for_building'],
+        kwargs_for_building,
         build_hyperparameters=build_hyperparameters,
         other_hyperparameters=other_hyperparameters,
         initial_experiment_counter_value=initial_experiment_counter_value,
-        **config['launch_kwargs']
+        **launch_kwargs,
     )
