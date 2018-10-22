@@ -10,8 +10,8 @@
   },
   "dataset": {
     "path": "enwiki1G.txt",
-    "test_size": 6400000.0,
-    "valid_size": 640000.0,
+    "test_size": 6400.0,
+    "valid_size": 640.0,
     "vocab_path": "enwiki1G_voc.txt"
   },
   "evaluation": {
@@ -22,7 +22,7 @@
       "accuracy"
     ],
     "batch_kwargs": {
-      "num_unrollings": 200
+      "num_unrollings": 20
     },
     "batch_size": 32
   },
@@ -65,9 +65,9 @@
     },
     "allow_growth": true,
     "batch_size": 32,
-    "num_unrollings": 200,
+    "num_unrollings": 2,
     "checkpoint_steps": null,
-    "stop": 2000,
+    "stop": 2,
     "no_validation": true,
     "printed_result_types": null
   },

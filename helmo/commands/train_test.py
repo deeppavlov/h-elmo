@@ -91,9 +91,9 @@ def train(q, launch_folder):
     test_kwargs['save_path'] = os.path.join(save_path, launch_folder, 'testing')
     train_kwargs['save_path'] = os.path.join(save_path, launch_folder)
     test_kwargs['restore_path'] = os.path.join(train_kwargs['save_path'], checkpoint_appendix)
-    print("(run_train_test)test_kwargs['restore_path']:", test_kwargs['restore_path'])
+    # print("(run_train_test)test_kwargs['restore_path']:", test_kwargs['restore_path'])
     if os.path.isfile(test_kwargs['restore_path'] + '.index'):
-        print("(run_train_test)setting restore_path")
+        # print("(run_train_test)setting restore_path")
         train_kwargs['restore_path'] = test_kwargs['restore_path']
     env.build_pupil(**kwargs_for_building)
     env.train(**train_kwargs)

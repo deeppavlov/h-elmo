@@ -69,7 +69,8 @@ kwargs_for_building['voc_size'] = vocabulary_size
 launch_kwargs = config['launch'].copy()
 launch_kwargs['train_dataset_text'] = train_text
 launch_kwargs['vocabulary'] = vocabulary
-launch_kwargs['restore_path'] = organise.prepend_restore_path_with_expres(launch_kwargs['restore_path'])
+if 'restore_path' in launch_kwargs:
+    launch_kwargs['restore_path'] = organise.prepend_restore_path_with_expres(launch_kwargs['restore_path'])
 
 if config['seed'] is not None:
     tf.set_random_seed(config['seed'])
@@ -79,13 +80,22 @@ for conf in confs:
     for name in config['build_hyperparameters']:
         build_hyperparameters[name] = conf[name]
     other_hyperparameters = dict()
-    for name in config['other_hyperparameters']:
-        other_hyperparameters[name] = conf[name]
+    for name, tmpl in config['other_hyperparameters'].items():
+        tmpl = tmpl.copy()
+        if 'varying' in tmpl:
+            for param, values in conf.items():
+                if name in param:
+                    tmpl['varying'][param.split('/')[-1]] = values
+            other_hyperparameters[name] = tmpl
+        else:
+            other_hyperparameters[name] = conf[name]
     _, biggest_idx, _ = get_num_exps_and_res_files(save_path)
     if biggest_idx is None:
         initial_experiment_counter_value = 0
     else:
         initial_experiment_counter_value = biggest_idx + 1
+    # print("(hp_search)build_hyperparameters:", build_hyperparameters)
+    # print("(hp_search)other_hyperparameters:", other_hyperparameters)
     env.grid_search(
         evaluation,
         kwargs_for_building,

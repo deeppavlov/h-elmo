@@ -69,3 +69,9 @@ def apply_func_on_depth(obj, func, depth, permeable_types=(list, tuple, dict)):
                 processed[key] = apply_func_on_depth(value, func, depth-1, permeable_types=permeable_types)
             return processed
     return func(obj)
+
+
+def nested_set(dic, keys, value):
+    for key in keys[:-1]:
+        dic = dic.setdefault(key, {})
+    dic[keys[-1]] = value
