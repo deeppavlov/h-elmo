@@ -126,8 +126,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--randomize_state_stddev",
-    help="If flag --do_not_randomize_hidden_state is not set on inference reset_op"
-         " initializes hidden states with values sampled with tf.truncated_normal. "
+    help="If flag --do_not_randomize_hidden_state is not set, on inference reset_op"
+         " initializes hidden states with values sampled via tf.truncated_normal. "
          "This argument sets standard deviation for distribution. Default is 0.5.",
     type=float,
     default=0.5,
