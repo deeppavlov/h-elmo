@@ -101,7 +101,7 @@ for conf in confs:
     else:
         initial_experiment_counter_value = biggest_idx + 1
     # print("(hp_search)build_hyperparameters:", build_hyperparameters)
-    print("(hp_search)other_hyperparameters:", other_hyperparameters)
+    # print("(hp_search)other_hyperparameters:", other_hyperparameters)
     env.grid_search(
         evaluation,
         kwargs_for_building,
