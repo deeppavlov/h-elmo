@@ -566,17 +566,22 @@ class Rnn(Pupil):
 
     def __init__(self, **kwargs):
 
-        self._rnn_map = deepcopy(
-            kwargs.get(
-                'rnn_map',
-                dict(
-                    module_name='char_enc_dec',
-                    num_nodes=[250],
-                    input_idx=None,
-                    output_idx=None,
-                )
+        if 'rnn_map' in kwargs:
+            self._rnn_map = deepcopy(kwargs['rnn_map'])
+        elif 'num_nodes' in kwargs:
+            self._rnn_map = dict(
+                module_name='char_enc_dec',
+                num_nodes=kwargs['num_nodes'],
+                input_idx=None,
+                output_idx=None,
             )
-        )
+        else:
+            self._rnn_map = dict(
+                module_name='char_enc_dec',
+                num_nodes=[250],
+                input_idx=None,
+                output_idx=None,
+            )
         # print("(Rnn.__init__)self._rnn_map:", self._rnn_map)
         self._rnn_type = kwargs.get('rnn_type', 'lstm')
         self._embed_inputs = kwargs.get('embed_inputs', True)

@@ -30,8 +30,7 @@
     "rnn_map": {
       "module_name": "char_enc_dec",
       "num_nodes": [
-        100,
-        100
+        140
       ],
       "input_idx": null,
       "output_idx": null

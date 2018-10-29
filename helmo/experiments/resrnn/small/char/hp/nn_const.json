@@ -27,15 +27,6 @@
     "batch_size": 32
   },
   "build": {
-    "rnn_map": {
-      "module_name": "char_enc_dec",
-      "num_nodes": [
-        100,
-        100
-      ],
-      "input_idx": null,
-      "output_idx": null
-    },
     "num_output_nodes": [],
     "emb_size": 256,
     "num_gpus": 1,
@@ -60,12 +51,7 @@
     "batch_size": 32,
     "num_unrollings": 200,
     "checkpoint_steps": null,
-    "stop": {
-      "type": "while_progress",
-      "max_no_progress_points": 50,
-      "changing_parameter_name": "learning_rate",
-      "path_to_target_metric_storage": ["valid", "loss"]
-    },
+    "stop": 10,
     "no_validation": false,
     "printed_result_types": ["loss", "perplexity", "accuracy", "bpc"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
@@ -73,13 +59,12 @@
     "validation_batch_size": 32,
     "valid_batch_kwargs": {"num_unrollings": 200}
   },
-  "build_hyperparameters": {},
-  "other_hyperparameters": {
-    "num_unrollings": {
-      "varying": [10, 20, 50, 100, 200],
-      "hp_type": "batch_kwarg",
-      "dtype": "int"
+  "build_hyperparameters": {
+    "num_nodes": {
+      "dtype": "list",
+      "values": [[10, 162], [20, 158], [40, 147], [60, 135], [80, 119], [100, 100], [110, 87], [120, 72], [130, 52], [135, 37], [140, 8]]
     }
   },
+  "other_hyperparameters": {},
   "num_repeats": 4
 }
