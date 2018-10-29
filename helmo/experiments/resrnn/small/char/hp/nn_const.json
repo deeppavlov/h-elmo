@@ -51,7 +51,12 @@
     "batch_size": 32,
     "num_unrollings": 200,
     "checkpoint_steps": null,
-    "stop": 10,
+    "stop": {
+      "type": "while_progress",
+      "max_no_progress_points": 50,
+      "changing_parameter_name": "learning_rate",
+      "path_to_target_metric_storage": ["valid", "loss"]
+    },
     "no_validation": false,
     "printed_result_types": ["loss", "perplexity", "accuracy", "bpc"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
