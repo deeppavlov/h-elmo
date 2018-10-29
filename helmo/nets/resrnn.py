@@ -54,6 +54,7 @@ class LmFastBatchGenerator(object):
         return vec2char_fast(vec, vocabulary)
 
     def __init__(self, text, batch_size, num_unrollings=1, vocabulary=None, random_batch_initiation=False):
+        print("(resrnn.LmFastBatchGenerator)num_unrollings:", num_unrollings)
         self._text = text
         self._text_size = len(text)
         self._batch_size = batch_size

@@ -60,7 +60,7 @@ cpiv = get_positions_in_vocabulary(vocabulary)
 
 evaluation = config['evaluation'].copy()
 evaluation['save_path'] = save_path
-evaluation['datasets'] = [(valid_text, 'valid')]
+evaluation['datasets'] = [(test_text, 'test')]
 evaluation['batch_gen_class'] = BatchGenerator
 evaluation['batch_kwargs']['vocabulary'] = vocabulary
 evaluation['additional_feed_dict'] = []
@@ -69,6 +69,7 @@ kwargs_for_building['voc_size'] = vocabulary_size
 launch_kwargs = config['launch'].copy()
 launch_kwargs['train_dataset_text'] = train_text
 launch_kwargs['vocabulary'] = vocabulary
+launch_kwargs['validation_datasets'] = {'valid': valid_text}
 if 'restore_path' in launch_kwargs:
     launch_kwargs['restore_path'] = organise.prepend_restore_path_with_expres(launch_kwargs['restore_path'])
 
@@ -81,21 +82,26 @@ for conf in confs:
         build_hyperparameters[name] = conf[name]
     other_hyperparameters = dict()
     for name, tmpl in config['other_hyperparameters'].items():
+        main_name = name.split('[')[0]
         tmpl = tmpl.copy()
         if 'varying' in tmpl:
             for param, values in conf.items():
-                if name in param:
-                    tmpl['varying'][param.split('/')[-1]] = values
+                if main_name in param:
+                    if isinstance(tmpl['varying'], dict):
+                        tmpl['varying'][param.split('/')[-1]] = values
+                    else:
+                        tmpl['varying'] = values
             other_hyperparameters[name] = tmpl
         else:
             other_hyperparameters[name] = conf[name]
+    # print("(hp_search)other_hyperparameters:", other_hyperparameters)
     _, biggest_idx, _ = get_num_exps_and_res_files(save_path)
     if biggest_idx is None:
         initial_experiment_counter_value = 0
     else:
         initial_experiment_counter_value = biggest_idx + 1
     # print("(hp_search)build_hyperparameters:", build_hyperparameters)
-    # print("(hp_search)other_hyperparameters:", other_hyperparameters)
+    print("(hp_search)other_hyperparameters:", other_hyperparameters)
     env.grid_search(
         evaluation,
         kwargs_for_building,
