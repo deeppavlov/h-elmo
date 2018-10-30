@@ -46,7 +46,7 @@
       "type": "adaptive_change",
       "max_no_progress_points": 10,
       "decay": 0.5,
-      "init": 5e-5,
+      "init": 2e-5,
       "path_to_target_metric_storage": ["valid", "loss"]
     },
     "batch_size": 32,
