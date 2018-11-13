@@ -28,7 +28,7 @@ from learning_to_learn.experiments.plot_helpers import get_parameter_names, plot
     fixed_hps_from_str, parse_metric_scales_str
 from learning_to_learn.useful_functions import MissingHPError, HeaderLineError, ExtraHPError, BadFormattingError, \
     parse_x_select, parse_line_select, broadcast_list, broadcast_many_lists, split_strings_by_char, convert, \
-    parse_path_comb
+    parse_path_comb, is_float
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -79,7 +79,7 @@ parser.add_argument(
     '-hpnf',
     "--hp_names_file",
     help="File with hyper parameter names. All available files are in the same directory with this script",
-    default='hp_plot_names_english.conf'
+    default='en_names.txt'
 )
 parser.add_argument(
     '-m',
@@ -187,7 +187,13 @@ for eval_dir, ed_lines, ed_fixed_hps, ed_regimes, ed_pupil_names, ed_dataset_nam
         nlines,
     )
 
-    ed_lines = [convert(x, 'float') for x in ed_lines]
+    def convert_sel_line_name(x):
+        if is_float(x):
+            return convert(x)
+        if x == 'None':
+            return None
+        return x
+    ed_lines = [convert_sel_line_name(x) for x in ed_lines]
     ed_fixed_hps = [fixed_hps_from_str(x) for x in ed_fixed_hps]
 
     hp_plot_order = hp_order.split(',')
@@ -235,11 +241,12 @@ style = dict(
 
 metric_scales = parse_metric_scales_str(args.metric_scales)
 
-abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
+# abspath = os.path.abspath(__file__)
+# dname = os.path.dirname(abspath)
+# os.chdir(dname)
 # print("(plot_lines_from_diff_hp_searches)changing_hps:", changing_hps)
-plot_parameter_names = get_parameter_names(args.hp_names_file)
+plot_parameter_names = get_parameter_names(args.hp_names_file, False)
+# print("(plot_lines_from_diff_hp_searches)plot_parameter_names:", plot_parameter_names)
 xscale = args.xscale
 
 plot_lines_from_diff_hp_searches(
