@@ -240,6 +240,9 @@ class Rnn(Pupil):
                 res.extend(self._get_state_from_rnn_map(branch, key, gpu_name))
         return res
 
+    def _add_back_rnn_graph(self):
+        pass
+
     def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
             rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
