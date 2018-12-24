@@ -200,8 +200,8 @@ class Rnn(Pupil):
 
     def _get_bs_by_gpu(self):
         batch_size = tf.shape(self._inp_and_lbl_phds['inps'])[1]
-        bs_on_1st_gpu = batch_size // self._num_gpus
-        bs_on_last_gpu = batch_size - (self._num_gpus - 1) * bs_on_1st_gpu
+        bs_on_1st_gpu = tf.maximum(batch_size // self._num_gpus, 1)
+        bs_on_last_gpu = tf.maximum(batch_size - (self._num_gpus - 1) * bs_on_1st_gpu, 0)
         return [bs_on_1st_gpu] * (self._num_gpus - 1) + [bs_on_last_gpu]
 
     def _add_embeding_graph(self, inps_by_gpu):
