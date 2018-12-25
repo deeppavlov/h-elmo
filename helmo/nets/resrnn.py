@@ -240,6 +240,26 @@ class Rnn(Pupil):
                 res.extend(self._get_state_from_rnn_map(branch, key, gpu_name))
         return res
 
+    def _prepare_init_state_resback(self, inp, rnn_map, gpu_name, saved_state_name, prepared_state_name):
+        if 'derived_branches' in rnn_map:
+            rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
+        prepared_state_list = list()
+        if prepared_state_name not in rnn_map:
+            rnn_map[prepared_state_name] = dict()
+        with tf.name_scope(rnn_map['module_name']):
+            prepared_state_list.append(
+                prepare_init_state(
+                    rnn_map[saved_state_name][gpu_name], inp, rnn_map['rnns'], self._network_type)
+            )
+            rnn_map[prepared_state_name][gpu_name] = prepared_state_list[-1]
+            if 'derived_branches' in rnn_map:
+                for branch in rnn_map['derived_branches']:
+                    prepared_state_list.extend(
+                        self._prepare_init_state_resback(
+                            inp, branch, gpu_name, saved_state_name, prepared_state_name)
+                    )
+        return prepared_state_list
+
     def _add_back_rnn_graph(self):
         pass
 
