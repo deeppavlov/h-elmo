@@ -1,6 +1,11 @@
+import collections
+
+import numpy as np
+from scipy.sparse import coo_matrix
 import tensorflow as tf
 
 from helmo.util.nested import synchronous_flatten, deep_zip, apply_func_on_depth
+import helmo.util.python as python
 
 
 def compose_save_list(*pairs, name_scope='save_list'):
@@ -214,3 +219,94 @@ def get_saved_state_vars(num_layers, rnn_type, name_scope='lstm_states'):
             state = None
         # print(state)
     return state
+
+
+def indices_and_weights_for_squeezing_of_1_neuron(i, N, M):
+    weights = []
+    indices = []
+    q = N / M
+    left, right = i * q, (i + 1) * q
+    if N >= M:
+        if int(left) == left:
+            start_of_ones = int(left)
+        else:
+            weights.append(np.ceil(left) - left)
+            indices.append(int(left))
+            start_of_ones = int(left) + 1
+
+        end_of_ones = int(right)
+        weights += [1.] * (end_of_ones - start_of_ones)
+        indices.extend(range(start_of_ones, end_of_ones))
+
+        if int(right) != right:
+            weights.append(right - int(right))
+            indices.append(indices[-1] + 1)
+    else:
+        left_floor, right_floor = int(left), int(right)
+        if left_floor == right_floor or right == right_floor:
+            weights.append(right - left)
+            indices.append(left_floor)
+        else:
+            weights += [right_floor - left, right - right_floor]
+            indices += [left_floor, right_floor]
+
+    factor = sum([w**2 for w in weights]) ** -0.5
+    weights = [w * factor for w in weights]
+    return indices, weights
+
+
+def squeezing_sparse_matrix(N, M):
+    init_indices, init_weights = [], []
+    for i in range(M):
+        # print("(util.tensor.squeezing_sparse_matrix)N, M:", N, M)
+        indices, weights = indices_and_weights_for_squeezing_of_1_neuron(i, N, M)
+        init_indices.extend(zip(indices, [i] * len(indices)))
+        init_weights += weights
+    return init_indices, init_weights
+
+
+def squeezing_sparse_matrix_tf(N, M):
+    indices, weights = squeezing_sparse_matrix(N, M)
+    return tf.SparseTensor(indices, weights, [N, M])
+
+
+def squeezing_dense_matrix_tf(N, M):
+    indices, weights = squeezing_sparse_matrix(N, M)
+    row_ids, col_ids = zip(*indices)
+    sp_matrix = coo_matrix((weights, (row_ids, col_ids)), shape=(N, M))
+    return tf.constant(sp_matrix.todense(), dtype=tf.float32)
+
+
+def reduce_last_dim(inp_tensor, target_tensor):
+    # print("(tensor.reduce_last_dim)inp_tensor:", inp_tensor)
+    # print("(tensor.reduce_last_dim)target_tensor:", target_tensor)
+    with tf.name_scope('reduce_last_dim'):
+        N = inp_tensor.get_shape().as_list()[-1]
+        M = target_tensor.get_shape().as_list()[-1]
+        squeezing_matrix = squeezing_dense_matrix_tf(N, M)
+        return tf.einsum('ijk,kl->ijl', inp_tensor, squeezing_matrix)
+
+
+def increase_last_dim(inp_tensor, target_tensor):
+    with tf.name_scope('increase_last_dim'):
+        num_dims = tf.shape(tf.shape(inp_tensor))
+        num_repeats = tf.shape(target_tensor) // tf.shape(inp_tensor)
+        repeated = tf.tile(inp_tensor, num_repeats + 1)
+        return tf.slice(repeated, tf.zeros(num_dims, dtype=tf.int32), tf.shape(target_tensor))
+
+
+def get_shapes(nested):
+    if type(nested) == list:
+        res = [get_shapes(e) for e in nested]
+    elif type(nested) == tuple:
+        res = tuple(get_shapes(e) for e in nested)
+    elif type(nested) == dict:
+        res = {k: get_shapes(v) for k, v in nested.items()}
+    elif type(nested) == collections.OrderedDict:
+        res = collections.OrderedDict([(k, get_shapes(v)) for k, v in nested.items()])
+    elif python.isnamedtupleinstance(nested):
+        tuple_type = type(nested)
+        res = tuple_type(**{k: get_shapes(v) for k, v in nested._asdict()})
+    else:
+        res = nested.get_shape()
+    return res

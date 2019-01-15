@@ -26,7 +26,7 @@ from learning_to_learn.pupils.pupil import Pupil
 
 from learning_to_learn.tensors import compute_metrics_raw_lbls
 
-from helmo.util.tensor import prepare_init_state, get_saved_state_vars, compute_lstm_gru_stddevs
+import helmo.util.tensor as tensor_ops
 
 
 class LmFastBatchGenerator(object):
@@ -208,25 +208,38 @@ class Rnn(Pupil):
         outputs = list()
         with tf.name_scope('embed'):
             for inp, gpu_name in zip(inps_by_gpu, self._gpu_names):
-                with tf.device(gpu_name):
-                    with tf.name_scope(device_name_scope(gpu_name)):
-                        x = tf.one_hot(inp, self._voc_size, dtype=tf.float32)
-                        if self._embed_inputs:
-                            outputs.append(
-                                tf.einsum(
-                                    'ijk,kl->ijl',
-                                    x,
-                                    self._emb_vars['matrix']
-                                ) + self._emb_vars['bias']
-                            )
-                        else:
-                            outputs.append(x)
+                with tf.device(gpu_name), tf.name_scope(device_name_scope(gpu_name)):
+                    x = tf.one_hot(inp, self._voc_size, dtype=tf.float32)
+                    if self._embed_inputs:
+                        outputs.append(
+                            tf.einsum(
+                                'ijk,kl->ijl',
+                                x,
+                                self._emb_vars['matrix']
+                            ) + self._emb_vars['bias']
+                        )
+                    else:
+                        outputs.append(x)
         return outputs
+
+    def _adjust_dim(self, inp, target):
+        # print("(Rnn._adjust_dim)inp:", inp)
+        # print(inp.get_shape())
+        # print(inp.get_shape().as_list())
+        # print("(Rnn._adjust_dim)target:", target)
+        # print(target.get_shape())
+        # print(target.get_shape().as_list())
+        with tf.name_scope('adjust_dim'):
+            return tf.cond(
+                tf.shape(inp)[-1] > tf.shape(target)[-1],
+                true_fn=lambda: tensor_ops.reduce_last_dim(inp, target),
+                false_fn=lambda: tensor_ops.increase_last_dim(inp, target)
+            )
 
     def _add_saved_state(self, rnn_map, gpu_name, state_name):
         if state_name not in rnn_map:
             rnn_map[state_name] = dict()
-        rnn_map[state_name][gpu_name] = get_saved_state_vars(
+        rnn_map[state_name][gpu_name] = tensor_ops.get_saved_state_vars(
             len(rnn_map['num_nodes']), self._network_type, rnn_map['module_name'])
         if 'derived_branches' in rnn_map:
             for branch in rnn_map['derived_branches']:
@@ -240,28 +253,163 @@ class Rnn(Pupil):
                 res.extend(self._get_state_from_rnn_map(branch, key, gpu_name))
         return res
 
-    def _prepare_init_state_resback(self, inp, rnn_map, gpu_name, saved_state_name, prepared_state_name):
+    def _prepare_init_state_resback(self, state_list, inp, rnn_map, gpu_name, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
             rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
-        prepared_state_list = list()
-        if prepared_state_name not in rnn_map:
-            rnn_map[prepared_state_name] = dict()
+        if new_state_name not in rnn_map:
+            rnn_map[new_state_name] = dict()
         with tf.name_scope(rnn_map['module_name']):
-            prepared_state_list.append(
-                prepare_init_state(
+            state_list.append(
+                tensor_ops.prepare_init_state(
                     rnn_map[saved_state_name][gpu_name], inp, rnn_map['rnns'], self._network_type)
             )
-            rnn_map[prepared_state_name][gpu_name] = prepared_state_list[-1]
+            rnn_map[new_state_name][gpu_name] = len(state_list) - 1
             if 'derived_branches' in rnn_map:
                 for branch in rnn_map['derived_branches']:
-                    prepared_state_list.extend(
-                        self._prepare_init_state_resback(
-                            inp, branch, gpu_name, saved_state_name, prepared_state_name)
-                    )
-        return prepared_state_list
+                    self._prepare_init_state_resback(
+                        state_list, inp, branch, gpu_name, saved_state_name, new_state_name)
 
-    def _add_back_rnn_graph(self):
-        pass
+    def _add_states_from_derived_branches(self, rnn_idx, rnn_map, x, state, new_state_name, gpu_name):
+        with tf.name_scope('collect_derived_branches_states'):
+            if 'derived_branches' not in rnn_map:
+                return x
+            for branch in rnn_map['derived_branches']:
+                if branch['input_idx'] == rnn_idx:
+                    if self._rnn_type == 'gru':
+                        state_tensor = state[branch[new_state_name][gpu_name]][0]
+                    else:
+                        state_tensor = state[branch[new_state_name][gpu_name]][0][0]
+                    x += self._adjust_dim(state_tensor, x)
+        return x
+
+    def _distribute_states(self, state, rnn_map, new_state_name, gpu_name):
+        # print("(Rnn._distribute_states)rnn_map:", rnn_map)
+        # print("(Rnn._distribute_states)new_state_name:", new_state_name)
+        # print("(Rnn._distribute_states)rnn_map[new_state_name]:", rnn_map[new_state_name])
+        # print("(Rnn._distribute_states)gpu_name:", gpu_name)
+        rnn_map[new_state_name][gpu_name] = state[rnn_map[new_state_name][gpu_name]]
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
+                self._distribute_states(state, branch, new_state_name, gpu_name)
+
+    def _rec_back_rnn_graph(self, x, state, rnn_map, gpu_name, training, saved_state_name, new_state_name, back_state):
+        branch_idx = 0
+        intermediate = list()
+        inner_rnn_map = rnn_map if rnn_map is None else rnn_map
+        branch_length = len(inner_rnn_map['rnns'])
+        state_list = state[rnn_map[new_state_name][gpu_name]]
+        # print("(Rnn._rec_back_rnn_graph)rnn_map:", rnn_map)
+        # print("(Rnn._rec_back_rnn_graph)state_list:", state_list)
+        # print("(Rnn._rec_back_rnn_graph)state:", state)
+        # print(state)
+        with tf.name_scope(rnn_map['module_name']):
+            for rnn_idx, (rnn, s) in enumerate(
+                    zip(
+                        inner_rnn_map['rnns'],
+                        state_list,
+                    )
+            ):
+                with tf.name_scope('apply_rnn_{}'.format(rnn_idx)):
+                    if 'derived_branches' in inner_rnn_map \
+                            and branch_idx < len(inner_rnn_map['derived_branches']) \
+                            and inner_rnn_map['derived_branches'][branch_idx]['output_idx'] == rnn_idx:
+                        branch_res = self._rec_back_rnn_graph(
+                            intermediate[rnn_map['derived_branches'][branch_idx]['input_idx']], state,
+                            rnn_map['derived_branches'][branch_idx], gpu_name, training,
+                            saved_state_name, new_state_name,
+                            state_list[rnn_map['derived_branches'][branch_idx]['output_idx']],
+                        )
+                        x += self._adjust_dim(branch_res, x)
+                        branch_idx += 1
+                    with tf.name_scope('add_backward_connection'):
+                        if rnn_idx == branch_length - 1:
+                            if back_state is not None:
+                                if self._rnn_type == 'gru':
+                                    x += self._adjust_dim(back_state, x)
+                                else:
+                                    x += self._adjust_dim(back_state[0], x)
+                        else:
+                            if self._rnn_type == 'gru':
+                                x += self._adjust_dim(state_list[rnn_idx + 1], x)
+                            else:
+                                x += self._adjust_dim(state_list[rnn_idx + 1][0], x)
+                    x = self._add_states_from_derived_branches(rnn_idx, rnn_map, x, state, new_state_name, gpu_name)
+                    # print("(Rnn._rec_back_rnn_graph)rnn.num_units:", rnn.num_units)
+                    # print("(Rnn._rec_back_rnn_graph)x:", x)
+                    # print("(Rnn._rec_back_rnn_graph)s:", s)
+                    x, new_s = rnn(x, initial_state=s, training=training)
+                    intermediate.append(x)
+                    state_list[rnn_idx] = new_s
+        return x
+
+    def _build_rnns(self, inp_shape, rnn_map,):
+        if 'derived_branches' in rnn_map:
+            rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
+        branch_idx = 0
+        intermediate = list()
+        branch_length = len(rnn_map['rnns'])
+        with tf.variable_scope('build_rnn_vars'):
+            for rnn_idx, rnn in enumerate(rnn_map['rnns']):
+                with tf.variable_scope('rnn{}'.format(rnn_idx)):
+                    if 'derived_branches' in rnn_map \
+                            and branch_idx < len(rnn_map['derived_branches']) \
+                            and rnn_map['derived_branches'][branch_idx]['output_idx'] == rnn_idx:
+                        # print("(Rnn._build_rnns)intermediate[rnn_map['derived_branches'][branch_idx]['input_idx']]:",
+                        #       intermediate[rnn_map['derived_branches'][branch_idx]['input_idx']])
+                        self._build_rnns(
+                            intermediate[rnn_map['derived_branches'][branch_idx]['input_idx']],
+                            rnn_map['derived_branches'][branch_idx],
+                        )
+                        branch_idx += 1
+                    # print("(Rnn._build_rnns)inp_shape:", inp_shape)
+                    rnn.build(inp_shape)
+                    inp_shape = tf.TensorShape(inp_shape.as_list()[:-1] + [rnn.num_units])
+                    intermediate.append(inp_shape)
+
+    def _add_back_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
+        if 'derived_branches' in rnn_map:
+            rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
+        state_list = []
+        self._prepare_init_state_resback(
+            state_list, inp, rnn_map, gpu_name, saved_state_name, new_state_name
+        )
+        out_dim = rnn_map['rnns'][-1].num_units
+        out = tf.zeros(tf.concat([[0], tf.shape(inp)[1:2], [out_dim]], 0), name='loop_output')
+        # print("(Rnn._add_back_rnn_graph)inp:", inp)
+
+        if not self._rnns_built:
+            self._build_rnns(inp.get_shape(), rnn_map)
+            self._rnns_built = True
+
+        def body(inp, out, state):
+            # x = inp[0:1, ...]
+            with tf.name_scope('prepare_x_and_reduce_input'):
+                x = tf.slice(inp, [0, 0, 0], tf.concat([[1], tf.shape(inp)[1:]], 0), name='x')
+                # inp = inp[1:, ...]
+                inp = tf.slice(
+                    inp, [1, 0, 0],
+                    tf.concat([tf.shape(inp)[0:1]-1, tf.shape(inp)[1:]], 0), name='loop_input_circumcised'
+                )
+            x = self._rec_back_rnn_graph(x, state, rnn_map, gpu_name, training, saved_state_name, new_state_name, None)
+            out = tf.concat([out, x], 0, name='loop_output_extended')
+            return inp, out, state
+
+        def cond(inp, out, state):
+            return tf.cast(tf.shape(inp)[0], tf.bool)
+
+        # print(new_state_list)
+
+        _, out, state = tf.while_loop(
+            cond,
+            body,
+            [inp, out, state_list],
+            shape_invariants=[
+                tf.TensorShape([None, None, inp.get_shape().as_list()[-1]]), tf.TensorShape([None, None, out_dim]),
+                tensor_ops.get_shapes(state_list)
+            ]
+        )
+        self._distribute_states(state, rnn_map, new_state_name, gpu_name)
+        return out
 
     def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
@@ -272,7 +420,7 @@ class Rnn(Pupil):
         rnn_map[new_state_name][gpu_name] = list()
         intermediate = list()
         with tf.name_scope(rnn_map['module_name']):
-            prepared_state = prepare_init_state(
+            prepared_state = tensor_ops.prepare_init_state(
                 rnn_map[saved_state_name][gpu_name], inp, rnn_map['rnns'], self._network_type)
             # print("(Rnn._add_rnn_graph).prepared_state:", prepared_state)
             for rnn_idx, (rnn, s) in enumerate(zip(rnn_map['rnns'], prepared_state)):
@@ -321,25 +469,30 @@ class Rnn(Pupil):
             name_scope = 'inference'
         with tf.name_scope(name_scope):
             for embeddings, gpu_name in zip(embeddings_by_gpu, self._gpu_names):
-                with tf.device(gpu_name):
-                    with tf.name_scope(device_name_scope(gpu_name)):
-                        saved_state_name = 'saved_state_' + name_scope
-                        new_state_name = 'new_state_' + name_scope
-                        self._add_saved_state(self._rnn_map, gpu_name, saved_state_name)
-                        with tf.name_scope('rnns'):
+                with tf.device(gpu_name), tf.name_scope(device_name_scope(gpu_name)):
+                    saved_state_name = 'saved_state_' + name_scope
+                    new_state_name = 'new_state_' + name_scope
+                    self._add_saved_state(self._rnn_map, gpu_name, saved_state_name)
+                    with tf.name_scope('rnns'):
+                        if self._backward_connections:
+                            rnn_res = self._add_back_rnn_graph(
+                                embeddings, self._rnn_map, gpu_name, training, saved_state_name, new_state_name
+                            )
+                        else:
                             rnn_res = self._add_rnn_graph(
                                 embeddings, self._rnn_map, gpu_name, training, saved_state_name, new_state_name)
-                        saved_state = self._get_state_from_rnn_map(self._rnn_map, saved_state_name, gpu_name)
-                        new_state = self._get_state_from_rnn_map(self._rnn_map, new_state_name, gpu_name)
-                        # print("(Rnn._add_rnn_and_output_module)self._rnn_map:", self._rnn_map)
-                        reset_state_ops.extend(compose_reset_list(saved_state))
-                        randomize_state_ops.extend(compose_randomize_list(
-                            saved_state, stddev=self._randomize_state_stddev))
-                        save_list = compose_save_list((saved_state, new_state))
-                        with tf.control_dependencies(save_list):
-                            logits = self._output_module(rnn_res)
-                        logits_by_gpu.append(logits)
-                        preds_by_gpu.append(tf.nn.softmax(logits))
+                    # print("(Rnn._add_rnn_and_output_module)rnn_res:", rnn_res)
+                    saved_state = self._get_state_from_rnn_map(self._rnn_map, saved_state_name, gpu_name)
+                    new_state = self._get_state_from_rnn_map(self._rnn_map, new_state_name, gpu_name)
+                    # print("(Rnn._add_rnn_and_output_module)self._rnn_map:", self._rnn_map)
+                    reset_state_ops.extend(compose_reset_list(saved_state))
+                    randomize_state_ops.extend(compose_randomize_list(
+                        saved_state, stddev=self._randomize_state_stddev))
+                    save_list = compose_save_list((saved_state, new_state))
+                    with tf.control_dependencies(save_list):
+                        logits = self._output_module(rnn_res)
+                    logits_by_gpu.append(logits)
+                    preds_by_gpu.append(tf.nn.softmax(logits))
             reset_state = tf.group(*reset_state_ops)
             randomize_state = tf.group(*randomize_state_ops)
         return logits_by_gpu, preds_by_gpu, reset_state, randomize_state
@@ -357,63 +510,67 @@ class Rnn(Pupil):
         additional_metrics = {metric_name: list() for metric_name in self._metrics}
         with tf.name_scope('loss_and_metrics'):
             for logits, preds, lbls, gpu_name in zip(logits_by_gpu, preds_by_gpu, lbls_by_gpu, self._gpu_names):
-                with tf.device(gpu_name):
-                    with tf.name_scope(device_name_scope(gpu_name)):
-                        loss = self._compute_loss(logits, lbls)
-                        loss_by_gpu.append(loss)
-                        add_metrics = compute_metrics_raw_lbls(
-                            self._metrics, predictions=preds,
-                            labels=lbls, loss=loss, keep_first_dim=False
-                        )
-                        additional_metrics = append_to_nested(additional_metrics, add_metrics)
-            with tf.device(self._base_dev):
-                with tf.name_scope('averaging_metrics'):
-                    with tf.name_scope(device_name_scope(self._base_dev)):
-                        average_func = get_average_with_weights_func(self._bs_by_gpu)
-                        mean_loss = average_func(loss_by_gpu)
-                        additional_metrics = func_on_list_in_nested(additional_metrics, average_func)
+                with tf.device(gpu_name), tf.name_scope(device_name_scope(gpu_name)):
+                    loss = self._compute_loss(logits, lbls)
+                    loss_by_gpu.append(loss)
+                    add_metrics = compute_metrics_raw_lbls(
+                        self._metrics, predictions=preds,
+                        labels=lbls, loss=loss, keep_first_dim=False
+                    )
+                    additional_metrics = append_to_nested(additional_metrics, add_metrics)
+            with tf.device(self._base_dev), tf.name_scope('averaging_metrics'):
+                average_func = get_average_with_weights_func(self._bs_by_gpu)
+                mean_loss = average_func(loss_by_gpu)
+                additional_metrics = func_on_list_in_nested(additional_metrics, average_func)
         return mean_loss, loss_by_gpu, additional_metrics
 
     def _get_train_op(self, loss_by_gpu):
         tower_grads = list()
         for loss, gpu_name in zip(loss_by_gpu, self._gpu_names):
-            with tf.device(gpu_name):
-                with tf.name_scope(device_name_scope(gpu_name)):
-                    grads_and_vars = self._optimizer.compute_gradients(loss)
-                    tower_grads.append(grads_and_vars)
-        with tf.device(self._gpu_names[-1]):
-            with tf.name_scope('l2_loss_grad'):
-                l2_loss = self._l2_loss(tf.get_collection(tf.GraphKeys.WEIGHTS))
-                l2_loss_grads_and_vars = self._optimizer.compute_gradients(l2_loss)
-        with tf.device(self._base_dev):
-            with tf.name_scope(device_name_scope(self._base_dev) + '_gradients'):
-                grads_and_vars = average_gradients(tower_grads)
-                grads_and_vars_with_l2_loss = list()
-                for gv, l2gv in zip(grads_and_vars, l2_loss_grads_and_vars):
-                    if l2gv[0] is not None:
-                        g = gv[0] + l2gv[0]
-                    else:
-                        g = gv[0]
-                    grads_and_vars_with_l2_loss.append((g, gv[1]))
-                grads, v = zip(*grads_and_vars)
-                grads, _ = tf.clip_by_global_norm(grads, self._clip_norm)
-                train_op = self._optimizer.apply_gradients(zip(grads, v))
+            with tf.device(gpu_name), tf.name_scope(device_name_scope(gpu_name)):
+                grads_and_vars = self._optimizer.compute_gradients(loss)
+                tower_grads.append(grads_and_vars)
+        with tf.device(self._gpu_names[-1]), tf.name_scope('l2_loss_grad'):
+            l2_loss = self._l2_loss(tf.get_collection(tf.GraphKeys.WEIGHTS))
+            l2_loss_grads_and_vars = self._optimizer.compute_gradients(l2_loss)
+        with tf.device(self._base_dev), tf.name_scope(device_name_scope(self._base_dev) + '_gradients'):
+            # print("(Rnn._get_train_op)tower_grads:", tower_grads)
+            grads_and_vars = average_gradients(tower_grads)
+            grads_and_vars_with_l2_loss = list()
+            for gv, l2gv in zip(grads_and_vars, l2_loss_grads_and_vars):
+                if l2gv[0] is not None:
+                    g = gv[0] + l2gv[0]
+                else:
+                    g = gv[0]
+                grads_and_vars_with_l2_loss.append((g, gv[1]))
+            grads, v = zip(*grads_and_vars)
+            grads, _ = tf.clip_by_global_norm(grads, self._clip_norm)
+            train_op = self._optimizer.apply_gradients(zip(grads, v))
         return train_op
 
     def _build_recursive(self, rnn_map, inp_size, out_size, add_adapter=True):
         rnns = list()
-        stddevs = compute_lstm_gru_stddevs(rnn_map['num_nodes'], self._voc_size, self._init_parameter)
+        stddevs = tensor_ops.compute_lstm_gru_stddevs(rnn_map['num_nodes'], self._voc_size, self._init_parameter)
         inp_shape = self._inp_and_lbl_phds['inps'].shape
         if self._rnn_type == 'lstm':
             Rnn = CudnnLSTM
         elif self._rnn_type == 'gru':
             Rnn = CudnnGRU
         for idx, (nn, stddev) in enumerate(zip(rnn_map['num_nodes'], stddevs)):
+            # def init_func(shape, dtype=None):
+            #     dtype = tf.float32 if dtype is None else dtype
+            #     return tf.truncated_normal(shape, dtype=dtype, stddev=stddev)
+            init_truncated_func = lambda shape, dtype: tf.truncated_normal(
+                shape, dtype=tf.float32 if dtype is None else dtype, stddev=stddev)
+            init_zero_func = lambda shape, dtype: tf.zeros(
+                shape, dtype=tf.float32 if dtype is None else dtype)
             rnn = Rnn(
                 1,
                 nn,
                 dropout=self._dropout_rate,
-                kernel_initializer=tf.truncated_normal_initializer(stddev=stddev),
+                # kernel_initializer=tf.truncated_normal_initializer(stddev=stddev),
+                kernel_initializer=init_truncated_func,
+                bias_initializer=init_zero_func,
                 name='%s_%s_%s' % (self._rnn_type, rnn_map['module_name'], idx),
             )
             # rnn.build(inp_shape.concatenate(inp_size))
@@ -434,7 +591,8 @@ class Rnn(Pupil):
                 self._build_recursive(
                     branch,
                     rnn_map['num_nodes'][branch['input_idx']],
-                    rnn_map['num_nodes'][branch['output_idx']-1]
+                    rnn_map['num_nodes'][branch['output_idx']-1],
+                    add_adapter=not self._backward_connections,
                 )
 
     def _build_rnn_branch_variables(self):
@@ -442,40 +600,38 @@ class Rnn(Pupil):
         self._build_recursive(self._rnn_map, inp_size, None, add_adapter=False)
 
     def _build_variables(self):
-        with tf.device(self._base_dev):
-            with tf.name_scope('build_vars'):
+        with tf.device(self._base_dev), tf.name_scope('build_vars'):
+            if self._embed_inputs:
+                self._emb_vars = dict(
+                    matrix=tf.Variable(
+                        tf.truncated_normal(
+                            [self._voc_size, self._emb_size],
+                            stddev=self._init_parameter * np.sqrt(1. / (self._voc_size + self._emb_size))
+                        ),
+                        name='embedding_matrix',
+                        collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
+                    ),
+                    bias=tf.Variable(tf.zeros([self._emb_size]), name='embedding_bias')
+                )
 
-                if self._embed_inputs:
-                    self._emb_vars = dict(
+            self._out_vars = list()
+            for layer_idx in range(self._num_out_layers):
+                inp_dim, out_dim, stddev = self._compute_output_matrix_parameters(layer_idx)
+                self._out_vars.append(
+                    dict(
                         matrix=tf.Variable(
-                            tf.truncated_normal(
-                                [self._voc_size, self._emb_size],
-                                stddev=self._init_parameter * np.sqrt(1. / (self._voc_size + self._emb_size))
-                            ),
-                            name='embedding_matrix',
+                            tf.truncated_normal([inp_dim, out_dim],
+                            stddev=stddev),
+                            name='output_matrix_%s' % layer_idx,
                             collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
                         ),
-                        bias=tf.Variable(tf.zeros([self._emb_size]), name='embedding_bias')
-                    )
-
-                self._out_vars = list()
-                for layer_idx in range(self._num_out_layers):
-                    inp_dim, out_dim, stddev = self._compute_output_matrix_parameters(layer_idx)
-                    self._out_vars.append(
-                        dict(
-                            matrix=tf.Variable(
-                                tf.truncated_normal([inp_dim, out_dim],
-                                stddev=stddev),
-                                name='output_matrix_%s' % layer_idx,
-                                collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
-                            ),
-                            bias=tf.Variable(
-                                tf.zeros([out_dim]),
-                                name='output_bias_%s' % layer_idx
-                            )
+                        bias=tf.Variable(
+                            tf.zeros([out_dim]),
+                            name='output_bias_%s' % layer_idx
                         )
                     )
-                self._build_rnn_branch_variables()
+                )
+            self._build_rnn_branch_variables()
 
     def _get_save_dict_for_rnns(self, rnn_map, accumulated_module_name, module_name=None):
         save_dict = dict()
@@ -520,8 +676,7 @@ class Rnn(Pupil):
         # print("(Rnn._create_saver)save_dict:")
         # for k, v in save_dict.items():
         #     print(k)
-        #     print(v)
-        #     print()
+        #     print(v, end='\n'*2)
         with tf.device('/cpu:0'):
             saver = tf.train.Saver(save_dict, max_to_keep=None)
         return saver
@@ -549,10 +704,9 @@ class Rnn(Pupil):
         return savers
 
     def _add_inps_and_lbls_phds(self):
-        with tf.device(self._base_dev):
-            with tf.name_scope('inps_and_lbls'):
-                self._inp_and_lbl_phds['inps'] = tf.placeholder(tf.int32, shape=[None, None], name='inps')
-                self._inp_and_lbl_phds['lbls'] = tf.placeholder(tf.int32, shape=[None, None], name='lbls')
+        with tf.device(self._base_dev), tf.name_scope('inps_and_lbls'):
+            self._inp_and_lbl_phds['inps'] = tf.placeholder(tf.int32, shape=[None, None], name='inps')
+            self._inp_and_lbl_phds['lbls'] = tf.placeholder(tf.int32, shape=[None, None], name='lbls')
         self._hooks['inputs'] = self._inp_and_lbl_phds['inps']
         self._hooks['labels'] = self._inp_and_lbl_phds['lbls']
         self._hooks['validation_inputs'] = self._inp_and_lbl_phds['inps']
@@ -630,6 +784,7 @@ class Rnn(Pupil):
             self._network_type = 'cudnn_gru_stacked'
         else:
             self._network_type = None
+        self._backward_connections = kwargs.get('backward_connections', False)
 
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 
@@ -664,6 +819,7 @@ class Rnn(Pupil):
             self._emb_vars = None
         self._out_vars = None
         self._rnn_branches = dict()
+        self._rnns_built = not self._backward_connections
 
         self._applicable_trainable = dict()
 

@@ -44,17 +44,17 @@ BATCH_SIZE = 32
 
 rnn_map = dict(
     module_name='char_enc_dec',
-    num_nodes=[1500, 1500],
+    num_nodes=[100, 200, 150],
     input_idx=None,
     output_idx=None,
-    # derived_branches=[
-    #     dict(
-    #         module_name='word_enc_dec',
-    #         num_nodes=[500, 500],
-    #         input_idx=0,
-    #         output_idx=1,
-    #     )
-    # ]
+    derived_branches=[
+        dict(
+            module_name='word_enc_dec',
+            num_nodes=[320, 600],
+            input_idx=0,
+            output_idx=1,
+        )
+    ]
 )
 env.build_pupil(
     rnn_type='lstm',
@@ -69,6 +69,7 @@ env.build_pupil(
     optimizer='adam',
     dropout_rate=0.5,
     # regime='inference',
+    # backward_connections=True,
 )
 learning_rate = dict(
     type='adaptive_change',
@@ -87,9 +88,13 @@ stop_specs = {
 env.train(
     # gpu_memory=.3,
     allow_growth=True,
-    save_path='results/resrnn',
-    # restore_path='results/resrnn/checkpoints/all_vars/best',
-    restore_path='results/resrnn/checkpoints/best',
+    # save_path='results/resrnn',
+    # # restore_path='results/resrnn/checkpoints/all_vars/best',
+    # restore_path='results/resrnn/checkpoints/best',
+
+    save_path='results/resrnn/back',
+    # restore_path='results/resrnn/back/checkpoints/best',
+
     # restore_path=dict(
     #     char_enc_dec='results/resrnn/checkpoints/all_vars/best',
     # ),
@@ -115,6 +120,7 @@ env.train(
         num_unrollings=100,
     ),
     add_graph_to_summary=True,
+    summary=True,
     state_reset_period=10,
 )
 
