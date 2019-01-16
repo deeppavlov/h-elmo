@@ -77,7 +77,7 @@
   "build_hyperparameters": {},
   "other_hyperparameters": {
     "num_unrollings": {
-      "varying": [100],
+      "varying": [10],
       "hp_type": "batch_kwarg",
       "dtype": "int"
     }
