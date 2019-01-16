@@ -62,7 +62,7 @@
       "type": "adaptive_change",
       "max_no_progress_points": 50,
       "decay": 0.5,
-      "init": 2e-3,
+      "init": 5e-4,
       "path_to_target_metric_storage": ["valid", "loss"]
     },
     "allow_growth": true,
