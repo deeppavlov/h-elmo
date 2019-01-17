@@ -34,7 +34,15 @@
         100
       ],
       "input_idx": null,
-      "output_idx": null
+      "output_idx": null,
+      "derived_branches": [
+        {
+          "module_name": "word_enc_dec",
+          "num_nodes": [100, 100],
+          "input_idx": 0,
+          "output_idx": 1
+        }
+      ]
     },
     "num_output_nodes": [],
     "emb_size": 256,
