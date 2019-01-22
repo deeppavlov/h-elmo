@@ -46,7 +46,7 @@
     ],
     "optimizer": "adam",
     "dropout_rate": 0.1,
-    "backward_connections": true
+    "backward_connections": false
   },
   "launch": {
     "ctrl_restore_saver_name": "char_enc_dec",

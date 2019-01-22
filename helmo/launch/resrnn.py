@@ -70,6 +70,7 @@ env.build_pupil(
     dropout_rate=0.5,
     # regime='inference',
     # backward_connections=True,
+    # matrix_dim_adjustment=True,
 )
 learning_rate = dict(
     type='adaptive_change',
