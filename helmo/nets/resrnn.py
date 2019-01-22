@@ -615,7 +615,7 @@ class Rnn(Pupil):
         if back_adapters:
             rnn_map['intermediate_back_adapter_matrices'] = intermediate_back_adapter_matrices
             rnn_map['intermediate_back_adapter_biases'] = intermediate_back_adapter_biases
-        print("(Rnn._build_recursive)input_sizes:", input_sizes)
+        # print("(Rnn._build_recursive)input_sizes:", input_sizes)
         if add_adapter_between_branches:
             rnn_map['adapter_matrix'] = tf.Variable(
                 tf.zeros([rnn_map['num_nodes'][-1], out_size]),
