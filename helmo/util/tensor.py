@@ -310,3 +310,13 @@ def get_shapes(nested):
     else:
         res = nested.get_shape()
     return res
+
+
+def average_k(tensor, k, axis):
+    with tf.name_scope('average_k'):
+        dim = tf.shape(tensor)[axis]
+        # remainder = dim % k
+        quotient = dim // k
+        num_sampled = k * quotient
+        for_averaging = tf.nn.unform_candidate_sampler()
+
