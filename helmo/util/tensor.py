@@ -1,3 +1,4 @@
+import string
 import collections
 
 import numpy as np
@@ -312,11 +313,74 @@ def get_shapes(nested):
     return res
 
 
-def average_k(tensor, k, axis):
+def sample_tensor_slices(tensor, n, axis):
+    if isinstance(n, int):
+        n = tf.constant(n, dtype=tf.int32)
+    indices = tf.slice(tf.random_shuffle(tf.range(0, n, dtype=tf.int32)), [0], tf.reshape(n, [1]))
+    return tf.gather(tensor, indices, axis=axis)
+
+
+def average_k(tensor, k, axis, random_sampling=False):
     with tf.name_scope('average_k'):
+        tensor_shape = tf.shape(tensor)
         dim = tf.shape(tensor)[axis]
-        # remainder = dim % k
         quotient = dim // k
         num_sampled = k * quotient
-        for_averaging = tf.nn.unform_candidate_sampler()
+        num_dims = len(tensor.get_shape().as_list())
+        if random_sampling:
+            for_averaging = sample_tensor_slices(tensor, num_sampled, axis)
+        else:
+            for_averaging = tf.slice(
+                tensor, [0]*num_dims,
+                tf.concat(
+                    [tensor_shape[:axis], tf.reshape(num_sampled, [1]), tensor_shape[axis+1:]],
+                    0
+                )
+            )
+        sh = tf.shape(for_averaging)
+        k = tf.constant([k]) if isinstance(k, int) else tf.reshape(k, shape=[1])
+        new_shape = tf.concat(
+            [
+                sh[:axis],
+                tf.reshape(quotient, [1]),
+                k,
+                sh[axis+1:]
+            ],
+            0
+        )
+        for_averaging = tf.reshape(for_averaging, shape=new_shape)
+        return tf.reduce_mean(for_averaging, axis=axis+1, keepdims=False)
 
+
+def self_outer_product_eq(num_dims, axis):
+    letters = string.ascii_lowercase
+    base_letters = letters[:-2]
+    base = base_letters[:num_dims]
+    f1 = base[:axis] + letters[-2] + base[axis+1:]
+    f2 = base[:axis] + letters[-1] + base[axis+1:]
+    prod = base[:axis] + letters[-2:] + base[axis+1:]
+    return f1 + ',' + f2 + '->' + prod
+
+
+def self_outer_product(tensor, axis):
+    with tf.name_scope('self_outer_product'):
+        num_dims = len(tensor.get_shape().as_list())
+        eq = self_outer_product_eq(num_dims, axis)
+        return tf.einsum(eq, tensor, tensor)
+
+
+def covariance(tensor, reduced_axes, cov_axis):
+    with tf.name_scope('covariance'):
+        mean = tf.reduce_mean(tensor, axis=reduced_axes, keepdims=True)
+        devs = tensor - mean
+        dev_prods = self_outer_product(devs, cov_axis)
+        return tf.reduce_mean(dev_prods, axis=reduced_axes)
+
+
+def correlation(tensor, reduced_axes, cor_axis, epsilon=1e-12):
+    with tf.name_scope('correlation'):
+        cov = covariance(tensor, reduced_axes, cor_axis)
+        _, variance = tf.nn.moments(tensor, axes=reduced_axes, keep_dims=True)
+        var_cross_mul = self_outer_product(variance, cor_axis)
+        var_cross_mul = tf.reduce_sum(var_cross_mul, axis=reduced_axes)
+        return cov / tf.sqrt(var_cross_mul + epsilon)
