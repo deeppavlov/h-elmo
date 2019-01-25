@@ -384,3 +384,30 @@ def correlation(tensor, reduced_axes, cor_axis, epsilon=1e-12):
         var_cross_mul = self_outer_product(variance, cor_axis)
         var_cross_mul = tf.reduce_sum(var_cross_mul, axis=reduced_axes)
         return cov / tf.sqrt(var_cross_mul + epsilon)
+
+
+def corcov_loss(
+        tensor, reduced_axes, cor_axis,
+        punish='correlation', reduction='sum', norm='sqr', epsilon=1e-12
+):
+    with tf.name_scope('corcov_loss'):
+        f = correlation if punish == 'correlation' else covariance
+        corcov = f(tensor, reduced_axes, cor_axis, epsilon=epsilon)
+        nd = len(corcov.get_shape().as_list())
+        perm = list(range(nd))
+        num_prec_reduced = len(list(filter(lambda x: x < cor_axis, reduced_axes)))
+        i1, i2 = cor_axis - num_prec_reduced, cor_axis - num_prec_reduced + 1
+        if i1 == nd - 3:
+            perm[nd - 3], perm[nd - 2], perm[nd - 1] = nd - 1, i1, i2
+        elif i1 < nd - 3:
+            perm[i1], perm[i2], perm[nd - 2], perm[nd - 1] = nd - 2, nd - 1, i1, i2
+        corcov = tf.transpose(corcov, perm=perm)
+        norm_func = lambda x: x**2 if norm == 'sqr' else tf.abs(x)
+        norm_m = norm_func(corcov)
+        frob_norm = tf.reduce_sum(norm_m, axis=[-2, -1])
+        trace = tf.linalg.trace(norm_m)
+        s = 0.5 * tf.reduce_sum(frob_norm - trace, keepdims=False)
+        if reduction == 'sum':
+            return s
+        last_dim = tf.shape(norm_m, out_type=tf.float32)[-1]
+        return s / (tf.reduce_prod(tf.shape(norm_m, out_type=tf.float32)) * (last_dim - 1) / last_dim)

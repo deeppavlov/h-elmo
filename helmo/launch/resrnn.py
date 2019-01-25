@@ -67,7 +67,7 @@ env.build_pupil(
     num_gpus=1,
     metrics=metrics,
     optimizer='adam',
-    dropout_rate=0.5,
+    dropout_rate=0.,
     # regime='inference',
     # backward_connections=True,
     # matrix_dim_adjustment=True,
@@ -86,6 +86,10 @@ stop_specs = {
       "changing_parameter_name": "learning_rate",
       "path_to_target_metric_storage": ["default_1", "loss"]
     }
+valid_tensor_schedule = dict(
+    valid_pickle_mean_tensors=dict(correlation=1),
+    valid_pickle_all_tensors=dict(correlation=1),
+)
 env.train(
     # gpu_memory=.3,
     allow_growth=True,
@@ -93,7 +97,7 @@ env.train(
     # # restore_path='results/resrnn/checkpoints/all_vars/best',
     # restore_path='results/resrnn/checkpoints/best',
 
-    save_path='results/resrnn/back',
+    save_path='results/resrnn/correlation',
     # restore_path='results/resrnn/back/checkpoints/best',
 
     # restore_path=dict(
@@ -123,6 +127,7 @@ env.train(
     add_graph_to_summary=True,
     summary=True,
     state_reset_period=10,
+    validation_tensor_schedule=valid_tensor_schedule,
 )
 
 # rnn_map = dict(

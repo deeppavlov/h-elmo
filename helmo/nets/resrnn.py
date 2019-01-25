@@ -88,6 +88,13 @@ class LmFastBatchGenerator(object):
         """Generate a single batch from the current cursor position in the data."""
         ret = np.array([char2id(self._text[self._cursor[b]], self.character_positions_in_vocabulary)
                         for b in range(self._batch_size)])
+        # if len(self._text) == 640000:
+        #     # print("(resrnn.LmFastBatchGenerator._next_batch)length == 640000")
+        #     ret = np.array([char2id(self._text[self._cursor[0]], self.character_positions_in_vocabulary)
+        #                     for b in range(self._batch_size)])
+        # else:
+        #     ret = np.array([char2id(self._text[self._cursor[b]], self.character_positions_in_vocabulary)
+        #                     for b in range(self._batch_size)])
         for b in range(self._batch_size):
             self._cursor[b] = (self._cursor[b] + 1) % self._text_size
         return ret
@@ -471,6 +478,10 @@ class Rnn(Pupil):
                 inp += rnn_map['adapter_bias']
             # with tf.device('/cpu:0'):
             #     inp = tf.Print(inp, [inp], message="(Rnn._add_rnn_graph)inp (%s):\n" % inp.name)
+            if rnn_map['module_name'] == 'char_enc_dec':
+                self._hooks['correlation'] = tensor_ops.corcov_loss(
+                    intermediate[0], [0, 1], 2, reduction='mean', norm='abs'
+                )
         return inp
 
     def _add_rnn_and_output_module(self, embeddings_by_gpu, training):
@@ -865,7 +876,10 @@ class Rnn(Pupil):
             reset_train_state=None,
             randomize_train_state=None,
             dropout=None,
-            saver=None)
+            saver=None,
+
+            correlation=None,
+        )
         for metric_name in self._metrics:
             self._hooks[metric_name] = None
             self._hooks['validation_' + metric_name] = None

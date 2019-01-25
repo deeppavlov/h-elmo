@@ -40,7 +40,7 @@ results_dir = os.path.join(
 )
 # print(results_dir)
 save_path = results_dir
-results_file_name = os.path.join(save_path, 'valid.txt')
+results_file_name = os.path.join(save_path, 'test.txt')
 confs, _ = compose_hp_confs(
     config_path, results_file_name, chop_last_experiment=False, model='pupil')
 confs.reverse()  # start with small configs
