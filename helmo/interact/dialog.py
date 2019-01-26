@@ -49,6 +49,10 @@ parser.add_argument(
     action="store_true"
 )
 parser.add_argument(
+    "--telegram_bot"
+    help="Start telegram bot. Telegram"
+)
+parser.add_argument(
     "--text_path",
     help="Path to file with text. Text is splitted in the following way: if test_size is not zero,"
          " first test_size lines are used for testing, than if valid_size is not zero lines from "

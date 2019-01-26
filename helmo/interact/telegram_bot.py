@@ -1,4 +1,23 @@
-from environment import Environment
+import sys
+import os
+import json
+
+import tensorflow as tf
+sys.path += [
+    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
+    os.path.expanduser('~/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
+    os.path.expanduser('~/h-elmo'),
+    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
+    os.path.expanduser('~/repos/learning-to-learn'),
+    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
+    os.path.expanduser('~/repos/h-elmo'),
+    '/cephfs/home/peganov/learning-to-learn',
+    '/home/peganov/learning-to-learn',
+    '/cephfs/home/peganov/h-elmo',
+    '/home/peganov/h-elmo',
+]
+from learning_to_learn.environment import Environment
 import re
 # from residuals_no_authors_no_sampling import Lstm, LstmBatchGenerator
 from lstm_par import Lstm, LstmBatchGenerator
@@ -43,9 +62,10 @@ valid_add_feed = [{'placeholder': 'dropout', 'value': 1.}]
 
 env.telegram(
     kwargs_for_building,
-    'debugging_lstm_and_gru/first/checkpoints/100',
+    'debugging_lstm_and_gru/first/checkpoints/10ZZXXZZZZZZZZZZZZ0',
     'telegram/debug',
     vocabulary,
     cpiv,
     LstmBatchGenerator,
-    additions_to_feed_dict=valid_add_feed)
+    additions_to_feed_dict=valid_add_feed
+)
