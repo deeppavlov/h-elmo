@@ -43,14 +43,18 @@ parser.add_argument(
 )
 parser.add_argument(
     "--cli_dialog",
-    help="Start cli dialog with model. Dialog is started after training, testing and file dialog."
+    help="Start cli dialog with model. Dialog is started after training, testing, and file dialog."
          " To load trained model provide --restore_path. To finish dialog type FINISH. Dialog is logged into"
          " cli_dialog_file",
     action="store_true"
 )
 parser.add_argument(
-    "--telegram_bot"
-    help="Start telegram bot. Telegram"
+    "--telegram_bot",
+    help="Start telegram bot. Telegram bot is started after training, testing, file dialog, and cli dialog."
+         " To load trained model provide --restore_path. Dialogs are logged into directory specified in "
+         "parameter 'telegram_log_path'. If parameter 'telegram_log_path' is not provided than dialogs are"
+         " logged in directory 'telegram'.",
+    action='store_true',
 )
 parser.add_argument(
     "--text_path",
@@ -90,6 +94,11 @@ parser.add_argument(
     "--file_dialog_answers_file",
     help="Name of a file with bot answers in file dialog regime. Default is answers.txt",
     default='answers.txt',
+)
+parser.add_argument(
+    "--telegram_log_path",
+    help="Path to directory where dialogs will be saved. Default is 'telegram'",
+    default="telegram",
 )
 parser.add_argument(
     "--test_size",
@@ -250,7 +259,7 @@ rnn_map = dict(
     input_idx=None,
     output_idx=None,
 )
-env.build_pupil(
+kwargs_for_model_building = dict(
     rnn_type=config['rnn_type'],
     embed_inputs=config['embed_inputs'],
     rnn_map=rnn_map,
@@ -263,6 +272,9 @@ env.build_pupil(
     optimizer=config['optimizer'],
     dropout_rate=0.1,
     randomize_state_stddev=config["randomize_state_stddev"]
+)
+env.build_pupil(
+    **kwargs_for_model_building
 )
 
 BATCH_SIZE = 32
@@ -346,4 +358,13 @@ if config['cli_dialog']:
         randomize=not config['do_not_randomize_hidden_state'],  # if True model hidden state is initialized with random numbers
         preprocess_f=preprocess_f,
         postprocess_f=postprocess_f,
+    )
+if config['telegram_bot']:
+    env.telegram(
+        kwargs_for_building=kwargs_for_model_building,
+        restore_path=restore_path,
+        vocabulary=vocabulary,
+        character_positions_in_vocabulary=cpiv,
+        batch_generator_class=BatchGenerator,
+        log_path=config['telegram_log_path'],
     )
