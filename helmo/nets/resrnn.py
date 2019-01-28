@@ -47,6 +47,7 @@ class LmFastBatchGenerator(object):
 
     @staticmethod
     def vec2char(vec, vocabulary):
+        # print("(LmFastBatchGenerator.vec2char)vec:", vec, file=sys.stderr)
         return vec2char(vec, vocabulary)
 
     @staticmethod
@@ -134,6 +135,7 @@ def batches2string(batches, vocabulary):
 
 class Rnn(Pupil):
     _name = 'rnn'
+    _input_format = 'indices'
 
     @classmethod
     def check_kwargs(cls, **kwargs):
@@ -201,7 +203,7 @@ class Rnn(Pupil):
                 use_nesterov=True
             )
         else:
-            print('using sgd optimizer')
+            print('using sgd optimizer', file=sys.stderr)
             self._optimizer = tf.train.GradientDescentOptimizer(
                 self._train_phds['learning_rate'])
 
@@ -560,7 +562,7 @@ class Rnn(Pupil):
             l2_loss = self._l2_loss(tf.get_collection(tf.GraphKeys.WEIGHTS))
             l2_loss_grads_and_vars = self._optimizer.compute_gradients(l2_loss)
         with tf.device(self._base_dev), tf.name_scope(device_name_scope(self._base_dev) + '_gradients'):
-            # print("(Rnn._get_train_op)tower_grads:", tower_grads)
+            # print("(Rnn._get_train_op)tower_grads:", tower_grads, file=sys.stderr)
             grads_and_vars = average_gradients(tower_grads)
             grads_and_vars_with_l2_loss = list()
             for gv, l2gv in zip(grads_and_vars, l2_loss_grads_and_vars):

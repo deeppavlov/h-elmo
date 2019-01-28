@@ -273,6 +273,7 @@ kwargs_for_model_building = dict(
     dropout_rate=0.1,
     randomize_state_stddev=config["randomize_state_stddev"]
 )
+
 env.build_pupil(
     **kwargs_for_model_building
 )
@@ -359,6 +360,7 @@ if config['cli_dialog']:
         preprocess_f=preprocess_f,
         postprocess_f=postprocess_f,
     )
+# print('before telegram method')
 if config['telegram_bot']:
     env.telegram(
         kwargs_for_building=kwargs_for_model_building,
@@ -367,4 +369,5 @@ if config['telegram_bot']:
         character_positions_in_vocabulary=cpiv,
         batch_generator_class=BatchGenerator,
         log_path=config['telegram_log_path'],
+        build=False,
     )

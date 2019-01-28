@@ -1,5 +1,5 @@
 {
-    "telegram": true,
+    "telegram_bot": true,
     "voc_path": "/home/anton/h-elmo/vocabs/clean_subs_voc.txt",
     "reset_state_after_model_answer": true,
     "text_path": "/home/anton/h-elmo/datasets/clean_subs.txt",
