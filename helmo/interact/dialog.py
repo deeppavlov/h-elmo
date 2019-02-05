@@ -146,6 +146,14 @@ parser.add_argument(
     default=0.5,
 )
 parser.add_argument(
+    "--temperature",
+    help="Activates sampling from character prediction distribution if is not zero. "
+         "Can be any not negative float. (1)Every value in distribution is raised to"
+         " a power 1 / T, where T is temperature. (2)Distribution is normalised.",
+    type=float,
+    default=0.,
+)
+parser.add_argument(
     "--embed_inputs",
     help="Multiply input one hot vectors by matrix and bias.",
     action="store_true",
@@ -345,6 +353,7 @@ if config['file_dialog']:
         randomize=not config['do_not_randomize_hidden_state'],  # if True model hidden state is initialized with random numbers
         preprocess_f=preprocess_f,
         postprocess_f=postprocess_f,
+        temperature=config['temperature'],
     )
 if config['cli_dialog']:
     env.cli_dialog(
@@ -359,6 +368,7 @@ if config['cli_dialog']:
         randomize=not config['do_not_randomize_hidden_state'],  # if True model hidden state is initialized with random numbers
         preprocess_f=preprocess_f,
         postprocess_f=postprocess_f,
+        temperature=config['temperature'],
     )
 # print('before telegram method')
 if config['telegram_bot']:
@@ -370,4 +380,5 @@ if config['telegram_bot']:
         batch_generator_class=BatchGenerator,
         log_path=config['telegram_log_path'],
         build=False,
+        temperature=config['temperature'],
     )

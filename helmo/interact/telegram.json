@@ -4,5 +4,6 @@
     "text_path": "/home/anton/h-elmo/datasets/clean_subs.txt",
     "rnn_type": "lstm",
     "restore_path": "results/checkpoints/all_vars/best",
-    "randomize_state_stddev": 0.4
+    "randomize_state_stddev": 0.4,
+    "temperature": 1.0
 }
