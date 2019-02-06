@@ -35,8 +35,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam",
-    "dropout_rate": 0.1
+    "optimizer": "adam"
   },
   "launch": {
     "ctrl_restore_saver_name": "char_enc_dec",
@@ -62,7 +61,19 @@
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "results_collect_interval": 1000,
     "validation_batch_size": 32,
-    "valid_batch_kwargs": {"num_unrollings": 200}
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ],
+    "validation_additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
   },
   "build_hyperparameters": {
     "num_nodes": {

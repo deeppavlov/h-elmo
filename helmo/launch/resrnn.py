@@ -44,17 +44,17 @@ BATCH_SIZE = 32
 
 rnn_map = dict(
     module_name='char_enc_dec',
-    num_nodes=[100, 200, 150],
+    num_nodes=[100, 100],
     input_idx=None,
     output_idx=None,
-    derived_branches=[
-        dict(
-            module_name='word_enc_dec',
-            num_nodes=[320, 600],
-            input_idx=0,
-            output_idx=1,
-        )
-    ]
+    # derived_branches=[
+    #     dict(
+    #         module_name='word_enc_dec',
+    #         num_nodes=[320, 600],
+    #         input_idx=0,
+    #         output_idx=1,
+    #     )
+    # ]
 )
 env.build_pupil(
     rnn_type='lstm',
@@ -67,7 +67,6 @@ env.build_pupil(
     num_gpus=1,
     metrics=metrics,
     optimizer='adam',
-    dropout_rate=0.,
     # regime='inference',
     # backward_connections=True,
     # matrix_dim_adjustment=True,
@@ -76,7 +75,7 @@ learning_rate = dict(
     type='adaptive_change',
     max_no_progress_points=1,
     decay=.5,
-    init=4e-4,
+    init=2e-3,
     # init=1e-3,
     path_to_target_metric_storage=('default_1', 'loss')
 )
@@ -128,6 +127,8 @@ env.train(
     summary=True,
     state_reset_period=10,
     validation_tensor_schedule=valid_tensor_schedule,
+    additions_to_feed_dict=[{'placeholder': 'dropout', 'value': 0.99}],
+    validation_additions_to_feed_dict=[{'placeholder': 'dropout', 'value': 0.}],
 )
 
 # rnn_map = dict(

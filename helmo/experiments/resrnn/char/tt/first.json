@@ -28,7 +28,6 @@
     "num_gpus": 1,
     "metrics": ["bpc", "perplexity", "accuracy"],
     "optimizer": "adam",
-    "dropout_rate": 0.1,
     "clip_norm": 5.0
   },
   "train": {
@@ -56,12 +55,30 @@
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "results_collect_interval": 1000,
     "validation_batch_size": 32,
-    "valid_batch_kwargs": {"num_unrollings": 200}
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ],
+    "validation_additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
   },
   "test": {
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "validation_batch_size": 32,
-    "valid_batch_kwargs": {"num_unrollings": 200}
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
   }
 }

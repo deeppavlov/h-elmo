@@ -55,8 +55,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam",
-    "dropout_rate": 0.1
+    "optimizer": "adam"
   },
   "launch": {
     "ctrl_restore_saver_name": "char_enc_dec",
@@ -69,7 +68,19 @@
     "checkpoint_steps": null,
     "stop": 2000,
     "no_validation": true,
-    "printed_result_types": null
+    "printed_result_types": null,
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ],
+    "validation_additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
   },
   "build_hyperparameters": {
     "init_parameter": {

@@ -314,8 +314,7 @@ class Rnn(Pupil):
     ):
         branch_idx = 0
         intermediate = list()
-        inner_rnn_map = rnn_map if rnn_map is None else rnn_map
-        branch_length = len(inner_rnn_map['rnns'])
+        branch_length = len(rnn_map['rnns'])
         state_list = state[rnn_map[new_state_name][gpu_name]]
         # print("(Rnn._rec_back_rnn_graph)rnn_map:", rnn_map)
         # print("(Rnn._rec_back_rnn_graph)state_list:", state_list)
@@ -324,14 +323,14 @@ class Rnn(Pupil):
         with tf.name_scope(rnn_map['module_name']):
             for rnn_idx, (rnn, s) in enumerate(
                     zip(
-                        inner_rnn_map['rnns'],
+                        rnn_map['rnns'],
                         state_list,
                     )
             ):
                 with tf.name_scope('apply_rnn_{}'.format(rnn_idx)):
-                    if 'derived_branches' in inner_rnn_map \
-                            and branch_idx < len(inner_rnn_map['derived_branches']) \
-                            and inner_rnn_map['derived_branches'][branch_idx]['output_idx'] == rnn_idx:
+                    if 'derived_branches' in rnn_map \
+                            and branch_idx < len(rnn_map['derived_branches']) \
+                            and rnn_map['derived_branches'][branch_idx]['output_idx'] == rnn_idx:
                         branch = rnn_map['derived_branches'][branch_idx]
                         branch_res = self._rec_back_rnn_graph(
                             intermediate[rnn_map['derived_branches'][branch_idx]['input_idx']], state,
@@ -362,6 +361,8 @@ class Rnn(Pupil):
                     # print("(Rnn._rec_back_rnn_graph)x:", x)
                     # print("(Rnn._rec_back_rnn_graph)s:", s)
                     x, new_s = rnn(x, initial_state=s, training=training)
+                    if rnn_map['input_idx'] is not None or rnn_idx < len(rnn_map['rnns']) - 1:
+                        x = tf.nn.dropout(x, keep_prob=1. - self._reg_placeholders['dropout_rate'])
                     intermediate.append(x)
                     state_list[rnn_idx] = new_s
         return x
@@ -472,6 +473,8 @@ class Rnn(Pupil):
                 #
                 #     s = tuple(ps)
                 inp, new_s = rnn(inp, initial_state=s, training=training)
+                if rnn_map['input_idx'] is not None or rnn_idx < len(rnn_map['rnns']) - 1:
+                    inp = tf.nn.dropout(inp, keep_prob=1. - self._reg_placeholders['dropout_rate'])
                 intermediate.append(inp)
                 rnn_map[new_state_name][gpu_name].append(new_s)
             if 'adapter_matrix' in rnn_map:
@@ -693,8 +696,7 @@ class Rnn(Pupil):
                 self._out_vars.append(
                     dict(
                         matrix=tf.Variable(
-                            tf.truncated_normal([inp_dim, out_dim],
-                            stddev=stddev),
+                            tf.truncated_normal([inp_dim, out_dim], stddev=stddev),
                             name='output_matrix_%s' % layer_idx,
                             collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
                         ),
@@ -795,6 +797,11 @@ class Rnn(Pupil):
                     tf.float32, name='momentum')
                 self._hooks['momentum'] = self._train_phds['momentum']
 
+    def _add_reg_placeholders(self):
+        with tf.device(self._base_dev):
+            self._reg_placeholders['dropout_rate'] = tf.placeholder(tf.float32, name='dropout_rate')
+            self._hooks['dropout'] = self._reg_placeholders['dropout_rate']
+
     def _distribute_by_gpus(self, inputs, labels):
         with tf.device(self._base_dev):
             inputs = tf.split(inputs, self._batch_sizes_on_gpus, 1, name='inp_on_dev')
@@ -846,7 +853,8 @@ class Rnn(Pupil):
         self._rho = kwargs.get('rho', 0.95)  # used for adadelta
         self._decay = kwargs.get('decay', 0.9)  # used for rmsprop
         self._num_gpus = kwargs.get('num_gpus', 1)
-        self._dropout_rate = kwargs.get('dropout_rate', 0.1)
+        self._dropout_rate = kwargs.get('dropout_rate', 0.1)  # makes no difference since rnns have one layer
+        # print("(Rnn.__init__)self._dropout_rate:", self._dropout_rate)
         self._clip_norm = kwargs.get('clip_norm', 1.)
         self._randomize_state_stddev = kwargs.get('randomize_state_stddev', 0.5)
         self._regime = kwargs.get('regime', 'train')
@@ -906,9 +914,11 @@ class Rnn(Pupil):
         self._inp_and_lbl_phds = dict()
         self._train_phds = dict()
         self._inference_placeholders = dict()
+        self._reg_placeholders = dict()
 
         self._add_train_phds()
         self._add_inps_and_lbls_phds()
+        self._add_reg_placeholders()
         self._build_variables()
 
         self._bs_by_gpu = self._get_bs_by_gpu()

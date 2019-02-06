@@ -34,7 +34,7 @@ with open(config_path) as f:
 exec(organise.form_load_cmd(config['batch_gen']['path'], config['batch_gen']['cls_name'], "BatchGenerator"))
 exec(organise.form_load_cmd(config['net']['path'], config['net']['cls_name'], "Net"))
 
-save_path_relative_to_expres = os.path.join(*config_path.split('.')[:-1])
+save_path_relative_to_expres = '.'.join(config_path.split('.')[:-1])
 # print(save_path_relative_to_expres)
 results_dir = os.path.join(
     organise.append_path_after_experiments_to_expres_rm_head(save_path_relative_to_expres),
