@@ -63,7 +63,8 @@ evaluation['save_path'] = save_path
 evaluation['datasets'] = [(test_text, 'test')]
 evaluation['batch_gen_class'] = BatchGenerator
 evaluation['batch_kwargs']['vocabulary'] = vocabulary
-evaluation['additional_feed_dict'] = []
+if 'additional_feed_dict' not in evaluation:
+    evaluation['additional_feed_dict'] = []
 kwargs_for_building = config["build"].copy()
 kwargs_for_building['voc_size'] = vocabulary_size
 launch_kwargs = config['launch'].copy()

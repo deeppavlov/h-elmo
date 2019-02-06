@@ -24,7 +24,13 @@
     "batch_kwargs": {
       "num_unrollings": 200
     },
-    "batch_size": 32
+    "batch_size": 32,
+    "additional_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
   },
   "build": {
     "rnn_map": {

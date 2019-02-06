@@ -24,14 +24,20 @@
     "batch_kwargs": {
       "num_unrollings": 20
     },
-    "batch_size": 32
+    "batch_size": 32,
+    "additional_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
   },
   "build": {
     "rnn_map": {
       "module_name": "char_enc_dec",
       "num_nodes": [
-        1500,
-        1500
+        10,
+        10
       ],
       "input_idx": null,
       "output_idx": null,
@@ -39,8 +45,8 @@
         {
           "module_name": "word_enc_dec",
           "num_nodes": [
-            3000,
-            3000
+            30,
+            30
           ],
           "input_idx": 0,
           "output_idx": 1
@@ -58,10 +64,7 @@
     "optimizer": "adam"
   },
   "launch": {
-    "ctrl_restore_saver_name": "char_enc_dec",
-    "restore_path": {
-      "char_enc_dec": "resrnn/char/tt/first/0/checkpoints/base/best"
-    },
+
     "allow_growth": true,
     "batch_size": 32,
     "num_unrollings": 2,
