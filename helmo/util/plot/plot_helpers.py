@@ -15,6 +15,7 @@ sys.path += [
     '/home/peganov/h-elmo',
 ]
 import random
+import copy
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib import container
@@ -110,9 +111,22 @@ def plot_outer_legend(
         file_name_without_ext,
         style,
         shifts=None,
+        legend_pos='outside',
+        labels_of_drawn_lines=None,
+        formats=None,
+        save=True,
+        show=False,
 ):
     if shifts is None:
         shifts = [0, 0]
+    plot_data = copy.deepcopy(plot_data)
+    if labels_of_drawn_lines is not None:
+        for lbl in list(plot_data.keys()):
+            if lbl not in labels_of_drawn_lines:
+                # print("(plot_helpers.plot_outer_legend)lbl:", lbl)
+                del plot_data[lbl]
+    if formats is None:
+        formats = FORMATS
     # print("(plot_helpers.plot_outer_legend)xlabel:", xlabel)
     # print("(plot_helpers.plot_outer_legend)plot_data:", plot_data)
     rc('font', **FONT)
@@ -193,6 +207,21 @@ def plot_outer_legend(
         if len(label) > 0:
             there_is_labels = there_is_labels or True
     if there_is_labels:
+        if legend_pos == 'outside':
+            pos_dict = dict(
+                bbox_to_anchor=(1.05, 1),
+                loc=2,
+            )
+        elif legend_pos == 'upper_right':
+            pos_dict = dict(
+                bbox_to_anchor=(.95, .95),
+                loc=1,
+            )
+        elif legend_pos == 'upper_left':
+            pos_dict = dict(
+                bbox_to_anchor=(.05, .95),
+                loc=2,
+            )
         handler_map = dict(list(zip(lines, [HandlerLine2D(numpoints=1) for _ in range(len(lines))])))
         # print("(plot_helpers.plot_outer_legend)handler_map:", handler_map)
         ax = plt.gca()
@@ -201,11 +230,9 @@ def plot_outer_legend(
         lgd = ax.legend(
             handles,
             labels,
-            bbox_to_anchor=(1.05, 1),
-            loc=2,
+            **pos_dict,
             borderaxespad=0.,
             handler_map=handler_map,
-
         )
         bbox_extra_artists = [lgd]
     else:
@@ -216,17 +243,19 @@ def plot_outer_legend(
     #     borderaxespad=0.,
     #     handler_map=handler_map,
     # )
-
-    for format in FORMATS:
-        if format == 'pdf':
-            fig_path = os.path.join(file_name_without_ext + '.pdf')
-        elif format == 'png':
-            fig_path = os.path.join(file_name_without_ext + '.png')
-        else:
-            fig_path = None
-        create_path(fig_path, file_name_is_in_path=True)
-        r = plt.savefig(fig_path, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
-        # print("%s %s %s %s:" % (pupil_name, res_type, regime, format), r)
+    if save:
+        for format in formats:
+            if format == 'pdf':
+                fig_path = file_name_without_ext + '.pdf'
+            elif format == 'png':
+                fig_path = file_name_without_ext + '.png'
+            else:
+                fig_path = None
+            create_path(fig_path, file_name_is_in_path=True)
+            r = plt.savefig(fig_path, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
+            # print("%s %s %s %s:" % (pupil_name, res_type, regime, format), r)
+    if show:
+        plt.show()
     if description is not None:
         description_file = os.path.join(file_name_without_ext + '.txt')
         with open(description_file, 'w') as f:
