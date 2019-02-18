@@ -116,6 +116,7 @@ def plot_outer_legend(
         formats=None,
         save=True,
         show=False,
+        axes_to_invert=(),
 ):
     if shifts is None:
         shifts = [0, 0]
@@ -155,20 +156,27 @@ def plot_outer_legend(
         else:
             color = COLORS[idx]
 
+        # if len(line_data) == 4:
+        #     if style['error'] == 'bar':
+        #         xerr, yerr = line_data[2:]
+        #     else:
+        #         xerr, yerr = None, None
+
+
         if len(line_data) > 2:
             errors = line_data[2]
             errors = [0. if e is None else e for e in errors]
         else:
             errors = None
-
+        # print("(plot_helpers.plot_outer_legend)len(line_data[0]):", len(line_data[0]), end='\n'*2)
         if style['error'] == 'fill':
             yerr = None
             ym = [y - e for y, e in zip(line_data[1], errors)]
             yp = [y + e for y, e in zip(line_data[1], errors)]
             plt.fill_between(
-                line_data[0],
-                ym,
-                yp,
+                shift_list(line_data[0], shifts[0]),
+                shift_list(ym, shifts[1]),
+                shift_list(yp, shifts[1]),
                 alpha=.4,
                 color=color,
             )
@@ -191,6 +199,10 @@ def plot_outer_legend(
         )
 
     # print("(plot_helpers.plot_outer_legend)labels:", labels)
+    if 'x' in axes_to_invert:
+        plt.gca().invert_xaxis()
+    if 'y' in axes_to_invert:
+        plt.gca().invert_yaxis()
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     scale_kwargs = dict()

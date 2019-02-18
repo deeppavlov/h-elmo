@@ -20,6 +20,12 @@ parser.add_argument(
     default="stddev.pickle"
 )
 parser.add_argument(
+    '--stderr_of_mean',
+    help="Path to file where standard error of mean will be placed. "
+         "By default standard error of mean is put into stderr_of_mean.pickle",
+    default="stderr_of_mean.pickle"
+)
+parser.add_argument(
     '--mean',
     help="Path to file where mean line will be placed. "
          "By default it is put into mean.pickle",
@@ -59,11 +65,16 @@ else:
 
 for_averaging = f(for_averaging)
 
+N = for_averaging.shape[0]
 m = np.mean(for_averaging, axis=0, keepdims=False)
-s = np.std(for_averaging, axis=0, keepdims=False)
+s = np.std(for_averaging, axis=0, keepdims=False, ddof=1)
+sm = s / N**0.5
 
 with open(args.mean, 'wb') as f:
     pickle.dump(m, f)
 
 with open(args.stddev, 'wb') as f:
     pickle.dump(s, f)
+
+with open(args.stderr_of_mean, 'wb') as f:
+    pickle.dump(sm, f)

@@ -56,6 +56,7 @@ class LmFastBatchGenerator(object):
 
     def __init__(self, text, batch_size, num_unrollings=1, vocabulary=None, random_batch_initiation=False):
         # print("(resrnn.LmFastBatchGenerator)num_unrollings:", num_unrollings)
+        # print("(resrnn.LmFastBatchGenerator)random_batch_initiation:", random_batch_initiation)
         self._text = text
         self._text_size = len(text)
         self._batch_size = batch_size
@@ -483,9 +484,13 @@ class Rnn(Pupil):
                 inp += rnn_map['adapter_bias']
             # with tf.device('/cpu:0'):
             #     inp = tf.Print(inp, [inp], message="(Rnn._add_rnn_graph)inp (%s):\n" % inp.name)
+            # if rnn_map['module_name'] == 'char_enc_dec':
+            #     self._hooks['correlation'] = tensor_ops.corcov_loss(
+            #         intermediate[0], [0, 1], 2, reduction='mean', norm='abs'
+            #     )
             if rnn_map['module_name'] == 'char_enc_dec':
                 self._hooks['correlation'] = tensor_ops.corcov_loss(
-                    intermediate[0], [0, 1], 2, reduction='mean', norm='abs'
+                    intermediate[0], [0], 2, reduction='mean', norm='sqr'
                 )
         return inp
 

@@ -36,6 +36,10 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+args.mean = sorted(args.mean, key=lambda x: x.name)
+args.stddev = sorted(args.stddev, key=lambda x: x.name)
+args.labels = sorted(args.labels)
+
 
 def extract_steps_from_valid_results(file):
     return [int(line.split()[0]) for line in file]

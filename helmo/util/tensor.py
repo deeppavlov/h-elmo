@@ -409,5 +409,6 @@ def corcov_loss(
         s = 0.5 * tf.reduce_sum(frob_norm - trace, keepdims=False)
         if reduction == 'sum':
             return s
-        last_dim = tf.shape(norm_m, out_type=tf.float32)[-1]
-        return s / (tf.reduce_prod(tf.shape(norm_m, out_type=tf.float32)) * (last_dim - 1) / last_dim)
+        last_dim = tf.shape(norm_m)[-1]
+        last_dim = tf.to_float(last_dim)
+        return s / (tf.to_float(tf.reduce_prod(tf.shape(norm_m))) * (last_dim - 1.) / last_dim)

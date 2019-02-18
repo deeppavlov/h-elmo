@@ -110,7 +110,7 @@ for launch_folder in launches_for_testing:
     p.join()
 
 
-for launch_folder in sorted(set(map(str, range(config['num_repeats']))) - set(trained_launches)):
+for launch_folder in sorted(set(map(str, range(config['num_repeats']))) - set(trained_launches), key=int):
     print("LAUNCH NUMBER %s" % launch_folder)
     q = mp.Queue()
     p = mp.Process(target=train, args=(q, launch_folder))

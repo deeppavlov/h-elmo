@@ -88,7 +88,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--lines_to_draw",
-    help="List of labels of lines which will be plotted. Default is None",
+    help="List of labels of lines which will be plotted. By default"
+         " all lines are plotted.",
     nargs='+',
     default=None,
 )
