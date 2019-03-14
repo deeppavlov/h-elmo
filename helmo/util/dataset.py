@@ -84,8 +84,8 @@ class DatasetIndexError(Exception):
 def get_dataset_text(text_config):
     text = get_text(text_config['path'])
     text_length = len(text)
-    start = text_config['start']
-    target_length = text_config['length']
+    start = int(text_config['start'])
+    target_length = int(text_config['length'])
     if start < 0:
         start += text_length
     if start < 0 or start >= text_length:
