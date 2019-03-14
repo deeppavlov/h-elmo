@@ -490,7 +490,7 @@ class Rnn(Pupil):
             #     )
             if rnn_map['module_name'] == 'char_enc_dec':
                 self._hooks['correlation'] = tensor_ops.corcov_loss(
-                    intermediate[0], [0], 2, reduction='mean', norm='sqr'
+                    intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean', norm='sqr'
                 )
         return inp
 
