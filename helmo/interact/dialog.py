@@ -2,7 +2,6 @@ import sys
 import os
 import json
 
-import tensorflow as tf
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
     os.path.expanduser('~/learning-to-learn'),
@@ -17,10 +16,11 @@ sys.path += [
     '/cephfs/home/peganov/h-elmo',
     '/home/peganov/h-elmo',
 ]
+import helmo.util.dataset
 from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary
 from helmo.nets.resrnn import Rnn, LmFastBatchGenerator as BatchGenerator
-import helmo.util.organise as organise
+
 from helmo.util.text import preprocessing, postprocessing
 import argparse
 parser = argparse.ArgumentParser()
@@ -235,7 +235,7 @@ if config['train'] or config['test']:
     with open(os.path.expanduser(config['text_path']), 'r') as f:
         text = f.read()
     train_size = len(text.split('\n')) - config['test_size'] - config['valid_size']
-    test_text, valid_text, train_text = organise.split_text(
+    test_text, valid_text, train_text = helmo.util.dataset.split_text(
         text, config['test_size'], config['valid_size'], train_size, by_lines=True)
     if preprocess_f is not None:
         text = preprocess_f(text)
@@ -250,7 +250,7 @@ else:
 # print("(dialog)len(train_text):", len(train_text))
 # print("(dialog)len(test_text):", len(test_text))
 
-vocabulary, vocabulary_size = organise.get_vocab_by_given_path(
+vocabulary, vocabulary_size = helmo.util.dataset.get_vocab_by_given_path(
     os.path.expanduser(config['voc_path']), text, create=config['create_vocabulary'])
 
 env = Environment(Rnn, BatchGenerator, vocabulary=vocabulary)

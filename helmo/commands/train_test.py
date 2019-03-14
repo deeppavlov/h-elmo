@@ -2,8 +2,10 @@ import sys
 import os
 import json
 import multiprocessing as mp
+import argparse
 
 import tensorflow as tf
+
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
     os.path.expanduser('~/learning-to-learn'),
@@ -20,43 +22,76 @@ sys.path += [
 ]
 
 
+import helmo.util.dataset
+import helmo.util.import_help
+import helmo.util.path_help
+import helmo.util.results
+
 from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary, \
     compose_hp_confs, get_num_exps_and_res_files, compute_stddev
 
-from helmo.util import organise
 
-config_path = sys.argv[1]
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "config_path",
+    help="Path to JSON config of experiment."
+)
+parser.add_argument(
+    "--test",
+    help="Use script for testing. In this case results of testing are put into"
+         " directory testres in repo root.",
+    action='store_true',
+)
+args = parser.parse_args()
+
+config_path = args.config_path
 
 with open(config_path) as f:
     config = json.load(f)
 
-exec(organise.form_load_cmd(config['batch_gen']['path'], config['batch_gen']['cls_name'], "BatchGenerator"))
-exec(organise.form_load_cmd(config['net']['path'], config['net']['cls_name'], "Net"))
+exec(helmo.util.import_help.form_load_cmd(config['batch_gen']['path'], config['batch_gen']['cls_name'], "BatchGenerator"))
+exec(helmo.util.import_help.form_load_cmd(config['net']['path'], config['net']['cls_name'], "Net"))
 
-save_path_relative_to_expres = '.'.join(config_path.split('.')[:-1])
-# print(save_path_relative_to_expres)
-results_dir = os.path.join(
-    organise.append_path_after_experiments_to_expres_rm_head(save_path_relative_to_expres),
-    os.path.split(save_path_relative_to_expres)[-1]
-)
-# print(results_dir)
-save_path = results_dir
+# save_path_relative_to_expres = '.'.join(config_path.split('.')[:-1])
+# # print(save_path_relative_to_expres)
+#
+# results_dir = os.path.join(
+#     helmo.util.path_help.move_path_postfix_within_repo(
+#         path_to_smth_in_separator=save_path_relative_to_expres,
+#         separator="experiments",
+#         new_prefix_within_repo="expres",
+#     ),
+#     os.path.split(save_path_relative_to_expres)[-1]
+# )
+# # print(results_dir)
+# save_path = results_dir
 
-metrics, launches_for_testing, trained_launches = organise.load_tt_results(save_path, config['test']['result_types'])
+dir_with_confs, results_directory_rel_to_repo_root = \
+    ('tests', 'testres') if args.test else ('experiments', 'expres')
+print("(train_test)config_path:", config_path)
+print("(train_test)dir_with_confs:", dir_with_confs)
+print("(train_test)results_directory_rel_to_repo_root:", results_directory_rel_to_repo_root)
+save_path = helmo.util.path_help.get_save_path_from_config_path(
+    config_path, dir_with_confs, results_directory_rel_to_repo_root)
+
+print("(train_test)save_path:", save_path)
+
+metrics, launches_for_testing, trained_launches = helmo.util.results.load_tt_results(
+    save_path, config['test']['result_types'])
 # print("(run_train_test)metrics:", metrics)
 # print("(run_train_test)launches_for_testing:", launches_for_testing)
 # print("(run_train_test)trained_launches:", trained_launches)
 
 
 dconf = config['dataset']
-text = organise.get_text(dconf['path'])
+text = helmo.util.dataset.get_text(dconf['path'])
 test_size = int(dconf['test_size'])
 valid_size = int(dconf['valid_size'])
 train_size = int(dconf['train_size']) if 'train_size' in dconf else len(text) - test_size - valid_size
-test_text, valid_text, train_text = organise.split_text(text, test_size, valid_size, train_size)
+test_text, valid_text, train_text = helmo.util.dataset.split_text(text, test_size, valid_size, train_size)
 
-vocabulary, vocabulary_size = organise.get_vocab(dconf['vocab_path'], text)
+vocabulary, vocabulary_size = helmo.util.dataset.get_vocab(dconf['vocab_path'], text)
 
 env = Environment(Net, BatchGenerator, vocabulary=vocabulary)
 

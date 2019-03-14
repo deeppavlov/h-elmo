@@ -1,5 +1,8 @@
 import sys
 import os
+
+import helmo.util.path_help
+
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
     os.path.expanduser('~/learning-to-learn'),
@@ -26,7 +29,7 @@ except ValueError:  # Already removed
     pass
 
 from learning_to_learn.useful_functions import create_path, parse_path_comb, get_points_from_range, get_tmpl
-import helmo.util.organise as organise
+
 from helmo.util.nested import nested_set
 
 parser = argparse.ArgumentParser()
@@ -78,7 +81,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-base_path = organise.get_path_from_path_rel_to_repo_root(os.path.join('helmo', 'experiments'))
+base_path = helmo.util.path_help.get_path_from_path_rel_to_repo_root(os.path.join('helmo', 'experiments'))
 
 confs = parse_path_comb(args.confs, filter_=False)
 

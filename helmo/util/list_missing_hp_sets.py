@@ -1,5 +1,8 @@
 import sys
 import os
+
+import helmo.util.path_help
+
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
     os.path.expanduser('~/learning-to-learn'),
@@ -26,7 +29,7 @@ except ValueError:  # Already removed
     pass
 
 from learning_to_learn.useful_functions import get_missing_hp_sets, parse_path_comb
-import helmo.util.organise as organise
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
@@ -57,12 +60,15 @@ args = parser.parse_args()
 confs = parse_path_comb(args.confs)
 eval_dirs = list()
 for conf in confs:
-    conf_name = '.'.join(os.path.split(conf)[-1].split('.')[:-1])
-    base = os.path.join(organise.append_path_after_experiments_to_expres_rm_head(conf), conf_name)
+    save_path = os.path.splitext(
+        helmo.util.path_help.move_path_postfix_within_repo(
+            path_to_smth_in_separator=conf
+        )
+    )[0]
     dirs = list()
-    for eval_file in os.listdir(base):
+    for eval_file in os.listdir(save_path):
         if 'launch_log' not in eval_file:
-            dirs.append(os.path.join(base, eval_file))
+            dirs.append(os.path.join(save_path, eval_file))
     eval_dirs.append(dirs)
 
 for conf, dirs in zip(confs, eval_dirs):

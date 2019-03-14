@@ -1,5 +1,7 @@
 import sys
 import os
+
+
 sys.path += [
     os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
     os.path.expanduser('~/learning-to-learn'),
@@ -14,14 +16,16 @@ sys.path += [
     '/cephfs/home/peganov/h-elmo',
     '/home/peganov/h-elmo',
 ]
-import tensorflow as tf
+
+import helmo.util.dataset
+import helmo.util.path_help
 
 from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary, \
     compose_hp_confs, get_num_exps_and_res_files
 
 from helmo.nets.resrnn import Rnn, LmFastBatchGenerator as BatchGenerator
-import helmo.util.organise as organise
+
 
 dataset_name = 'valid'
 
@@ -31,7 +35,8 @@ if len(sys.argv) > 2:
 else:
     chop_last_experiment = False
 conf_name = os.path.join(*parameter_set_file_name.split('.')[:-1])
-results_dir = organise.append_path_after_experiments_to_expres_rm_head(__file__)
+results_dir = helmo.util.path_help.move_path_postfix_within_repo(path_to_smth_in_separator=__file__)
+results_dir = os.path.split(results_dir)[0]
 save_path = os.path.join(results_dir, conf_name)
 results_file_name = os.path.join(save_path, dataset_name + '.txt')
 confs, _ = compose_hp_confs(
@@ -40,14 +45,14 @@ confs.reverse()  # start with small configs
 print("confs:", confs)
 
 dataset_file_name = 'enwiki1G.txt'
-text = organise.get_text(dataset_file_name)
+text = helmo.util.dataset.get_text(dataset_file_name)
 
 test_size, valid_size = int(6.4e6), int(6.4e5)
 train_size = len(text) - test_size - valid_size
-test_text, valid_text, train_text = organise.split_text(text, test_size, valid_size, train_size)
+test_text, valid_text, train_text = helmo.util.dataset.split_text(text, test_size, valid_size, train_size)
 
 voc_file_name = 'enwiki1G_voc.txt'
-vocabulary, vocabulary_size = organise.get_vocab(voc_file_name, text)
+vocabulary, vocabulary_size = helmo.util.dataset.get_vocab(voc_file_name, text)
 
 
 env = Environment(Rnn, BatchGenerator, vocabulary=vocabulary)
