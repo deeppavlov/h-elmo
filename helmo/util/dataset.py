@@ -1,5 +1,6 @@
 import sys
 import os
+import warnings
 
 from helmo.util.path_help import get_path_from_path_rel_to_repo_root
 
@@ -73,3 +74,48 @@ def load_vocabulary_with_unk(file_name):
             text = text.replace('<UNK>', '')
         vocabulary += list(text)
     return vocabulary
+
+
+class DatasetIndexError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+def get_dataset_text(text_config):
+    text = get_text(text_config['path'])
+    text_length = len(text)
+    start = text_config['start']
+    target_length = text_config['length']
+    if start < 0:
+        start += text_length
+    if start < 0 or start >= text_length:
+        raise DatasetIndexError(
+            "start of a dataset text is out of range\n\tstart = {}\n\ttext_length = {}".format(start, text_length)
+        )
+    if start + target_length > text_length:
+        warnings.warn(
+            "can not get dataset text of required size {}, dataset size is {} instead"
+            "\n\tstart = {}\n\ttarget_length = {}\n\ttext_length = {}".format(
+                target_length, text_length - start, start, target_length, text_length
+            )
+        )
+    return text[start:start+target_length]
+
+
+def get_datasets_using_config(dataset_config):
+    if 'path' in dataset_config:
+        text = get_text(dataset_config['path'])
+        test_size = int(dataset_config['test_size'])
+        valid_size = int(dataset_config['valid_size'])
+        train_size = int(dataset_config['train_size']) if 'train_size' in dataset_config\
+            else len(text) - test_size - valid_size
+        test_text, valid_text, train_text = split_text(text, test_size, valid_size, train_size)
+        return {'test': test_text}, {'valid': valid_text}, {'train': train_text}
+    test_datasets = {}
+    for dataset_name, text_config in dataset_config['test'].items():
+        test_datasets[dataset_name] = get_dataset_text(text_config)
+    valid_datasets = {}
+    for dataset_name, text_config in dataset_config['valid'].items():
+        valid_datasets[dataset_name] = get_dataset_text(text_config)
+    train_dataset = dict(train=get_dataset_text(dataset_config['train']))
+    return test_datasets, valid_datasets, train_dataset

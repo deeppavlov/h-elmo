@@ -69,13 +69,13 @@ exec(helmo.util.import_help.form_load_cmd(config['net']['path'], config['net']['
 
 dir_with_confs, results_directory_rel_to_repo_root = \
     ('tests', 'testres') if args.test else ('experiments', 'expres')
-print("(train_test)config_path:", config_path)
-print("(train_test)dir_with_confs:", dir_with_confs)
-print("(train_test)results_directory_rel_to_repo_root:", results_directory_rel_to_repo_root)
+# print("(train_test)config_path:", config_path)
+# print("(train_test)dir_with_confs:", dir_with_confs)
+# print("(train_test)results_directory_rel_to_repo_root:", results_directory_rel_to_repo_root)
 save_path = helmo.util.path_help.get_save_path_from_config_path(
     config_path, dir_with_confs, results_directory_rel_to_repo_root)
 
-print("(train_test)save_path:", save_path)
+# print("(train_test)save_path:", save_path)
 
 metrics, launches_for_testing, trained_launches = helmo.util.results.load_tt_results(
     save_path, config['test']['result_types'])
@@ -84,14 +84,12 @@ metrics, launches_for_testing, trained_launches = helmo.util.results.load_tt_res
 # print("(run_train_test)trained_launches:", trained_launches)
 
 
-dconf = config['dataset']
-text = helmo.util.dataset.get_text(dconf['path'])
-test_size = int(dconf['test_size'])
-valid_size = int(dconf['valid_size'])
-train_size = int(dconf['train_size']) if 'train_size' in dconf else len(text) - test_size - valid_size
-test_text, valid_text, train_text = helmo.util.dataset.split_text(text, test_size, valid_size, train_size)
+test_datasets, valid_datasets, train_dataset = helmo.util.dataset.get_datasets_using_config(config['dataset'])
 
-vocabulary, vocabulary_size = helmo.util.dataset.get_vocab(dconf['vocab_path'], text)
+vocabulary, vocabulary_size = helmo.util.dataset.get_vocab(
+    config['dataset']['vocab_path'],
+    train_dataset['train'],
+)
 
 env = Environment(Net, BatchGenerator, vocabulary=vocabulary)
 
@@ -101,13 +99,13 @@ kwargs_for_building = config["graph"]
 kwargs_for_building['voc_size'] = vocabulary_size
 
 train_kwargs = config['train']
-train_kwargs['train_dataset_text'] = train_text
+train_kwargs['train_dataset_text'] = train_dataset['train']
 train_kwargs['vocabulary'] = vocabulary
-train_kwargs['validation_datasets'] = dict(valid=valid_text)
+train_kwargs['validation_datasets'] = valid_datasets
 
 test_kwargs = config['test']
 test_kwargs['vocabulary'] = vocabulary
-test_kwargs['validation_datasets'] = dict(test=test_text)
+test_kwargs['validation_datasets'] = test_datasets
 if 'restore_path' not in test_kwargs:
     checkpoint_appendix = 'checkpoints/all_vars/best' if 'subgraphs_to_save' in train_kwargs else 'checkpoints/best'
 
