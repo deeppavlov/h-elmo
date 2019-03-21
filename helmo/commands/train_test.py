@@ -1,4 +1,3 @@
-import sys
 import os
 import json
 import multiprocessing as mp
@@ -6,27 +5,13 @@ import argparse
 
 import tensorflow as tf
 
-sys.path += [
-    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-    os.path.expanduser('~/h-elmo'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
-    os.path.expanduser('~/repos/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
-    os.path.expanduser('~/repos/h-elmo'),
-    '/cephfs/home/peganov/learning-to-learn',
-    '/home/peganov/learning-to-learn',
-    '/cephfs/home/peganov/h-elmo',
-    '/home/peganov/h-elmo',
-]
-
+from helmo.util import interpreter
+interpreter.extend_python_path_for_project()
 
 import helmo.util.dataset
 import helmo.util.import_help
 import helmo.util.path_help
 import helmo.util.results
-
 from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary, \
     compose_hp_confs, get_num_exps_and_res_files, compute_stddev

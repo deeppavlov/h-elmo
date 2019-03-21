@@ -4,9 +4,9 @@ from typing import Dict, List, Generator, Union
 
 import numpy as np
 
-from helmo.util.deal_with_cephfs import add_repo_2_sys_path
+from helmo.util.interpreter import prepend_repo_2_sys_path
 
-sys.path = add_repo_2_sys_path('DeepPavlov')
+sys.path = prepend_repo_2_sys_path('DeepPavlov')
 
 from deeppavlov.core.data.data_learning_iterator import DataLearningIterator
 from deeppavlov.core.common.registry import register

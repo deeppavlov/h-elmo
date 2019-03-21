@@ -1,28 +1,16 @@
-import sys
+import argparse
 import os
 import json
 
-sys.path += [
-    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-    os.path.expanduser('~/h-elmo'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
-    os.path.expanduser('~/repos/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
-    os.path.expanduser('~/repos/h-elmo'),
-    '/cephfs/home/peganov/learning-to-learn',
-    '/home/peganov/learning-to-learn',
-    '/cephfs/home/peganov/h-elmo',
-    '/home/peganov/h-elmo',
-]
+from helmo.util import interpreter
+interpreter.extend_python_path_for_project()
+
 import helmo.util.dataset
 from learning_to_learn.environment import Environment
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary
 from helmo.nets.resrnn import Rnn, LmFastBatchGenerator as BatchGenerator
-
 from helmo.util.text import preprocessing, postprocessing
-import argparse
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument(

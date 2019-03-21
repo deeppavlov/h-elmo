@@ -1,30 +1,11 @@
 import sys
 import os
-sys.path += [
-    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-    os.path.expanduser('~/h-elmo'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
-    os.path.expanduser('~/repos/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
-    os.path.expanduser('~/repos/h-elmo'),
-    '/cephfs/home/peganov/learning-to-learn',
-    '/home/peganov/learning-to-learn',
-    '/cephfs/home/peganov/h-elmo',
-    '/home/peganov/h-elmo',
-]
+
 import matplotlib.pyplot as plt
 from matplotlib import rc
 
-from pathlib import Path  # if you haven't already done so
-file = Path(__file__).resolve()
-parent, root = file.parent, file.parents[2]
-sys.path.append(str(root))
-try:
-    sys.path.remove(str(parent))
-except ValueError:  # Already removed
-    pass
+from helmo.util import interpreter
+interpreter.extend_python_path_for_project()
 
 from learning_to_learn.useful_functions import create_path, InvalidArgumentError
 

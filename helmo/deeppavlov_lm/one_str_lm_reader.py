@@ -1,9 +1,10 @@
 import sys
 from typing import Dict, Tuple
 
-from helmo.util.deal_with_cephfs import add_repo_2_sys_path, add_cephfs_to_path
+from helmo.util.deal_with_cephfs import add_cephfs_to_path
+from helmo.util.interpreter import prepend_repo_2_sys_path
 
-sys.path = add_repo_2_sys_path('DeepPavlov')
+sys.path = prepend_repo_2_sys_path('DeepPavlov')
 
 
 from deeppavlov.core.data.dataset_reader import DatasetReader

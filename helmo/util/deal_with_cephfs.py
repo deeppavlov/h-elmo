@@ -1,21 +1,8 @@
 import os
-import sys
 
 
 def check_cephfs():
-    for p in sys.path:
-        if "cephfs" in p:
-            return True
-    return False
-
-
-def add_repo_2_sys_path(repo_name):
-    sys_path = sys.path
-    home = os.path.expanduser("~")
-    if check_cephfs():
-        home = os.path.join("cephfs", home)
-    repo_path = os.path.join(home, repo_name)
-    return [repo_path] + sys_path
+    return "cephfs" in os.listdir('/')
 
 
 def add_cephfs_to_path(path):

@@ -1,36 +1,28 @@
-import sys
 import os
-sys.path += [
-    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-    os.path.expanduser('~/h-elmo'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
-    os.path.expanduser('~/repos/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
-    os.path.expanduser('~/repos/h-elmo'),
-    '/cephfs/home/peganov/learning-to-learn',
-    '/home/peganov/learning-to-learn',
-    '/cephfs/home/peganov/h-elmo',
-    '/home/peganov/h-elmo',
-]
 import random
 import copy
+
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib import container
-from pathlib import Path  # if you haven't already done so
-file = Path(__file__).resolve()
-parent, root = file.parent, file.parents[2]
-sys.path.append(str(root))
-try:
-    sys.path.remove(str(parent))
-except ValueError:  # Already removed
-    pass
+
+from .. import interpreter
+interpreter.extend_python_path_for_project()
 
 from learning_to_learn.useful_functions import synchronous_sort, create_path, get_pupil_evaluation_results, \
     BadFormattingError, all_combs, get_optimizer_evaluation_results, select_for_plot, convert, retrieve_lines, \
     add_index_to_filename_if_needed, nested2string, isnumber, shift_list
+
+
+# from pathlib import Path  # if you haven't already done so
+# file = Path(__file__).resolve()
+# parent, root = file.parent, file.parents[2]
+# sys.path.append(str(root))
+# try:
+#     sys.path.remove(str(parent))
+# except ValueError:  # Already removed
+#     pass
+
 
 COLORS = [
     'r', 'g', 'b', 'k', 'c', 'magenta', 'brown',

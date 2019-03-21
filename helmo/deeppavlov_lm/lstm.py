@@ -10,8 +10,9 @@ from tensorflow.nn.rnn_cell import LSTMStateTuple as LSTMStateTuple
 # from deeppavlov.core.models.tf_model import TFModel
 
 import sys
-from helmo.util.deal_with_cephfs import add_repo_2_sys_path
-sys.path = add_repo_2_sys_path('DeepPavlov')
+from helmo.util.interpreter import prepend_repo_2_sys_path
+
+sys.path = prepend_repo_2_sys_path('DeepPavlov')
 
 
 from deeppavlov.core.common.registry import register

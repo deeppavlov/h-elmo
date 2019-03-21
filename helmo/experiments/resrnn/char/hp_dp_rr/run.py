@@ -1,20 +1,8 @@
 import sys
 import os
 
-sys.path += [
-    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-    os.path.expanduser('~/h-elmo'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
-    os.path.expanduser('~/repos/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
-    os.path.expanduser('~/repos/h-elmo'),
-    '/cephfs/home/peganov/learning-to-learn',
-    '/home/peganov/learning-to-learn',
-    '/cephfs/home/peganov/h-elmo',
-    '/home/peganov/h-elmo',
-]
+from helmo.util import interpreter
+interpreter.extend_python_path_for_project()
 
 import helmo.util.dataset
 import helmo.util.path_help

@@ -1,24 +1,10 @@
-import sys
-import os
-import json
-
-import tensorflow as tf
-sys.path += [
-    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-    os.path.expanduser('~/h-elmo'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
-    os.path.expanduser('~/repos/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
-    os.path.expanduser('~/repos/h-elmo'),
-    '/cephfs/home/peganov/learning-to-learn',
-    '/home/peganov/learning-to-learn',
-    '/cephfs/home/peganov/h-elmo',
-    '/home/peganov/h-elmo',
-]
-from learning_to_learn.environment import Environment
 import re
+
+from helmo.util import interpreter
+interpreter.extend_python_path_for_project()
+
+from learning_to_learn.environment import Environment
+
 # from residuals_no_authors_no_sampling import Lstm, LstmBatchGenerator
 from lstm_par import Lstm, LstmBatchGenerator
 from useful_functions import create_vocabulary, get_positions_in_vocabulary

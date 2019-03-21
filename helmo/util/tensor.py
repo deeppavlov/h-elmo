@@ -305,7 +305,7 @@ def get_shapes(nested):
         res = {k: get_shapes(v) for k, v in nested.items()}
     elif type(nested) == collections.OrderedDict:
         res = collections.OrderedDict([(k, get_shapes(v)) for k, v in nested.items()])
-    elif python.isnamedtupleinstance(nested):
+    elif python.is_namedtuple_instance(nested):
         tuple_type = type(nested)
         res = tuple_type(**{k: get_shapes(v) for k, v in nested._asdict()})
     else:

@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "files",
     help="File names from which data is taken. File names are matched with labels in "
-         " lexicographical order.",
+         " lexicographical order if --no_sort is not provided.",
     nargs='+',
 )
 parser.add_argument(
@@ -17,13 +17,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "--x_col",
-    help="A number column in txt results which store x values",
+    help="A number column in txt results which store x values. Default is"
+         " 0.",
     type=int,
     default=0,
 )
 parser.add_argument(
     "--y_col",
-    help="A number column in txt results which store y values",
+    help="A number column in txt results which store y values. Default is 1.",
     type=int,
     default=1,
 )
@@ -35,14 +36,21 @@ parser.add_argument(
 )
 parser.add_argument(
     "--output",
-    help="Path to output file where plot data will be saved",
+    help="Path to output file where plot data will be saved. Default is"
+         " plot_data.pickle.",
     default="plot_data.pickle",
     type=argparse.FileType('wb'),
 )
+parser.add_argument(
+    "--no_sort",
+    help="Do not sort --labels and files before zipping.",
+    action="store_true",
+)
 args = parser.parse_args()
 
-args.files = sorted(args.files)
-args.labels = sorted(args.labels)
+if not args.no_sort:
+    args.files = sorted(args.files)
+    args.labels = sorted(args.labels)
 
 
 X = []

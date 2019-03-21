@@ -13,8 +13,9 @@ np.set_printoptions(threshold=np.nan)
 # from deeppavlov.core.data.simple_vocab import SimpleVocabulary
 
 import sys
-from helmo.util.deal_with_cephfs import add_repo_2_sys_path
-sys.path = add_repo_2_sys_path('DeepPavlov')
+from helmo.util.interpreter import prepend_repo_2_sys_path
+
+sys.path = prepend_repo_2_sys_path('DeepPavlov')
 
 
 from deeppavlov.core.common.registry import register

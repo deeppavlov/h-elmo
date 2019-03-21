@@ -1,21 +1,9 @@
 import argparse
 import pickle
-import sys
-import os
-sys.path += [
-    os.path.join('/cephfs', os.path.expanduser('~/learning-to-learn')),
-    os.path.expanduser('~/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/h-elmo')),
-    os.path.expanduser('~/h-elmo'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/learning-to-learn')),
-    os.path.expanduser('~/repos/learning-to-learn'),
-    os.path.join('/cephfs', os.path.expanduser('~/repos/h-elmo')),
-    os.path.expanduser('~/repos/h-elmo'),
-    '/cephfs/home/peganov/learning-to-learn',
-    '/home/peganov/learning-to-learn',
-    '/cephfs/home/peganov/h-elmo',
-    '/home/peganov/h-elmo',
-]
+
+from helmo.util import interpreter
+interpreter.extend_python_path_for_project()
+
 from helmo.util.plot import plot_helpers
 
 parser = argparse.ArgumentParser()
@@ -60,7 +48,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--marker",
-    help="Point marker as specified in https://matplotlib.org/api/markers_api.html#module-matplotlib.markers"
+    help="Point marker as specified in https://matplotlib.org/api/markers_api.html#module-matplotlib.markers."
          " Default is ','",
     default=',',
 )
