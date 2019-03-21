@@ -13,6 +13,8 @@ from learning_to_learn.useful_functions import synchronous_sort, create_path, ge
     BadFormattingError, all_combs, get_optimizer_evaluation_results, select_for_plot, convert, retrieve_lines, \
     add_index_to_filename_if_needed, nested2string, isnumber, shift_list
 
+from helmo.util.python import filter_dict_by_keys
+
 
 # from pathlib import Path  # if you haven't already done so
 # file = Path(__file__).resolve()
@@ -112,12 +114,14 @@ def plot_outer_legend(
 ):
     if shifts is None:
         shifts = [0, 0]
-    plot_data = copy.deepcopy(plot_data)
-    if labels_of_drawn_lines is not None:
-        for lbl in list(plot_data.keys()):
-            if lbl not in labels_of_drawn_lines:
-                # print("(plot_helpers.plot_outer_legend)lbl:", lbl)
-                del plot_data[lbl]
+    # plot_data = copy.deepcopy(plot_data)
+    # if labels_of_drawn_lines is not None:
+    #     for lbl in list(plot_data.keys()):
+    #         if lbl not in labels_of_drawn_lines:
+    #             # print("(plot_helpers.plot_outer_legend)lbl:", lbl)
+    #             del plot_data[lbl]
+
+    plot_data = filter_dict_by_keys(plot_data, labels_of_drawn_lines)
     if formats is None:
         formats = FORMATS
     # print("(plot_helpers.plot_outer_legend)xlabel:", xlabel)
