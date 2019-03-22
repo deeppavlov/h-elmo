@@ -3,9 +3,6 @@ import argparse
 
 import helmo.util.path_help
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.useful_functions import create_path, parse_path_comb, get_points_from_range, get_tmpl
 
 

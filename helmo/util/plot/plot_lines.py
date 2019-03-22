@@ -1,9 +1,6 @@
 import argparse
 import os
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.experiments.plot_helpers import get_parameter_names, plot_hp_search_optimizer, \
     plot_hp_search_pupil, parse_metric_scales_str, plot_outer_legend, get_parameter_name
 from learning_to_learn.useful_functions import MissingHPError, HeaderLineError, ExtraHPError, BadFormattingError, \

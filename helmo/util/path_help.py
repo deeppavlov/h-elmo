@@ -1,8 +1,5 @@
 import os
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 def split_path_entirely(path):
     splitted_path = list()
     head, tail = os.path.split(path)

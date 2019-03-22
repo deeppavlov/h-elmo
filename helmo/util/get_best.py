@@ -1,8 +1,5 @@
 import argparse
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.useful_functions import get_optimizer_evaluation_results, get_pupil_evaluation_results, \
     get_metric_names_and_regimes_from_optimizer_eval_dir, get_pupil_names_from_eval_dir, \
     get_dataset_names_from_eval_dir, get_hp_names_from_optimizer_eval_dir, \

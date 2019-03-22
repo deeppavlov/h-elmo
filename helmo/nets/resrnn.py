@@ -7,9 +7,6 @@ import tensorflow as tf
 from tensorflow.contrib.cudnn_rnn import CudnnLSTM as CudnnLSTM
 from tensorflow.contrib.cudnn_rnn import CudnnGRU as CudnnGRU
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.useful_functions import create_vocabulary, get_positions_in_vocabulary, char2vec, pred2vec, \
     pred2vec_fast, vec2char, vec2char_fast, char2id, id2char, get_available_gpus, device_name_scope, \
     average_gradients, InvalidArgumentError, \

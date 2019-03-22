@@ -1,8 +1,5 @@
 import sys
-import os
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
 
 from helmo.util.interpreter import prepend_repo_2_sys_path
 

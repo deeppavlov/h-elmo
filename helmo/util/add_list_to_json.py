@@ -2,9 +2,6 @@ import json
 import argparse
 import os
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.useful_functions import create_path, parse_path_comb, get_points_from_range, get_tmpl
 from helmo.util.nested import nested_set
 import helmo.util.path_help

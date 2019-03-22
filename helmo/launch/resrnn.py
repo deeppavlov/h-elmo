@@ -1,9 +1,6 @@
 import sys
 import os
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 import helmo.util.dataset
 
 from learning_to_learn.environment import Environment

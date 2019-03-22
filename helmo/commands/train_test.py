@@ -5,9 +5,6 @@ import argparse
 
 import tensorflow as tf
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 import helmo.util.dataset
 import helmo.util.import_help
 import helmo.util.path_help

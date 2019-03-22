@@ -1,9 +1,6 @@
 import argparse
 import pickle
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from helmo.util.plot import plot_helpers
 
 parser = argparse.ArgumentParser()

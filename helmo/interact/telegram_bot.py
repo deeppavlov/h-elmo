@@ -1,8 +1,5 @@
 import re
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.environment import Environment
 
 # from residuals_no_authors_no_sampling import Lstm, LstmBatchGenerator

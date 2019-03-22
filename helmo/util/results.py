@@ -1,8 +1,5 @@
 import os
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 
 def load_tt_results(result_dir, required_metric_names):
     folders = filter(lambda x: x.isdigit(), os.listdir(result_dir)) if os.path.exists(result_dir) else []

@@ -3,9 +3,6 @@ import warnings
 
 from helmo.util.path_help import get_path_from_path_rel_to_repo_root
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.useful_functions import create_vocabulary
 import helmo.util.path_help as path_help
 

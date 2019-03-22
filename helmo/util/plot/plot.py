@@ -4,9 +4,6 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib import rc
 
-from helmo.util import interpreter
-interpreter.extend_python_path_for_project()
-
 from learning_to_learn.useful_functions import create_path, InvalidArgumentError
 
 COLORS = ['r', 'g', 'b', 'k', 'c', 'magenta', 'brown', 'darkviolet', 'pink', 'yellow', 'gray', 'orange', 'olive']

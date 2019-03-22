@@ -1,13 +1,9 @@
 import os
 import random
-import copy
 
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib import container
-
-from .. import interpreter
-interpreter.extend_python_path_for_project()
 
 from learning_to_learn.useful_functions import synchronous_sort, create_path, get_pupil_evaluation_results, \
     BadFormattingError, all_combs, get_optimizer_evaluation_results, select_for_plot, convert, retrieve_lines, \
@@ -120,8 +116,8 @@ def plot_outer_legend(
     #         if lbl not in labels_of_drawn_lines:
     #             # print("(plot_helpers.plot_outer_legend)lbl:", lbl)
     #             del plot_data[lbl]
-
-    plot_data = filter_dict_by_keys(plot_data, labels_of_drawn_lines)
+    if labels_of_drawn_lines is not None:
+        plot_data = filter_dict_by_keys(plot_data, labels_of_drawn_lines)
     if formats is None:
         formats = FORMATS
     # print("(plot_helpers.plot_outer_legend)xlabel:", xlabel)
