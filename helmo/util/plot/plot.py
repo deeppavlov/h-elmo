@@ -30,17 +30,17 @@ if limit == 'None':
     shift = None
 else:
     shift = int(shift)
-plot_data = sys.argv[8:]
-if len(plot_data) % 2 != 0:
+labels_and_files = sys.argv[8:]
+if len(labels_and_files) % 2 != 0:
     raise InvalidArgumentError(
         "Every file has to be provided with line name (number of arguments has to be even)",
-        [plot_data, len(plot_data)],
-        'plot_data',
-        "len(plot_data) % 2 == 0"
+        [labels_and_files, len(labels_and_files)],
+        'labels_and_files',
+        "len(labels_and_files) % 2 == 0"
     )
 
-line_names = [plot_data[2*i] for i in range(len(plot_data) // 2)]
-file_names = [plot_data[2*i+1] for i in range(len(plot_data) // 2)]
+line_names = [labels_and_files[2 * i] for i in range(len(labels_and_files) // 2)]
+file_names = [labels_and_files[2 * i + 1] for i in range(len(labels_and_files) // 2)]
 
 # print(line_names)
 

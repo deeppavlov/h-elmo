@@ -1,5 +1,8 @@
 import os
 import random
+from typing import List
+import warnings
+import string
 
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
@@ -10,6 +13,7 @@ from learning_to_learn.useful_functions import synchronous_sort, create_path, ge
     add_index_to_filename_if_needed, nested2string, isnumber, shift_list
 
 from helmo.util.python import filter_dict_by_keys
+from helmo.util.algo import SortedDict
 
 
 # from pathlib import Path  # if you haven't already done so
@@ -33,6 +37,111 @@ AVERAGING_NUMBER = 3
 FONT = {'family': 'Verdana',
         'weight': 'normal'}
 rc('font', **FONT)
+
+
+class Line(SortedDict):
+    allowed_keys = ['x', 'y', 'xerr', 'yerr']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not set(self.keys()) <= set(self.allowed_keys):
+            raise ValueError("only keys 'x', 'y', 'xerr', 'yerr' are allowed")
+        super().set_sorting_key(lambda x: self.allowed_keys.index(x))
+
+    def set_sorting_key(*args):
+        raise NotImplementedError
+
+    @property
+    def x(self):
+        return self['x']
+
+    @x.setter
+    def x(self, xv):
+        self['x'] = xv
+
+    @property
+    def y(self):
+        return self['y']
+
+    @y.setter
+    def y(self, yv):
+        self['y'] = yv
+
+    @property
+    def xerr(self):
+        return self['xerr']
+
+    @xerr.setter
+    def xerr(self, xerrv):
+        self['xerr'] = xerrv
+
+    @property
+    def yerr(self):
+        return self['yerr']
+
+    @yerr.setter
+    def yerr(self, yerrv):
+        self['yerr'] = yerrv
+
+    def __setitem__(self, key, value):
+        if key not in self.allowed_keys:
+            raise ValueError("only keys 'x', 'y', 'xerr', 'yerr' are allowed")
+        super().__setitem__(key, value)
+
+    def __repr__(self):
+        return 'Line' + super().__repr__().lstrip(string.ascii_letters)
+
+
+class PlotData(SortedDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._transform_keys_to_str()
+        self._transform_values_to_lines()
+
+    def _transform_keys_to_str(self):
+        for key, value in self.items():
+            if not isinstance(key, str):
+                new_key = str(key)
+                if new_key in self:
+                    warnings.warn(
+                        "replacing value of element `('{}', VALUE)` with"
+                        " value of element `({}, VALUE)`. Conflict between"
+                        " line labels occured during transforming labels to type"
+                        " str. The element `({}, VALUE)` is going to be "
+                        "removed".format(new_key, key, key)
+                    )
+                self[new_key] = self[key]
+                del self[key]
+
+    def _transform_values_to_lines(self):
+        for key, value in self.items():
+            self[key] = Line(value)
+
+    def get_labels(self):
+        return list(self.keys())
+
+    def get_lines(self):
+        return list(self.values())
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, str):
+            warnings.warn(
+                "only keys of type `str` are allowed."
+                " Element with key '{}' will be set.".format(str(key))
+            )
+            key = str(key)
+        super().__setitem__(key, Line(value))
+
+    def get_spec(self, spec, labels=None):
+        if labels is None:
+            labels = self.get_labels()
+        res = []
+        for lbl in labels:
+            res.append(self[lbl][spec])
+        return res
+
+    def __repr__(self):
+        return 'PlotData' + super().__repr__().lstrip(string.ascii_letters)
 
 
 def get_parameter_name(plot_parameter_names, key):
@@ -64,18 +173,28 @@ def parse_metric_scales_str(string):
     return metric_scales
 
 
-def get_linthreshx(lines):
+def get_linthreshx(lines: List[List]) -> float:
+    """
+    Return the smallest absolute value of X in list of line_data `lines`.
+    Used to compute `linthreshx` param of `matplotlib.pyplot.scale()`
+    when 'symlog' scale is used.
+
+    Args:
+        lines: list of line_data. line_data is a list of several lists of
+        equal length. First list in line_data is a list of X values.
+
+    Returns:
+        `linthreshx` - the smallest absolute value of X.
+    """
     left = None
     right = None
     for line_data in lines:
-        # print("(plot_helpers.get_linthreshx)line_data[0]:", line_data[0])
         for x in line_data[0]:
             if x < 0 and (left is None or (left is not None and x > left)):
                 left = x
             if x > 0 and (right is None or (right is not None and x < right)):
                 right = x
-    # print(left)
-    # print(right)
+
     if left is None:
         if right is None:
             thresh = 1.
@@ -87,7 +206,6 @@ def get_linthreshx(lines):
         else:
             thresh = min(abs(left), abs(right))
 
-    # print(thresh)
     return thresh
 
 

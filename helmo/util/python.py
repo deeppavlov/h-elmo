@@ -1,4 +1,5 @@
 from typing import Dict, List
+from collections import OrderedDict
 
 
 def is_namedtuple_instance(x):
@@ -25,3 +26,10 @@ def filter_dict_by_keys(d: Dict, list_of_keys: List) -> Dict:
         A dictionary with keys which are both in `lk` and `d`.
     """
     return {k: v for k, v in d.items() if k in list_of_keys}
+
+
+def decorate_with_post_sort(fn):
+    def wrapper(*args, **kwargs):
+        fn(*args, **kwargs)
+        args[0].sort()
+    return wrapper
