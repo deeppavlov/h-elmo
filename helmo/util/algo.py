@@ -130,12 +130,15 @@ class SortedDict(MutableMapping):
         self._sorting_key = sorting_key
         self._sort()
 
+    def get_sorting_key(self):
+        return self._sorting_key
+
     def get_ith_element(self, i):
         return self._elements[i]
 
     def __repr__(self):
         elements = ', '.join(['({}, {})'.format(repr(k), repr(v)) for k, v in self.items()])
-        return 'SortedDict([{}])'.format(elements)
+        return '{}([{}])'.format(self.__class__.__name__, elements)
 
     def __str__(self):
         return repr(self)

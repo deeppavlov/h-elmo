@@ -3,6 +3,8 @@ import pickle
 
 import numpy as np
 
+import helmo.util.plot.plot_helpers as plot_helpers
+
 
 parser = argparse.ArgumentParser(
     description="Script creates a pickle file with data for drawing a plot."
@@ -122,11 +124,11 @@ else:
 
 steps = [extract_steps_from_valid_results(f) for f in args.step]
 
-plot_data = dict()
+plot_data = plot_helpers.PlotData()
 for lbl, stp, mn, std in zip(args.labels, steps, means, stddevs):
     mn = list(map(f, mn))
     std = list(map(std_f, zip(std, mn)))
-    plot_data[lbl] = [stp[args.start_idx:], mn[args.start_idx:], std[args.start_idx:]]
+    plot_data[lbl] = {'x': stp[args.start_idx:], 'y': mn[args.start_idx:], 'yerr': std[args.start_idx:]}
 
 with open(args.output, 'wb') as f:
     pickle.dump(plot_data, f)

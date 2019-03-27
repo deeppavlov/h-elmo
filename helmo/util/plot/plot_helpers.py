@@ -2,7 +2,7 @@ import os
 import random
 from typing import List
 import warnings
-import string
+import copy
 
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
@@ -39,64 +39,11 @@ FONT = {'family': 'Verdana',
 rc('font', **FONT)
 
 
-class Line(SortedDict):
-    allowed_keys = ['x', 'y', 'xerr', 'yerr']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not set(self.keys()) <= set(self.allowed_keys):
-            raise ValueError("only keys 'x', 'y', 'xerr', 'yerr' are allowed")
-        super().set_sorting_key(lambda x: self.allowed_keys.index(x))
-
-    def set_sorting_key(*args):
-        raise NotImplementedError
-
-    @property
-    def x(self):
-        return self['x']
-
-    @x.setter
-    def x(self, xv):
-        self['x'] = xv
-
-    @property
-    def y(self):
-        return self['y']
-
-    @y.setter
-    def y(self, yv):
-        self['y'] = yv
-
-    @property
-    def xerr(self):
-        return self['xerr']
-
-    @xerr.setter
-    def xerr(self, xerrv):
-        self['xerr'] = xerrv
-
-    @property
-    def yerr(self):
-        return self['yerr']
-
-    @yerr.setter
-    def yerr(self, yerrv):
-        self['yerr'] = yerrv
-
-    def __setitem__(self, key, value):
-        if key not in self.allowed_keys:
-            raise ValueError("only keys 'x', 'y', 'xerr', 'yerr' are allowed")
-        super().__setitem__(key, value)
-
-    def __repr__(self):
-        return 'Line' + super().__repr__().lstrip(string.ascii_letters)
-
-
 class PlotData(SortedDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._transform_keys_to_str()
-        self._transform_values_to_lines()
+        self._transform_values_to_dicts()
 
     def _transform_keys_to_str(self):
         for key, value in self.items():
@@ -113,9 +60,9 @@ class PlotData(SortedDict):
                 self[new_key] = self[key]
                 del self[key]
 
-    def _transform_values_to_lines(self):
+    def _transform_values_to_dicts(self):
         for key, value in self.items():
-            self[key] = Line(value)
+            self[key] = dict(value)
 
     def get_labels(self):
         return list(self.keys())
@@ -130,18 +77,39 @@ class PlotData(SortedDict):
                 " Element with key '{}' will be set.".format(str(key))
             )
             key = str(key)
-        super().__setitem__(key, Line(value))
+        super().__setitem__(key, dict(value))
 
     def get_spec(self, spec, labels=None):
         if labels is None:
             labels = self.get_labels()
         res = []
         for lbl in labels:
-            res.append(self[lbl][spec])
+            try:
+                line_data = self[lbl]
+            except KeyError:
+                raise KeyError("label '{}' is not in plot data".format(lbl))
+            try:
+                res.append(line_data[spec])
+            except KeyError:
+                raise KeyError(
+                    "spec '{}' is not in line data"
+                    " with label '{}'".format(spec, lbl)
+                )
         return res
 
-    def __repr__(self):
-        return 'PlotData' + super().__repr__().lstrip(string.ascii_letters)
+    def __copy__(self):
+        pd = PlotData()
+        pd.__dict__.update(self.__dict__)
+        return pd
+
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+            memo = {}
+        pd = PlotData()
+        memo[id(pd)] = pd
+        for k, v in self.__dict__:
+            setattr(pd, k, copy.deepcopy(v, memo))
+        return pd
 
 
 def get_parameter_name(plot_parameter_names, key):

@@ -1,6 +1,8 @@
 import argparse
 import pickle
 
+import helmo.util.plot.plot_helpers as plot_helpers
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
@@ -74,9 +76,9 @@ for fn in args.files:
         Y.append(y)
         Err.append(err)
 
-plot_data = dict()
+plot_data = plot_helpers.PlotData()
 
 for lbl, x, y, err in zip(args.labels, X, Y, Err):
-    plot_data[lbl] = [x, y, err]
+    plot_data[lbl] = {'x': x, 'y': y, 'yerr': err}
 
 pickle.dump(plot_data, args.output)
