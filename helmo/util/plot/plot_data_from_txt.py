@@ -79,6 +79,6 @@ for fn in args.files:
 plot_data = plot_helpers.PlotData()
 
 for lbl, x, y, err in zip(args.labels, X, Y, Err):
-    plot_data[lbl] = {'x': x, 'y': y, 'yerr': err}
+    plot_data[lbl] = {'x': x, 'y': y, 'y_err': err}
 
 pickle.dump(plot_data, args.output)

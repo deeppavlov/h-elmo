@@ -1,19 +1,21 @@
 import os
 import random
-from typing import List
 import warnings
 import copy
+import itertools
+from collections import UserDict
+from typing import List
 
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib import container
+import matplotlib.patches as mpatches
 
+import helmo.util.python as python
+from helmo.util.algo import SortedDict, sorting_key_float_zeroth_element
 from learning_to_learn.useful_functions import synchronous_sort, create_path, get_pupil_evaluation_results, \
     BadFormattingError, all_combs, get_optimizer_evaluation_results, select_for_plot, convert, retrieve_lines, \
-    add_index_to_filename_if_needed, nested2string, isnumber, shift_list
-
-from helmo.util.python import filter_dict_by_keys
-from helmo.util.algo import SortedDict
+    add_index_to_filename_if_needed, nested2string, isnumber, add_scalar_iterable
 
 
 # from pathlib import Path  # if you haven't already done so
@@ -39,30 +41,142 @@ FONT = {'family': 'Verdana',
 rc('font', **FONT)
 
 
-class PlotData(SortedDict):
+class Line(UserDict):
+    value_keys = ['x', 'y']
+    error_keys = ['x_err', 'y_err']
+    value_error_pairs = dict(zip(value_keys, error_keys))
+    axes = ['x', 'y']
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._transform_keys_to_str()
-        self._transform_values_to_dicts()
+        # print("(Line.__init__)args:", args)
+        # print("(Line.__init__)self.keys():", list(self.keys()))
+        if not isinstance(args[0], Line):
+            for key in self.keys():
+                # print("(Line.__init__)key:", key)
+                if key in self.value_keys:
+                    self.expand_values(key)
+                    if len(self['x']) != len(self['y']):
+                        raise ValueError("numbers of x and y values are not equal")
+                    if len(self['x']) == 0:
+                        raise ValueError("no points were provided")
+                    self.expand_errors(key)
+        # print("(Line.__init__)self['y']:", self['y'])
+        # print("(Line.__init__)self['y_err']:", self['y_err'])
 
-    def _transform_keys_to_str(self):
-        for key, value in self.items():
-            if not isinstance(key, str):
-                new_key = str(key)
-                if new_key in self:
-                    warnings.warn(
-                        "replacing value of element `('{}', VALUE)` with"
-                        " value of element `({}, VALUE)`. Conflict between"
-                        " line labels occured during transforming labels to type"
-                        " str. The element `({}, VALUE)` is going to be "
-                        "removed".format(new_key, key, key)
+    @staticmethod
+    def old_format_to_new_format(line_data):
+        if not isinstance(line_data, (list, tuple)):
+            return line_data
+        return Line(
+            x=line_data[0],
+            y=line_data[1],
+            y_err=line_data[2] if len(line_data) > 2 else None,
+        )
+    
+    def expand_errors(self, value_key):
+        error_key = self.value_error_pairs[value_key]
+        # print("(Line.expand_errors)error_key:", error_key)
+        # print("(Line.expand_errors)self[error_key]:", self[error_key])
+        err_msg = (
+            "wrong '{}' error format. Error has to be either "
+            "list of numbers or iterable of 2 iterables of equal length.".format(error_key)
+        )
+        if not python.is_iterable(self[error_key]):
+            self[error_key] = [self[error_key]] * len(self[value_key])
+        else:
+            self[error_key] = list(self[error_key])
+        if all([python.is_iterable(elem) for elem in self[error_key]]):
+            errors = self[error_key]
+            if len(self[error_key]) == 2:
+                if len(errors[0]) != len(errors[1]):
+                    raise ValueError(
+                        err_msg + "Lengths of iterables are not equal.\nlen(a) == {}\nlen(b) == {}".format(
+                            len(errors[0]), len(errors[1])
+                        )
                     )
-                self[new_key] = self[key]
-                del self[key]
+                self[error_key] = [list(errors[0]), list(errors[1])]
+            else:
+                raise ValueError(err_msg + " More than 2 iterables are provided")
+        else:
+            if any([python.is_iterable(elem) for elem in self[error_key]]):
+                raise ValueError(err_msg + " Some elements of error are iterables and some are not.")
+            self[error_key] = [list(self[error_key]), list(self[error_key])]
+        
+    def expand_values(self, value_key):
+        if python.is_iterable(self[value_key]):
+            self[value_key] = list(self[value_key])
+        else:
+            self[value_key] = [self[value_key]]
 
-    def _transform_values_to_dicts(self):
-        for key, value in self.items():
-            self[key] = dict(value)
+    def shift_line(self, axis, shift):
+        if axis not in self.axes:
+            raise ValueError("not supported axis {}".format(axis))
+        self[axis] = python.add_scalar_to_iterable(self[axis], shift)
+        error_key = Line.value_error_pairs[axis]
+        if error_key in self:
+            # print("(Line.shift_line)self[error_key]:", self[error_key])
+            lower, upper = self[error_key]
+            lower = python.add_scalar_to_iterable(lower, shift)
+            upper = python.add_scalar_to_iterable(upper, shift)
+            self[error_key] = [lower, upper]
+
+    def get_bounds(self):
+        if 'x_err' in self:
+            raise NotImplementedError("bounds computation is not implemented when 'x_err' is not zero")
+        else:
+            if 'y_err' in self:
+                lower, upper = self['y_err']
+                return (self['x'].copy(), list(lower)), (self['x'].copy(), list(upper))
+            else:
+                return (self['x'].copy(), self['y'].copy()), (self['x'].copy(), self['y'].copy())
+
+    def get_all_values(self, spec):
+        if spec in self.value_keys:
+            return self[spec].copy()
+        elif spec in self.error_keys:
+            return list(itertools.chain(*self[spec]))
+        else:
+            raise ValueError("spec {} is not supported".format(spec))
+
+    def __repr__(self):
+        elements = ', '.join(['({}, {})'.format(repr(k), repr(v)) for k, v in self.items()])
+        return '{}([{}])'.format(self.__class__.__name__, elements)
+
+    def __str__(self):
+        return repr(self)
+
+
+class PlotData(SortedDict):
+    value_keys = Line.value_keys
+    error_keys = Line.error_keys
+
+    @staticmethod
+    def old_format_to_new_format(plot_data):
+        if isinstance(plot_data, PlotData):
+            return plot_data
+        new_init = []
+        for lbl, line_data in plot_data.items():
+            new_init.append(
+                (
+                    lbl,
+                    Line.old_format_to_new_format(line_data)
+                )
+            )
+        return PlotData(new_init)
+
+    def _transform_key_to_str(self, key):
+        if not isinstance(key, str):
+            new_key = str(key)
+            if new_key in self:
+                warnings.warn(
+                    "replacing value of element `('{}', VALUE)` with"
+                    " value of element `({}, VALUE)`. Conflict between"
+                    " line labels occured during transforming labels to type"
+                    " str. The element `({}, VALUE)` is going to be "
+                    "removed".format(new_key, key, key)
+                )
+            return new_key
 
     def get_labels(self):
         return list(self.keys())
@@ -71,13 +185,14 @@ class PlotData(SortedDict):
         return list(self.values())
 
     def __setitem__(self, key, value):
+        # print("(PlotData.__setitem__)value:", value)
         if not isinstance(key, str):
             warnings.warn(
                 "only keys of type `str` are allowed."
                 " Element with key '{}' will be set.".format(str(key))
             )
-            key = str(key)
-        super().__setitem__(key, dict(value))
+            key = self._transform_key_to_str(key)
+        super().__setitem__(str(key), Line(value))
 
     def get_spec(self, spec, labels=None):
         if labels is None:
@@ -97,6 +212,13 @@ class PlotData(SortedDict):
                 )
         return res
 
+    def get_all_values(self, spec):
+        res = []
+        for line_data in self.values():
+            if spec in line_data:
+                res += line_data.get_all_values(spec)
+        return res
+
     def __copy__(self):
         pd = PlotData()
         pd.__dict__.update(self.__dict__)
@@ -111,15 +233,50 @@ class PlotData(SortedDict):
             setattr(pd, k, copy.deepcopy(v, memo))
         return pd
 
+    def all_labels_are_numbers(self):
+        return all([isnumber(k) for k in self])
+
+    def set_float_sorting_key(self):
+        self.set_sorting_key(sorting_key_float_zeroth_element)
+
+    def labels_are_provided(self):
+        there_is_labels = False
+        for label in self.keys():
+            if len(label) > 0:
+                there_is_labels = there_is_labels or True
+        return there_is_labels
+
+    def _prepare_shifts(self, shifts):
+        if isinstance(shifts, (float, int)):
+            shifts = dict(zip(self.keys(), [shifts] * len(self)))
+        elif isinstance(shifts, (list, tuple)):
+            shifts = dict(zip(self.keys(), shifts))
+        elif isinstance(shifts, (dict, SortedDict)):
+            pass
+        else:
+            raise TypeError("unsupported shift type")
+        return shifts
+
+    def shift_lines(self, axis, shifts):
+        shifts = self._prepare_shifts(shifts)
+        for label, sh in shifts.items():
+            self[label].shift_line(axis, sh)
+
+    def get_bounds(self, label_or_labels):
+        if label_or_labels is None:
+            label_or_labels = self.keys()
+        if not isinstance(label_or_labels, str):
+            return self[label_or_labels].get_bounds()
+        else:
+            return [self[label].get_bounds() for label in label_or_labels]
+
 
 def get_parameter_name(plot_parameter_names, key):
     try:
         v = plot_parameter_names[key]
     except KeyError:
-        print("WARNING: no '%s' entry parameter names file" % key)
+        warnings.warn("no '%s' entry parameter names file" % key)
         v = key
-    except:
-        raise
     return v
 
 
@@ -141,40 +298,35 @@ def parse_metric_scales_str(string):
     return metric_scales
 
 
-def get_linthreshx(lines: List[List]) -> float:
+def get_linthresh(values: List) -> float:
     """
-    Return the smallest absolute value of X in list of line_data `lines`.
-    Used to compute `linthreshx` param of `matplotlib.pyplot.scale()`
+    Return the smallest absolute value of X or Y in list `values`.
+    Used to compute `linthresh` param of `matplotlib.pyplot.scale()`
     when 'symlog' scale is used.
 
     Args:
-        lines: list of line_data. line_data is a list of several lists of
-        equal length. First list in line_data is a list of X values.
+        values: list of numbers.
 
     Returns:
-        `linthreshx` - the smallest absolute value of X.
+        `linthresh` - the smallest absolute value of X.
     """
-    left = None
-    right = None
-    for line_data in lines:
-        for x in line_data[0]:
-            if x < 0 and (left is None or (left is not None and x > left)):
-                left = x
-            if x > 0 and (right is None or (right is not None and x < right)):
-                right = x
-
-    if left is None:
-        if right is None:
-            thresh = 1.
-        else:
-            thresh = abs(right)
-    else:
-        if right is None:
-            thresh = abs(left)
-        else:
-            thresh = min(abs(left), abs(right))
-
+    thresh = float('inf')
+    for v in values:
+        av = abs(v)
+        if 0 < av < thresh:
+            thresh = av
     return thresh
+
+
+class PatchHandler:
+    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+        x0, y0 = handlebox.xdescent, handlebox.ydescent
+        width, height = handlebox.width, handlebox.height
+        patch = mpatches.Rectangle(
+            [x0, y0], width, height, facecolor=orig_handle.get_color(), transform=handlebox.get_transform()
+        )
+        handlebox.add_artist(patch)
+        return patch
 
 
 def plot_outer_legend(
@@ -188,6 +340,7 @@ def plot_outer_legend(
         style,
         shifts=None,
         legend_pos='outside',
+        only_color_as_marker_in_legend=False,
         labels_of_drawn_lines=None,
         formats=None,
         save=True,
@@ -196,79 +349,52 @@ def plot_outer_legend(
 ):
     if shifts is None:
         shifts = [0, 0]
-    # plot_data = copy.deepcopy(plot_data)
-    # if labels_of_drawn_lines is not None:
-    #     for lbl in list(plot_data.keys()):
-    #         if lbl not in labels_of_drawn_lines:
-    #             # print("(plot_helpers.plot_outer_legend)lbl:", lbl)
-    #             del plot_data[lbl]
-    if labels_of_drawn_lines is not None:
-        plot_data = filter_dict_by_keys(plot_data, labels_of_drawn_lines)
-    if formats is None:
-        formats = FORMATS
-    # print("(plot_helpers.plot_outer_legend)xlabel:", xlabel)
-    # print("(plot_helpers.plot_outer_legend)plot_data:", plot_data)
-    rc('font', **FONT)
-    plt.clf()
-    plt.subplot(111)
-    for_plotlib = [list(), list()]
-    for label, line_data in plot_data.items():
-        for_plotlib[0].append(label)
-        for_plotlib[1].append(line_data)
-    for_plotlib = synchronous_sort(for_plotlib, 0, lambda_func=lambda x: float(x) if isnumber(x) else x)
-    lines = list()
-    labels = list()
     if style['no_line']:
         linestyle = 'None'
     else:
         linestyle = 'solid'
-    # print("(plot_helpers.plot_outer_legend)linestyle:", linestyle)
-    for idx, (label, line_data) in enumerate(zip(*for_plotlib)):
-        # if idx == 0:
-        #     print("(plot_helpers.plot_outer_legend)line_data:", line_data)
+
+    plot_data.shift_lines('x', shifts[0])
+    plot_data.shift_lines('y', shifts[1])
+    if labels_of_drawn_lines is not None:
+        plot_data = python.filter_dict_by_keys(plot_data, labels_of_drawn_lines)
+    if formats is None:
+        formats = FORMATS
+    rc('font', **FONT)
+    plt.clf()
+    plt.subplot(111)
+    if plot_data.all_labels_are_numbers():
+        plot_data.set_float_sorting_key()
+    lines = list()
+    for idx, (label, line_data) in enumerate(plot_data.items()):
         if label is None or label == 'None':
             label = ''
-        labels.append(label)
         if idx > len(COLORS) - 1:
             color = [random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)]
         else:
             color = COLORS[idx]
 
-        # if len(line_data) == 4:
-        #     if style['error'] == 'bar':
-        #         xerr, yerr = line_data[2:]
-        #     else:
-        #         xerr, yerr = None, None
-
-
-        if len(line_data) > 2:
-            errors = line_data[2]
-            errors = [0. if e is None else e for e in errors]
-        else:
-            errors = None
-        # print("(plot_helpers.plot_outer_legend)len(line_data[0]):", len(line_data[0]), end='\n'*2)
         if style['error'] == 'fill':
-            yerr = None
-            ym = [y - e for y, e in zip(line_data[1], errors)]
-            yp = [y + e for y, e in zip(line_data[1], errors)]
+            bounds = line_data.get_bounds()
+            x_err, y_err = None, None
             plt.fill_between(
-                shift_list(line_data[0], shifts[0]),
-                shift_list(ym, shifts[1]),
-                shift_list(yp, shifts[1]),
+                bounds[0][0],
+                bounds[0][1],
+                bounds[1][1],
                 alpha=.4,
                 color=color,
             )
         elif style['error'] == 'bar':
-            yerr = errors
+            x_err, y_err = line_data['x_err'], line_data['y_err']
         else:
-            yerr = None
-        # print("(plot_helpers.plot_outer_legend)yerr:", yerr)
-        # print("(plot_helpers.plot_outer_legend)line_data:", line_data)
+            x_err, y_err = None, None
+
         lines.append(
             plt.errorbar(
-                shift_list(line_data[0], shifts[0]),
-                shift_list(line_data[1], shifts[1]),
-                yerr=yerr,
+                line_data['x'],
+                line_data['y'],
+                yerr=y_err,
+                xerr=x_err,
                 marker=style['marker'],
                 color=color,
                 label=label,
@@ -276,7 +402,6 @@ def plot_outer_legend(
             )[0]
         )
 
-    # print("(plot_helpers.plot_outer_legend)labels:", labels)
     if 'x' in axes_to_invert:
         plt.gca().invert_xaxis()
     if 'y' in axes_to_invert:
@@ -285,18 +410,15 @@ def plot_outer_legend(
     plt.ylabel(ylabel)
     scale_kwargs = dict()
     if xscale == 'symlog':
-        linthreshx = get_linthreshx(
-            for_plotlib[1],
+        linthreshx = get_linthresh(
+            plot_data.get_all_values('x') + plot_data.get_all_values('x_err'),
         )
         scale_kwargs['linthreshx'] = linthreshx
     plt.xscale(xscale, **scale_kwargs)
     plt.yscale(yscale)
 
-    there_is_labels = False
-    for label in labels:
-        if len(label) > 0:
-            there_is_labels = there_is_labels or True
-    if there_is_labels:
+    if plot_data.labels_are_provided():
+        print('labels are provided')
         if legend_pos == 'outside':
             pos_dict = dict(
                 bbox_to_anchor=(1.05, 1),
@@ -312,8 +434,10 @@ def plot_outer_legend(
                 bbox_to_anchor=(.05, .95),
                 loc=2,
             )
-        handler_map = dict(list(zip(lines, [HandlerLine2D(numpoints=1) for _ in range(len(lines))])))
-        # print("(plot_helpers.plot_outer_legend)handler_map:", handler_map)
+        if only_color_as_marker_in_legend:
+            handler_map = dict(list(zip(lines, [PatchHandler() for _ in range(len(lines))])))
+        else:
+            handler_map = dict(list(zip(lines, [HandlerLine2D(numpoints=1) for _ in range(len(lines))])))
         ax = plt.gca()
         handles, labels = ax.get_legend_handles_labels()
         handles = [h[0] if isinstance(h, container.ErrorbarContainer) else h for h in handles]
@@ -327,12 +451,6 @@ def plot_outer_legend(
         bbox_extra_artists = [lgd]
     else:
         bbox_extra_artists = ()
-    # lgd = plt.legend(
-    #     bbox_to_anchor=(1.05, 1),
-    #     loc=2,
-    #     borderaxespad=0.,
-    #     handler_map=handler_map,
-    # )
     if save:
         for format in formats:
             if format == 'pdf':
@@ -343,7 +461,6 @@ def plot_outer_legend(
                 fig_path = None
             create_path(fig_path, file_name_is_in_path=True)
             r = plt.savefig(fig_path, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
-            # print("%s %s %s %s:" % (pupil_name, res_type, regime, format), r)
     if show:
         plt.show()
     if description is not None:
@@ -411,9 +528,11 @@ def launch_plotting(data, line_label_format, fixed_hp_tmpl, path, xlabel, ylabel
         for line_hp_value, line_data in plot_data.items():
             label = line_label_format.format(line_hp_value)
             if label in plot_data_on_labels:
-                print("WARNING: specified formatting does not allow to distinguish '%s' in legend\n"
-                      "fixed_hps_tuple: %s\n"
-                      "falling to string formatting" % (line_hp_value, fixed_hps_tuple))
+                warnings.warn(
+                    "specified formatting does not allow to distinguish '%s' in legend\n"
+                    "fixed_hps_tuple: %s\n"
+                    "falling to string formatting" % (line_hp_value, fixed_hps_tuple)
+                )
                 label = '%s' % line_hp_value
                 if label in plot_data_on_labels:
                     raise BadFormattingError(

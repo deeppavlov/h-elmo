@@ -128,7 +128,7 @@ plot_data = plot_helpers.PlotData()
 for lbl, stp, mn, std in zip(args.labels, steps, means, stddevs):
     mn = list(map(f, mn))
     std = list(map(std_f, zip(std, mn)))
-    plot_data[lbl] = {'x': stp[args.start_idx:], 'y': mn[args.start_idx:], 'yerr': std[args.start_idx:]}
+    plot_data[lbl] = {'x': stp[args.start_idx:], 'y': mn[args.start_idx:], 'y_err': std[args.start_idx:]}
 
 with open(args.output, 'wb') as f:
     pickle.dump(plot_data, f)

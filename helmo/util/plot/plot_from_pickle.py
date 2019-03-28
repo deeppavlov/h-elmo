@@ -34,6 +34,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--output",
+    "-o",
     help="File name WITHOUT EXTENSION. Default is 'pickle_plot'",
     default="pickle_plot",
 )
@@ -72,6 +73,12 @@ parser.add_argument(
     default="outside",
 )
 parser.add_argument(
+    "--only_color_as_marker_in_legend",
+    help="If provided markers in legend will be replaced by rectangular patches"
+         " of required color.",
+    action="store_true",
+)
+parser.add_argument(
     "--lines_to_draw",
     help="List of labels of lines which will be plotted. By default"
          " all lines are plotted.",
@@ -96,6 +103,8 @@ args = parser.parse_args()
 
 plot_data = pickle.load(args.plot_data)
 
+plot_data = plot_helpers.PlotData.old_format_to_new_format(plot_data)
+
 plot_helpers.plot_outer_legend(
     plot_data,
     None,
@@ -111,6 +120,7 @@ plot_helpers.plot_outer_legend(
     ),
     shifts=[args.xshift, args.yshift],
     legend_pos=args.lgd,
+    only_color_as_marker_in_legend=args.only_color_as_marker_in_legend,
     labels_of_drawn_lines=args.lines_to_draw,
     save=not args.only_show,
     show=args.only_show,

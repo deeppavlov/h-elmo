@@ -45,12 +45,20 @@ def search_insert_position(sorted_seq, value, sorting_key=lambda x: x):
     return ins_pos
 
 
+def sorting_key_zeroth_element(x):
+    return x[0]
+
+
+def sorting_key_float_zeroth_element(x):
+    return float(x[0])
+
+
 class SortedDict(MutableMapping):
     __slots__ = ('_sorting_key', '_elements_sorting_key', '_elements')
 
     def __init__(self, *args, **kwargs):
         self._sorting_key = str
-        self._elements_sorting_key = lambda x: self._sorting_key(x[0])
+        self._elements_sorting_key = sorting_key_zeroth_element
         self._elements = []
         if len(args) == 1:
             try:
@@ -87,11 +95,11 @@ class SortedDict(MutableMapping):
                         msg = ("broken update dictionary. Dictionary"
                                " element does not have both key and value")
                     raise TypeError(msg)
-                self._elements.append(_element)
+                self.__setitem__(_element[0], _element[1])
         elif len(args) > 1:
             raise TypeError("SortedDict expected at most 1 positional arguments, got 2")
         for key, value in kwargs.items():
-            self._elements.append([key, value])
+            self.__setitem__(key, value)
         self._sort()
 
     def _sort(self):
