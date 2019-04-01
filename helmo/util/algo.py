@@ -7,7 +7,7 @@ class NotFoundError(Exception):
         super().__init__(message)
 
 
-def bin_search(sorted_seq, value, sorting_key=lambda x: x):
+def bin_search_and_insert_pos_search(sorted_seq, value, sorting_key=lambda x: x):
     len_ = len(sorted_seq)
     if len_ > 0:
         lo, hi = 0, len_ - 1
@@ -37,7 +37,7 @@ def bin_search(sorted_seq, value, sorting_key=lambda x: x):
 
 def search_insert_position(sorted_seq, value, sorting_key=lambda x: x):
     try:
-        idx = bin_search(sorted_seq, value, sorting_key)
+        idx = bin_search_and_insert_pos_search(sorted_seq, value, sorting_key)
     except NotFoundError as e:
         ins_pos = e.insert_position
     else:
@@ -110,14 +110,14 @@ class SortedDict(MutableMapping):
 
     def __getitem__(self, key):
         try:
-            idx = bin_search(self._elements, self._sorting_key(key), self._elements_sorting_key)
+            idx = bin_search_and_insert_pos_search(self._elements, self._sorting_key(key), self._elements_sorting_key)
         except NotFoundError:
             raise KeyError("key {} is not in dictionary".format(key))
         return self._elements[idx][1]
 
     def __setitem__(self, key, value):
         try:
-            idx = bin_search(self._elements, self._sorting_key(key), self._elements_sorting_key)
+            idx = bin_search_and_insert_pos_search(self._elements, self._sorting_key(key), self._elements_sorting_key)
             self._elements[idx] = [key, value]
         except NotFoundError as e:
             ins_pos = e.insert_position
@@ -125,7 +125,7 @@ class SortedDict(MutableMapping):
 
     def __delitem__(self, key):
         try:
-            idx = bin_search(self._elements, self._sorting_key(key), self._elements_sorting_key)
+            idx = bin_search_and_insert_pos_search(self._elements, self._sorting_key(key), self._elements_sorting_key)
             del self._elements[idx]
         except NotFoundError:
             raise KeyError("key {} is not in dictionary".format(key))

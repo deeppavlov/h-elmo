@@ -8,12 +8,11 @@ import helmo.util.plot.plot_helpers as plot_helpers
 
 parser = argparse.ArgumentParser(
     description="Script creates a pickle file with data for drawing a plot."
-                " Resulting object in pickle file is a dictionary. Dictionary"
-                " keys are labels of lines in legend, dictionary values are"
-                " lists of three elements. The first element of such a list is"
-                " a list a list of X values, the second element is a list of Y "
-                "values, and the third is a list of deviations of Y values used"
-                " adding error bars. X values, Y values, and errors are provided"
+                " Resulting object in pickle file is a PlotData instance. Keys of"
+                " PlotData instance are labels of lines in legend, labels "
+                "values are Line instances. Line contains keys 'x', 'y', 'y_err'."
+                " LineData and PlotData are provided in plot_helpers.py."
+                " X values, Y values, and errors are provided"
                 " in separate arguments --step, --mean, and --stddev. By default lists of "
                 " file names in these arguments are sorted before zipped. X values are"
                 " provided in text files (validation results, e.g. loss_valid.txt)."
@@ -23,47 +22,55 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "--labels",
+    "-l",
     help="Names of lines on plot. Number of labels has to match number of "
          "mean, stddev, and step files.",
     nargs='+',
 )
 parser.add_argument(
     "--step",
+    "-s",
     help="A list of files with validation results or alternatively list"
-         " of any file in which each line starts with steps.",
+         " of any files in which each line starts with steps.",
     nargs='+',
     type=argparse.FileType('r'),
 )
 parser.add_argument(
     "--mean",
+    "-m",
     help="A list of pickle files with mean values",
     nargs='+',
     type=argparse.FileType('rb'),
 )
 parser.add_argument(
     "--stddev",
+    "-d",
     help="A list of pickle files with stddev values.",
     nargs='+',
     type=argparse.FileType('rb'),
 )
 parser.add_argument(
     "--output",
+    "-o",
     help="Path to output file where plot data will be saved",
     default="plot_data.pickle"
 )
 parser.add_argument(
     "--no_sort",
+    "-n",
     help="Do not sort --step, --mean, --stddev before zipping.",
     action="store_true",
 )
 parser.add_argument(
     '--preprocess',
+    "-p",
     help="Function applied to values before storing into plot_data. Possible "
          "options: (1)sqrt. Default is None",
     default=None,
 )
 parser.add_argument(
     '--start_idx',
+    "-i",
     help="Index of the first point in plot_data. Points with indices less than "
          "start_idx are not added. Default is zero.",
     type=int,
@@ -73,10 +80,16 @@ args = parser.parse_args()
 
 if args.preprocess == 'sqrt':
     f = np.sqrt
-    std_f = lambda t: t[0] / (2 * np.sqrt(t[1] + 1e-15))
+
+    def std_f(t):
+        return t[0] / (2 * np.sqrt(t[1] + 1e-15))
 else:
-    f = lambda x: x
-    std_f = f
+    def f(x):
+        return x
+
+    def std_f(t):
+        return t[0]
+
 
 if not args.no_sort:
     args.mean = sorted(args.mean, key=lambda x: x.name)
@@ -128,6 +141,7 @@ plot_data = plot_helpers.PlotData()
 for lbl, stp, mn, std in zip(args.labels, steps, means, stddevs):
     mn = list(map(f, mn))
     std = list(map(std_f, zip(std, mn)))
+    # print(std)
     plot_data[lbl] = {'x': stp[args.start_idx:], 'y': mn[args.start_idx:], 'y_err': std[args.start_idx:]}
 
 with open(args.output, 'wb') as f:

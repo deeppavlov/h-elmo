@@ -28,7 +28,8 @@
     "num_gpus": 1,
     "metrics": ["bpc", "perplexity", "accuracy"],
     "optimizer": "adam",
-    "clip_norm": 1
+    "clip_norm": 1,
+    "corcov_norm": "abs"
   },
   "train": {
     "allow_growth": true,

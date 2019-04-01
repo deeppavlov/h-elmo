@@ -5,14 +5,18 @@ import helmo.util.plot.plot_helpers as plot_helpers
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    'xsrc',
-    help="File with X values. It can be .txt or .pickle. If it is .txt"
-         " colx have to be provided",
+    '--xsrc',
+    help="Files with X values. They can be .txt or .pickle. If they are .txt"
+         " colx has to be provided",
+    nargs='+',
+    default=None,
 )
 parser.add_argument(
-    'ysrc',
-    help="File with Y values. It can .txt or .pickle. If it is .txt"
-         " coly have to be provided",
+    '--ysrc',
+    help="Files with Y values. They can .txt or .pickle. If they is .txt"
+         " coly has to be provided",
+    nargs='+',
+    default=None,
 )
 parser.add_argument(
     '--colx',
@@ -27,11 +31,15 @@ parser.add_argument(
 )
 parser.add_argument(
     '--xerrsrc',
-    help="File with X error values. Have to be provided if xsrc is pickle",
+    help="Files with X error values. Have to be provided if xsrc is pickle",
+    nargs='+',
+    default=None,
 )
 parser.add_argument(
     '--yerrsrc',
-    help="File with X error values. Have to be provided if ysrc is pickle",
+    help="Files with X error values. Have to be provided if ysrc is pickle",
+    nargs='+',
+    default=None,
 )
 parser.add_argument(
     '--xerrcol',
@@ -44,11 +52,13 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    '--label',
-    help="label of the line",
+    '--labels',
+    help="labels of the lines",
+    nargs='+',
 )
 parser.add_argument(
     '--output',
+    '-o',
     help="Path to file where results will be stored. Points will have"
          " format 'x mean_y stddev_y, stderr_of_mean_y'. Default is"
          " merge.pickle",
@@ -60,7 +70,11 @@ parser.add_argument(
     help="If provided points are sorted in reverse order.",
     action='store_true',
 )
-
+parser.add_argument(
+    "--no_sort",
+    help="Do not sort --labels and files before zipping.",
+    action="store_true",
+)
 args = parser.parse_args()
 
 
@@ -87,27 +101,32 @@ def fill_values_and_err(src, col, errsrc, errcol):
     return v, err
 
 
-x, x_err = fill_values_and_err(args.xsrc, args.colx, args.xerrsrc, args.xerrcol)
-y, y_err = fill_values_and_err(args.ysrc, args.coly, args.yerrsrc, args.yerrcol)
+if not args.no_sort:
+    args.xsrc.sort()
+    args.ysrc.sort()
 
-# for xx, yy, xx_err, yy_err in sorted(zip(x, y, x_err, y_err), key=lambda x: x[0], reverse=args.reverse):
-#     args.output.write('{} {} {} {}\n'.format(xx, yy, xx_err, yy_err))
+if args.xerrsrc is None:
+    args.xerrsrc = [None]*len(args.xsrc)
+else:
+    if not args.no_sort:
+        args.xerrsrc.sort()
 
-x, y, x_err, y_err = zip(*sorted(zip(x, y, x_err, y_err), key=lambda x: x[0], reverse=args.reverse))
-# print("(merge.py)x_err:", x_err)
-# print("(merge.py)y_err:", y_err)
-pd = plot_helpers.PlotData(
-    [(args.label, dict(x=x, y=y, x_err=x_err, y_err=y_err))]
-)
-# print('x, xerr')
-# for xx, xxerr1, xxerr2 in zip(pd['dropout 0']['x'], pd['dropout 0']['x_err'][0], pd['dropout 0']['x_err'][1]):
-#     print(xx, xxerr1, xxerr2)
-# print('\ny, yerr')
-# for yy, yyerr1, yyerr2 in zip(pd['dropout 0']['y'], pd['dropout 0']['y_err'][0], pd['dropout 0']['y_err'][1]):
-#     print(yy, yyerr1, yyerr2)
-# print("(merge.py)pd['dropout 0']['y']:", pd['dropout 0']['y'])
+if args.yerrsrc is None:
+    args.yerrsrc = [None]*len(args.ysrc)
+else:
+    if not args.no_sort:
+        args.yerrsrc.sort()
+
+plot_data_init = []
+for lbl, xsrc, ysrc, xerrsrc, yerrsrc in zip(args.labels, args.xsrc, args.ysrc, args.xerrsrc, args.yerrsrc):
+    x, x_err = fill_values_and_err(xsrc, args.colx, xerrsrc, args.xerrcol)
+    y, y_err = fill_values_and_err(ysrc, args.coly, yerrsrc, args.yerrcol)
+    x, y, x_err, y_err = zip(*sorted(zip(x, y, x_err, y_err), key=lambda x: x[0], reverse=args.reverse))
+    plot_data_init.append((lbl, dict(x=x, y=y, x_err=x_err, y_err=y_err)))
+
+pd = plot_helpers.PlotData(plot_data_init)
+
 pickle.dump(
     pd,
     args.output,
 )
-

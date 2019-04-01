@@ -480,7 +480,8 @@ class Rnn(Pupil):
             #     )
             if rnn_map['module_name'] == 'char_enc_dec':
                 self._hooks['correlation'] = tensor_ops.corcov_loss(
-                    intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean', norm='sqr'
+                    intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
+                    norm=self._corcov_norm,
                 )
         return inp
 
@@ -853,6 +854,8 @@ class Rnn(Pupil):
         self._clip_norm = kwargs.get('clip_norm', 1.)
         self._randomize_state_stddev = kwargs.get('randomize_state_stddev', 0.5)
         self._regime = kwargs.get('regime', 'train')
+
+        self._corcov_norm = kwargs.get('corcov_norm', 'sqr')
 
         if self._rnn_type == 'lstm':
             self._network_type = 'cudnn_lstm_stacked'

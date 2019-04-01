@@ -38,6 +38,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--output",
+    "-o",
     help="Path to output file where plot data will be saved. Default is"
          " plot_data.pickle.",
     default="plot_data.pickle",

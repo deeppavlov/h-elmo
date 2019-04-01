@@ -16,6 +16,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--output',
+    '-o',
     help="Path to file where results will be stored. Points will have"
          " format 'x mean_y stddev_y, stderr_of_mean_y'. Default is"
          " mean.txt",
@@ -24,6 +25,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--preprocess',
+    '-p',
     help="Function applied to values before averaging. Possible "
          "options: (1)sqrt. Default is None",
     default=None,

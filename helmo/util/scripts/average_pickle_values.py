@@ -33,8 +33,10 @@ parser.add_argument(
 )
 parser.add_argument(
     '--preprocess',
-    help="Function applied to values before averaging. Possible "
-         "options: (1)sqrt. Default is None",
+    help="an expression passed to `eval()` built-in function."
+         " Have to have following format"
+         " 'func1({array}) * func2({array})'"
+         "expression will be applied to numpy array",
     default=None,
 )
 
@@ -58,12 +60,8 @@ for file in args.files:
 
 for_averaging = np.stack(for_averaging)
 
-if args.preprocess == 'sqrt':
-    f = np.sqrt
-else:
-    f = lambda x: x
-
-for_averaging = f(for_averaging)
+if args.preprocess is not None:
+    for_averaging = eval(args.preprocess.format(array="for_averaging"))
 
 N = for_averaging.shape[0]
 m = np.mean(for_averaging, axis=0, keepdims=False)

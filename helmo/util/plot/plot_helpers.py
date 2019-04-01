@@ -60,7 +60,8 @@ class Line(UserDict):
                         raise ValueError("numbers of x and y values are not equal")
                     if len(self['x']) == 0:
                         raise ValueError("no points were provided")
-                    self.expand_errors(key)
+                    if self.value_error_pairs[key] in self:
+                        self.expand_errors(key)
         # print("(Line.__init__)self['y']:", self['y'])
         # print("(Line.__init__)self['y_err']:", self['y_err'])
 
@@ -126,8 +127,10 @@ class Line(UserDict):
             raise NotImplementedError("bounds computation is not implemented when 'x_err' is not zero")
         else:
             if 'y_err' in self:
-                lower, upper = self['y_err']
-                return (self['x'].copy(), list(lower)), (self['x'].copy(), list(upper))
+                lower_err, upper_err = self['y_err']
+                lower = python.subtract_iterable(self['y'], lower_err)
+                upper = python.add_iterable(self['y'], upper_err)
+                return (self['x'].copy(), lower), (self['x'].copy(), upper)
             else:
                 return (self['x'].copy(), self['y'].copy()), (self['x'].copy(), self['y'].copy())
 
@@ -385,10 +388,10 @@ def plot_outer_legend(
                 color=color,
             )
         elif style['error'] == 'bar':
-            x_err, y_err = line_data['x_err'], line_data['y_err']
+            x_err, y_err = line_data.get('x_err'), line_data.get('y_err')
         else:
             x_err, y_err = None, None
-
+        # print("(plot_helpers.plot_outer_legend)line_data['y_err']:", line_data['y_err'])
         lines.append(
             plt.errorbar(
                 line_data['x'],
@@ -418,7 +421,7 @@ def plot_outer_legend(
     plt.yscale(yscale)
 
     if plot_data.labels_are_provided():
-        print('labels are provided')
+        # print('labels are provided')
         if legend_pos == 'outside':
             pos_dict = dict(
                 bbox_to_anchor=(1.05, 1),

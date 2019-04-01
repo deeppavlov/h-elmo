@@ -390,6 +390,41 @@ def corcov_loss(
         tensor, reduced_axes, cor_axis,
         punish='correlation', reduction='sum', norm='sqr', epsilon=1e-12
 ):
+    """
+    Computes mean norm of correlation or mean covariation between elements of `tensor`
+    with different indices along `cor_axis` dim. Each set values of indices of
+    dims not included in `cor_axis` and `reduced_axes` is considered an ensemble.
+    This means that mean norm of correlation or covariation is computed for each set of indices
+    that does not include `cor_axis` and `reduced_axes` and then averaged.
+    Diagonal values are excluded when mean correlation or covariation are computed.
+
+    The norm is specified in `norm` and cam be either `'sqr'` or `'abs'`. If `norm` is `'abs'`
+    than mean of absolute value of correlation or covariation is computed. Else mean of
+    square of correlation or covariation is computed.
+
+    Let tensor `tensor` have 3 dimensions, `cor_axis = 2` , `reduced_axes = [1]`, `norm = 'abs'`, and
+    `tensor` shape be `[A, B, C]`. Than
+
+    ```
+    covarition_matrices = tf.einsum('ijk,ijl->ikl', tensor, tensor) / B
+    cov_norm = tf.abs(covarition_matrices)
+    mean_covariations = (tf.reduce_sum(cov_norm, [-2, -1]) - tf.linalg.trace(cov_norm)) / \
+                         (C * (C-1))
+    covariation_loss = tf.reduce_mean(mean_covariations)
+    ```
+    Correlation loss is computed the same way, except for
+    division of covariation by multiplication of variances of
+    analized random values
+
+    :param tensor:
+    :param reduced_axes:
+    :param cor_axis:
+    :param punish:
+    :param reduction:
+    :param norm:
+    :param epsilon:
+    :return:
+    """
     with tf.name_scope('corcov_loss'):
         f = correlation if punish == 'correlation' else covariance
         corcov = f(tensor, reduced_axes, cor_axis, epsilon=epsilon)
@@ -406,7 +441,7 @@ def corcov_loss(
         norm_m = norm_func(corcov)
         frob_norm = tf.reduce_sum(norm_m, axis=[-2, -1])
         trace = tf.linalg.trace(norm_m)
-        s = 0.5 * tf.reduce_sum(frob_norm - trace, keepdims=False)
+        s = tf.reduce_sum(frob_norm - trace, keepdims=False)
         if reduction == 'sum':
             return s
         last_dim = tf.shape(norm_m)[-1]
