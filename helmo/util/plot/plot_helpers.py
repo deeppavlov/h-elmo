@@ -142,6 +142,26 @@ class Line(UserDict):
         else:
             raise ValueError("spec {} is not supported".format(spec))
 
+    def _create_ind_gen(self, select):
+        x_list = self['x']
+
+        def index_gen():
+            for i, x in enumerate(x_list):
+                if select[0] <= x <= select[1]:
+                    yield i
+        return index_gen
+        
+    def filter_points(self, select):
+        index_gen = self._create_ind_gen(select)
+        for key in self.value_keys:
+            self[key] = [self[key][i] for i in index_gen()]
+        for key in self.error_keys:
+            if key in self:
+                self[key] = [
+                    [self[key][0][i] for i in index_gen()],
+                    [self[key][1][i] for i in index_gen()]
+                ]
+
     def __repr__(self):
         elements = ', '.join(['({}, {})'.format(repr(k), repr(v)) for k, v in self.items()])
         return '{}([{}])'.format(self.__class__.__name__, elements)
@@ -272,6 +292,10 @@ class PlotData(SortedDict):
             return self[label_or_labels].get_bounds()
         else:
             return [self[label].get_bounds() for label in label_or_labels]
+        
+    def filter_points(self, select):
+        for line in self.values():
+            line.filter_points(select)
 
 
 def get_parameter_name(plot_parameter_names, key):
@@ -349,6 +373,7 @@ def plot_outer_legend(
         save=True,
         show=False,
         axes_to_invert=(),
+        select=None,
 ):
     if shifts is None:
         shifts = [0, 0]
@@ -356,6 +381,8 @@ def plot_outer_legend(
         linestyle = 'None'
     else:
         linestyle = 'solid'
+    if select is not None:
+        plot_data.filter_points(select)
 
     plot_data.shift_lines('x', shifts[0])
     plot_data.shift_lines('y', shifts[1])
@@ -392,6 +419,8 @@ def plot_outer_legend(
         else:
             x_err, y_err = None, None
         # print("(plot_helpers.plot_outer_legend)line_data['y_err']:", line_data['y_err'])
+        # print("(plot_helpers.plot_outer_legend)line_data['x'][:10]:", line_data['x'][:10])
+        # print("(plot_helpers.plot_outer_legend)line_data['y'][:10]:", line_data['y'][:10])
         lines.append(
             plt.errorbar(
                 line_data['x'],

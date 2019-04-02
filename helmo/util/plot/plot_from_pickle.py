@@ -86,6 +86,15 @@ parser.add_argument(
     default=None,
 )
 parser.add_argument(
+    "--xselect",
+    help="Two numbers or one number. If `xselect` is 2 numbers,"
+         " only points with X values within the ends of specified "
+         "line segment are plotted. If `xselect` one number only points with X more"
+         " than `xselect` are plotted.",
+    nargs='+',
+    type=float,
+)
+parser.add_argument(
     "--save_formats",
     nargs='+',
     help="List of formats in which plot will be saved. Possible options are"
@@ -100,6 +109,10 @@ parser.add_argument(
     action="store_true",
 )
 args = parser.parse_args()
+
+args.xselect = args.xselect[:2]
+if len(args.xselect) == 1:
+    args.xselect.append(float('inf'))
 
 plot_data = pickle.load(args.plot_data)
 
@@ -124,4 +137,5 @@ plot_helpers.plot_outer_legend(
     labels_of_drawn_lines=args.lines_to_draw,
     save=not args.only_show,
     show=args.only_show,
+    select=args.xselect,
 )

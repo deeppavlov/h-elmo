@@ -391,18 +391,19 @@ def corcov_loss(
         punish='correlation', reduction='sum', norm='sqr', epsilon=1e-12
 ):
     """
-    Computes mean norm of correlation or mean covariation between elements of `tensor`
-    with different indices along `cor_axis` dim. Each set values of indices of
+    Computes mean or sum of norm of correlation or covariation between elements of `tensor`
+    with different indices along `cor_axis` dim. Each set of values of indices along
     dims not included in `cor_axis` and `reduced_axes` is considered an ensemble.
-    This means that mean norm of correlation or covariation is computed for each set of indices
-    that does not include `cor_axis` and `reduced_axes` and then averaged.
+    This means that mean or sum of norm of correlation or covariation is computed for each set of indices
+    that does not include `cor_axis` and `reduced_axes` and then averaged along `reduced_axes`.
     Diagonal values are excluded when mean correlation or covariation are computed.
 
-    The norm is specified in `norm` and cam be either `'sqr'` or `'abs'`. If `norm` is `'abs'`
-    than mean of absolute value of correlation or covariation is computed. Else mean of
+    The norm is specified in `norm` and can be either `'sqr'` or `'abs'`. If `norm` is `'abs'`
+    than mean or sum of of absolute values of correlation or covariation is computed. Else mean of
     square of correlation or covariation is computed.
 
-    Let tensor `tensor` have 3 dimensions, `cor_axis = 2` , `reduced_axes = [1]`, `norm = 'abs'`, and
+    Let tensor `tensor` have 3 dimensions, `cor_axis = 2` , `reduced_axes = [1]`,
+     `reduction = 'mean'`, `norm = 'abs'`, and
     `tensor` shape be `[A, B, C]`. Than
 
     ```
@@ -414,16 +415,19 @@ def corcov_loss(
     ```
     Correlation loss is computed the same way, except for
     division of covariation by multiplication of variances of
-    analized random values
+    analyzed random values.
 
-    :param tensor:
-    :param reduced_axes:
-    :param cor_axis:
-    :param punish:
-    :param reduction:
-    :param norm:
-    :param epsilon:
-    :return:
+    :param tensor: tf.Tensor of at least 2 dimensions.
+    :param reduced_axes: list of ints
+    :param cor_axis: int
+    :param punish: either `'correlation'` or `'covariation'`
+        depending on what is computed correlation or covariation
+    :param reduction: if `'sum'` than the sum of correlation
+        or covariation is returned. If it is 'mean' average
+        is computed.
+    :param norm: `'sqr'` or `'abs'`
+    :param epsilon: a small float for division by zero when computing correlation
+    :return: tf.Tensor of shape []
     """
     with tf.name_scope('corcov_loss'):
         f = correlation if punish == 'correlation' else covariance
@@ -443,7 +447,7 @@ def corcov_loss(
         trace = tf.linalg.trace(norm_m)
         s = tf.reduce_sum(frob_norm - trace, keepdims=False)
         if reduction == 'sum':
-            return s
+            return 0.5 * s
         last_dim = tf.shape(norm_m)[-1]
         last_dim = tf.to_float(last_dim)
         return s / (tf.to_float(tf.reduce_prod(tf.shape(norm_m))) * (last_dim - 1.) / last_dim)
