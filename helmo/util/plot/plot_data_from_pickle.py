@@ -93,7 +93,8 @@ else:
 
 if not args.no_sort:
     args.mean = sorted(args.mean, key=lambda x: x.name)
-    args.stddev = sorted(args.stddev, key=lambda x: x.name)
+    if args.stddev is not None:
+        args.stddev = sorted(args.stddev, key=lambda x: x.name)
     args.labels = sorted(args.labels)
 
 

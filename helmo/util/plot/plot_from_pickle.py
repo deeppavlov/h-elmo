@@ -110,9 +110,10 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-args.xselect = args.xselect[:2]
-if len(args.xselect) == 1:
-    args.xselect.append(float('inf'))
+if args.xselect is not None:
+    args.xselect = args.xselect[:2]
+    if len(args.xselect) == 1:
+        args.xselect.append(float('inf'))
 
 plot_data = pickle.load(args.plot_data)
 
