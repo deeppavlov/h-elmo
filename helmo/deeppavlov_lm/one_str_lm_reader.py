@@ -1,7 +1,7 @@
 import sys
 from typing import Dict, Tuple
 
-from helmo.util.deal_with_cephfs import add_cephfs_to_path
+from helmo.util.path_help import add_cephfs_to_path
 from helmo.util.interpreter import prepend_repo_2_sys_path
 
 sys.path = prepend_repo_2_sys_path('DeepPavlov')

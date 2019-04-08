@@ -16,7 +16,7 @@ from learning_to_learn.pupils.pupil import Pupil
 
 from learning_to_learn.tensors import compute_metrics_raw_lbls
 
-import helmo.util.tensor as tensor_ops
+import helmo.util.tensor_ops as tensor_ops
 
 
 class LmFastBatchGenerator(object):
@@ -483,6 +483,12 @@ class Rnn(Pupil):
                     intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
                     norm=self._corcov_norm,
                 )
+                self._hooks['correlation_values'] = tensor_ops.get_correlation_values(
+                    intermediate[0],
+                    reduced_axes=[0],
+                    cor_axis=2,
+                )
+                # self._hooks['correlation_distribution'] = tensor_ops
         return inp
 
     def _add_rnn_and_output_module(self, embeddings_by_gpu, training):
@@ -887,6 +893,7 @@ class Rnn(Pupil):
             saver=None,
 
             correlation=None,
+            correlation_values=None,
         )
         for metric_name in self._metrics:
             self._hooks[metric_name] = None

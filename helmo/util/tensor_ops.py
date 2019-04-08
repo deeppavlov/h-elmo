@@ -379,11 +379,144 @@ def covariance(tensor, reduced_axes, cov_axis):
 
 def correlation(tensor, reduced_axes, cor_axis, epsilon=1e-12):
     with tf.name_scope('correlation'):
+        nd = len(tensor.get_shape().as_list())
+        if not tf.contrib.framework.is_tensor(cor_axis):
+            cor_axis %= nd
+        if not tf.contrib.framework.is_tensor(reduced_axes):
+            reduced_axes = [a % nd for a in reduced_axes]
+        tensor = tf.cast(tensor, tf.float32)
         cov = covariance(tensor, reduced_axes, cor_axis)
         _, variance = tf.nn.moments(tensor, axes=reduced_axes, keep_dims=True)
         var_cross_mul = self_outer_product(variance, cor_axis)
         var_cross_mul = tf.reduce_sum(var_cross_mul, axis=reduced_axes)
-        return cov / tf.sqrt(var_cross_mul + epsilon)
+        return cov / tf.sqrt(var_cross_mul + tf.constant(epsilon))
+
+
+def get_low_triangle_mask(n):
+    with tf.name_scope('get_low_triangle_mask'):
+        r = tf.range(n)
+        row_indices = tf.tile(
+            tf.reshape(r, tf.concat([tf.reshape(n, [1]), [1]], 0)),
+            tf.concat([[1], tf.reshape(n, [1])], 0),
+        )
+        col_indices = tf.tile(
+            tf.reshape(r, tf.concat([[1], tf.reshape(n, [1])], 0)),
+            tf.concat([tf.reshape(n, [1]), [1]], 0),
+        )
+        return col_indices < row_indices
+
+
+def get_all_values_except_specified(tensor, excluded):
+    with tf.name_scope('get_all_values_except_specified'):
+        tensor = tf.reshape(tensor, [-1])
+        excluded = tf.reshape(excluded, [-1])
+        excluded_shape = tf.shape(excluded)
+        tensor_expanded = tf.reshape(tensor, [-1, 1])
+        multiples = tf.concat([[1], excluded_shape], 0)
+        tensor_expanded = tf.tile(tensor_expanded, multiples)
+        masks = tf.cast(tf.equal(tf.cast(tensor_expanded, tf.int32), tf.cast(excluded, tf.int32)), tf.int32)
+        mask = tf.reduce_sum(masks, [1])
+        mask = tf.cast(tf.cast(mask, dtype=tf.bool), dtype=tf.int32) - 1
+        return tf.boolean_mask(tensor, mask)
+
+
+def expand_multiple_dims(tensor, num_dims, axes):
+    """
+    Inserts dimensions of 1 in `tensor`. Old `tensor` dimensions are
+    moved to permuted to positions specified in `axes`. Number of dimensions
+    in result is equal to `num_dims`.
+    ```python
+    tensor = tf.constant([[1, 2], [3, 4]])
+    expand_multiple_dims(tensor, 4, [1, 3])  # [[[[1, 2]],
+                                             #   [[3, 4]]]]
+
+    expand_multiple_dims(tensor, 4, [3, 1])  # [[[[1, 3]],
+                                             #   [[2, 4]]]]
+    ```
+    :param tensor: a `Tensor`
+    :param num_dims: a `Tensor` of shape `[]`
+    :param axes: a 1D `Tensor`
+    :return: a `num_dims` dimensional `Tensor` with same data as `tensor`
+    """
+    with tf.name_scope('expand_multiple_dims'):
+        if not tf.contrib.framework.is_tensor(tensor):
+            tensor = tf.constant(tensor)
+        if not tf.contrib.framework.is_tensor(axes):
+            axes = tf.constant(axes, dtype=tf.int32)
+        sh = tf.shape(tensor, out_type=tf.int32)
+        nd = tf.shape(sh, out_type=tf.int32)[0]
+        with tf.device('/cpu:0'):
+            assert_axes_smaller_than_num_dims = tf.assert_less(
+                axes, num_dims, message='`axes` has to be less than `num_dims`')
+            check_num_dims = tf.assert_greater_equal(
+                num_dims, nd,
+                message='`num_dims` has to be greater or equal to number of dimensions in `tensor`'
+            )
+            ass_axes_bigger_or_equal_than_num_dims = tf.assert_greater_equal(axes, -num_dims)
+
+        axes %= num_dims
+
+        ones_for_expansion = tf.ones(tf.reshape(num_dims - nd, [1]), dtype=tf.int32)
+        shape_for_expansion = tf.concat([sh, ones_for_expansion], 0)
+
+        tensor = tf.reshape(tensor, shape_for_expansion)
+
+        updates = tf.range(0, num_dims, 1, dtype=tf.int32)
+        remained_positions = get_all_values_except_specified(tf.range(num_dims, dtype=tf.int32), axes)
+        indices = tf.concat([axes, remained_positions], 0)
+        indices = tf.reshape(indices, [-1, 1])
+        perm_shape = tf.reshape(num_dims, [1])
+        perm = tf.scatter_nd(indices, updates, perm_shape)
+
+        with tf.control_dependencies(
+                [check_num_dims, assert_axes_smaller_than_num_dims, ass_axes_bigger_or_equal_than_num_dims]
+        ):
+            return tf.transpose(tensor, perm=perm)
+
+
+def move_axes_to_front(tensor, axes):
+    nd = tf.shape(tf.shape(tensor))[0]
+    remained_axes = get_all_values_except_specified(tf.range(nd), axes)
+    perm = tf.concat([axes, remained_axes], 0)
+    return tf.transpose(tensor, perm=perm)
+
+
+def get_low_triangle_values(tensor, axes):
+    with tf.name_scope('get_low_triangle_values'):
+        sh = tf.shape(tensor)
+        with tf.device('/cpu:0'):
+            assert_op = tf.assert_equal(
+                sh[axes[0]],
+                sh[axes[1]],
+                message="Triangle can not be taken from not square matrix. "
+                        "Make sure that `axes` dims in `tensor` have equal size."
+            )
+        with tf.control_dependencies([assert_op]):
+            n = sh[axes[0]]
+            ndims = tf.shape(sh)[0]
+            axes %= ndims
+            r = tf.range(n)
+            rows = tf.reshape(r, [-1, 1])
+            cols = tf.reshape(r, [1, -1])
+            mask = tf.less(cols, rows)
+            tensor = move_axes_to_front(tensor, axes)
+            return tf.boolean_mask(tensor, mask)
+
+
+def get_corr_matrix_axes(reduced_axes, cor_axis):
+    with tf.name_scope('get_corr_matrix_axes'):
+        num_preceding_reduced = tf.reduce_sum(tf.cast(tf.less(reduced_axes, cor_axis), tf.int32))
+        return tf.stack([cor_axis - num_preceding_reduced, cor_axis - num_preceding_reduced + 1])
+
+
+def get_correlation_values(tensor, reduced_axes, cor_axis):
+    with tf.name_scope('get_correlation_values'):
+        nd = len(tensor.get_shape().as_list())
+        cor_axis %= nd
+        reduced_axes = [a % nd for a in reduced_axes]
+        corr = correlation(tensor, reduced_axes, cor_axis, epsilon=1e-12)
+        matrix_axes = get_corr_matrix_axes(reduced_axes, cor_axis)
+        return get_low_triangle_values(corr, matrix_axes)
 
 
 def corcov_loss(
@@ -431,6 +564,9 @@ def corcov_loss(
     """
     with tf.name_scope('corcov_loss'):
         f = correlation if punish == 'correlation' else covariance
+        tensor_nd = len(tensor.get_shape().as_list())
+        cor_axis %= tensor_nd
+        reduced_axes = [a % tensor_nd for a in reduced_axes]
         corcov = f(tensor, reduced_axes, cor_axis, epsilon=epsilon)
         nd = len(corcov.get_shape().as_list())
         perm = list(range(nd))

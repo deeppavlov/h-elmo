@@ -1,7 +1,7 @@
 import os
 import sys
 
-from helmo.util.deal_with_cephfs import check_cephfs
+from helmo.util.path_help import check_cephfs
 
 
 def extend_python_path_for_project():

@@ -1,5 +1,6 @@
 import os
 
+
 def split_path_entirely(path):
     splitted_path = list()
     head, tail = os.path.split(path)
@@ -60,3 +61,15 @@ def get_save_path_from_config_path(config_path, directory_with_configs, results_
         new_prefix_within_repo=results_directory_rel_to_repo_root
     )
     return os.path.splitext(config_in_results)[0]
+
+
+def add_cephfs_to_path(path):
+    if not isinstance(path, str):
+        path = str(path)
+    if check_cephfs() and path[0] == '/' and path[1:7] != "cephfs":
+        return "/cephfs" + path
+    return path
+
+
+def check_cephfs():
+    return "cephfs" in os.listdir('/')

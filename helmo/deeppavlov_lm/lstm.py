@@ -19,7 +19,7 @@ from deeppavlov.core.common.registry import register
 from deeppavlov.core.models.tf_model import TFModel
 from deeppavlov.core.common.log import get_logger
 
-from helmo.util.tensor import prepare_init_state, compose_save_list, compute_lstm_gru_stddevs, get_saved_state_vars
+from helmo.util.tensor_ops import prepare_init_state, compose_save_list, compute_lstm_gru_stddevs, get_saved_state_vars
 
 logger = get_logger(__name__)
 
