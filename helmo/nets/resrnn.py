@@ -488,6 +488,12 @@ class Rnn(Pupil):
                     reduced_axes=[0],
                     cor_axis=2,
                 )
+                self._hooks['correlation_values_1-2'] = tensor_ops.get_correlation_values_2t(
+                    intermediate[0],
+                    intermediate[1],
+                    reduced_axes=[0],
+                    cor_axis=2,
+                )
                 # self._hooks['correlation_distribution'] = tensor_ops
         return inp
 

@@ -12,7 +12,7 @@ from matplotlib import container
 import matplotlib.patches as mpatches
 
 import helmo.util.python as python
-from helmo.util.algo import SortedDict, _sorting_key_float_zeroth_element
+from helmo.util.algo import SortedDict, sorting_key_float_zeroth_element
 from learning_to_learn.useful_functions import synchronous_sort, create_path, get_pupil_evaluation_results, \
     BadFormattingError, all_combs, get_optimizer_evaluation_results, select_for_plot, convert, retrieve_lines, \
     add_index_to_filename_if_needed, nested2string, isnumber, add_scalar_iterable
@@ -260,7 +260,7 @@ class PlotData(SortedDict):
         return all([isnumber(k) for k in self])
 
     def set_float_sorting_key(self):
-        self.set_sorting_key(_sorting_key_float_zeroth_element)
+        self.set_sorting_key(sorting_key_float_zeroth_element)
 
     def labels_are_provided(self):
         there_is_labels = False
@@ -346,11 +346,16 @@ def get_linthresh(values: List) -> float:
 
 
 class PatchHandler:
+    def __init__(self, color=None):
+        self._color = color
+
     def legend_artist(self, legend, orig_handle, fontsize, handlebox):
         x0, y0 = handlebox.xdescent, handlebox.ydescent
         width, height = handlebox.width, handlebox.height
         patch = mpatches.Rectangle(
-            [x0, y0], width, height, facecolor=orig_handle.get_color(), transform=handlebox.get_transform()
+            [x0, y0], width, height,
+            facecolor=orig_handle.get_color() if self._color is None else self._color,
+            transform=handlebox.get_transform()
         )
         handlebox.add_artist(patch)
         return patch

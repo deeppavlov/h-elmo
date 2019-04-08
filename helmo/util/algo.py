@@ -45,11 +45,11 @@ def search_insert_position(sorted_seq, value, sorting_key=lambda x: x):
     return ins_pos
 
 
-def _sorting_key_zeroth_element(x):
+def sorting_key_zeroth_element(x):
     return x[0]
 
 
-def _sorting_key_float_zeroth_element(x):
+def sorting_key_float_zeroth_element(x):
     return float(x[0])
 
 
@@ -58,7 +58,7 @@ class SortedDict(MutableMapping):
 
     def __init__(self, *args, **kwargs):
         self._sorting_key = str
-        self._elements_sorting_key = _sorting_key_zeroth_element
+        self._elements_sorting_key = sorting_key_zeroth_element
         self._elements = []
         if len(args) == 1:
             try:

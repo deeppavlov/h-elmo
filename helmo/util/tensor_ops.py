@@ -369,6 +369,13 @@ def self_outer_product(tensor, axis):
         return tf.einsum(eq, tensor, tensor)
 
 
+def outer_product(tensor1, tensor2, axis):
+    with tf.name_scope('outer_product'):
+        num_dims = len(tensor1.get_shape().as_list())
+        eq = self_outer_product_eq(num_dims, axis)
+        return tf.einsum(eq, tensor1, tensor2)
+
+
 def covariance(tensor, reduced_axes, cov_axis):
     with tf.name_scope('covariance'):
         mean = tf.reduce_mean(tensor, axis=reduced_axes, keepdims=True)
@@ -388,6 +395,33 @@ def correlation(tensor, reduced_axes, cor_axis, epsilon=1e-12):
         cov = covariance(tensor, reduced_axes, cor_axis)
         _, variance = tf.nn.moments(tensor, axes=reduced_axes, keep_dims=True)
         var_cross_mul = self_outer_product(variance, cor_axis)
+        var_cross_mul = tf.reduce_sum(var_cross_mul, axis=reduced_axes)
+        return cov / tf.sqrt(var_cross_mul + tf.constant(epsilon))
+
+
+def covariance_2t(tensor1, tensor2, reduced_axes, cov_axis):
+    with tf.name_scope('covariance_2t'):
+        mean1 = tf.reduce_mean(tensor1, axis=reduced_axes, keepdims=True)
+        devs1 = tensor1 - mean1
+        mean2 = tf.reduce_mean(tensor2, axis=reduced_axes, keepdims=True)
+        devs2 = tensor2 - mean2
+        dev_prods = outer_product(devs1, devs2, cov_axis)
+        return tf.reduce_mean(dev_prods, axis=reduced_axes)
+
+
+def correlation_2t(tensor1, tensor2, reduced_axes, cor_axis, epsilon=1e-12):
+    with tf.name_scope('correlation_2t'):
+        nd = len(tensor1.get_shape().as_list())
+        if not tf.contrib.framework.is_tensor(cor_axis):
+            cor_axis %= nd
+        if not tf.contrib.framework.is_tensor(reduced_axes):
+            reduced_axes = [a % nd for a in reduced_axes]
+        tensor1 = tf.cast(tensor1, tf.float32)
+        tensor2 = tf.cast(tensor2, tf.float32)
+        cov = covariance_2t(tensor1, tensor2, reduced_axes, cor_axis)
+        _, variance1 = tf.nn.moments(tensor1, axes=reduced_axes, keep_dims=True)
+        _, variance2 = tf.nn.moments(tensor2, axes=reduced_axes, keep_dims=True)
+        var_cross_mul = outer_product(variance1, variance2, cor_axis)
         var_cross_mul = tf.reduce_sum(var_cross_mul, axis=reduced_axes)
         return cov / tf.sqrt(var_cross_mul + tf.constant(epsilon))
 
@@ -517,6 +551,15 @@ def get_correlation_values(tensor, reduced_axes, cor_axis):
         corr = correlation(tensor, reduced_axes, cor_axis, epsilon=1e-12)
         matrix_axes = get_corr_matrix_axes(reduced_axes, cor_axis)
         return get_low_triangle_values(corr, matrix_axes)
+
+
+def get_correlation_values_2t(tensor1, tensor2, reduced_axes, cor_axis):
+    with tf.name_scope('get_correlation_values'):
+        nd = len(tensor1.get_shape().as_list())
+        cor_axis %= nd
+        reduced_axes = [a % nd for a in reduced_axes]
+        corr = correlation_2t(tensor1, tensor2, reduced_axes, cor_axis, epsilon=1e-12)
+        return corr
 
 
 def corcov_loss(
