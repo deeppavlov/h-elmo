@@ -479,20 +479,39 @@ class Rnn(Pupil):
             #         intermediate[0], [0, 1], 2, reduction='mean', norm='abs'
             #     )
             if rnn_map['module_name'] == 'char_enc_dec':
+                # Mean correlation between neurons of hidden state of first LSTM
                 self._hooks['correlation'] = tensor_ops.corcov_loss(
                     intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
                     norm=self._corcov_norm,
                 )
+                # Correlation between neurons of hidden state of first LSTM. All values preserved no averaging.
                 self._hooks['correlation_values'] = tensor_ops.get_correlation_values(
                     intermediate[0],
                     reduced_axes=[0],
                     cor_axis=2,
                 )
+                # Correlation between neurons of hidden state of first LSTM
+                # and neurons of hidden state of second LSTM. All values preserved no averaging.
                 self._hooks['correlation_values_1-2'] = tensor_ops.get_correlation_values_2t(
                     intermediate[0],
                     intermediate[1],
                     reduced_axes=[0],
                     cor_axis=2,
+                )
+                # Mean correlation between neurons of hidden state of second LSTM
+                self._hooks['correlation2'] = tensor_ops.corcov_loss(
+                    intermediate[1], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
+                    norm=self._corcov_norm,
+                )
+                # Mean correlation between neurons of hidden state of first LSTM and
+                # neurons of hidden state of second layer
+                self._hooks['correlation12'] = tf.reduce_mean(
+                    tensor_ops.get_correlation_values_2t(
+                        intermediate[0],
+                        intermediate[1],
+                        reduced_axes=[0],
+                        cor_axis=2,
+                    )**2
                 )
                 # self._hooks['correlation_distribution'] = tensor_ops
         return inp
@@ -900,7 +919,10 @@ class Rnn(Pupil):
 
             correlation=None,
             correlation_values=None,
+            correlation2=None,
+            correlation12=None,
         )
+        self._hooks['correlation_values_1-2'] = None
         for metric_name in self._metrics:
             self._hooks[metric_name] = None
             self._hooks['validation_' + metric_name] = None

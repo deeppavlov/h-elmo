@@ -98,8 +98,7 @@ parser.add_argument(
     "--save_formats",
     nargs='+',
     help="List of formats in which plot will be saved. Possible options are"
-         " (1)png, (2)pdf. At list one format has to specified. if you wish to"
-         " only show plot use -s option.",
+         " (1)png, (2)pdf. At list one format has to specified.",
     default=['pdf', 'png'],
 )
 parser.add_argument(
