@@ -12,7 +12,7 @@ from matplotlib import container
 import matplotlib.patches as mpatches
 
 import helmo.util.python as python
-from helmo.util.algo import SortedDict, sorting_key_float_zeroth_element
+from helmo.util.algo import SortedDict, sorting_key_float
 from learning_to_learn.useful_functions import synchronous_sort, create_path, get_pupil_evaluation_results, \
     BadFormattingError, all_combs, get_optimizer_evaluation_results, select_for_plot, convert, retrieve_lines, \
     add_index_to_filename_if_needed, nested2string, isnumber, add_scalar_iterable
@@ -260,7 +260,7 @@ class PlotData(SortedDict):
         return all([isnumber(k) for k in self])
 
     def set_float_sorting_key(self):
-        self.set_sorting_key(sorting_key_float_zeroth_element)
+        self.set_sorting_key(sorting_key_float)
 
     def labels_are_provided(self):
         there_is_labels = False
@@ -379,6 +379,10 @@ def plot_outer_legend(
         show=False,
         axes_to_invert=(),
         select=None,
+        dpi=300,
+        size_factor=1,
+        grid=False,
+        which_grid='major',
 ):
     if shifts is None:
         shifts = [0, 0]
@@ -454,6 +458,8 @@ def plot_outer_legend(
     plt.xscale(xscale, **scale_kwargs)
     plt.yscale(yscale)
 
+    plt.grid(b=grid, which=which_grid)
+
     if plot_data.labels_are_provided():
         # print('labels are provided')
         if legend_pos == 'outside':
@@ -488,6 +494,9 @@ def plot_outer_legend(
         bbox_extra_artists = [lgd]
     else:
         bbox_extra_artists = ()
+    fig = plt.gcf()
+    size = fig.get_size_inches()
+    fig.set_size_inches(size[0]*size_factor, size[1]*size_factor)
     if save:
         for format in formats:
             if format == 'pdf':
@@ -497,7 +506,12 @@ def plot_outer_legend(
             else:
                 fig_path = None
             create_path(fig_path, file_name_is_in_path=True)
-            r = plt.savefig(fig_path, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
+            r = plt.savefig(
+                fig_path,
+                bbox_extra_artists=bbox_extra_artists,
+                bbox_inches='tight',
+                dpi=dpi,
+            )
     if show:
         plt.show()
     if description is not None:
