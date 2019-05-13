@@ -694,8 +694,7 @@ class Rnn(Pupil):
                     rnn_map['num_nodes'][branch['output_idx']-1],
                     input_sizes[branch['input_idx']],
                     input_sizes[branch['output_idx']+1],
-                    add_adapter_between_branches=not self._backward_connections or \
-                        (self._backward_connections and self._matrix_dim_adjustment),
+                    add_adapter_between_branches=self._matrix_dim_adjustment,
                 )
 
     def _build_rnn_branch_variables(self):
@@ -895,7 +894,10 @@ class Rnn(Pupil):
         else:
             self._network_type = None
         self._backward_connections = kwargs.get('backward_connections', False)
-        self._matrix_dim_adjustment = kwargs.get('matrix_dim_adjustment', False)
+        if 'matrix_dim_adjustment' not in kwargs:
+            self._matrix_dim_adjustment = not self._backward_connections
+        else:
+            self._matrix_dim_adjustment = kwargs.get('matrix_dim_adjustment', False)
 
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 
