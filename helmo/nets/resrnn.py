@@ -427,6 +427,43 @@ class Rnn(Pupil):
         self._distribute_states(state, rnn_map, new_state_name, gpu_name)
         return out
 
+    def _add_correlation_hooks(self, intermediate):
+        # Mean correlation between neurons of hidden state of first LSTM
+        self._hooks['correlation'] = tensor_ops.corcov_loss(
+            intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
+            norm=self._corcov_norm,
+        )
+        # Correlation between neurons of hidden state of first LSTM. All values preserved no averaging.
+        self._hooks['correlation_values'] = tensor_ops.get_correlation_values(
+            intermediate[0],
+            reduced_axes=[0],
+            cor_axis=2,
+        )
+        # Correlation between neurons of hidden state of first LSTM
+        # and neurons of hidden state of second LSTM. All values preserved no averaging.
+        self._hooks['correlation_values_1-2'] = tensor_ops.get_correlation_values_2t(
+            intermediate[0],
+            intermediate[1],
+            reduced_axes=[0],
+            cor_axis=2,
+        )
+        # Mean correlation between neurons of hidden state of second LSTM
+        self._hooks['correlation2'] = tensor_ops.corcov_loss(
+            intermediate[1], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
+            norm=self._corcov_norm,
+        )
+        # Mean correlation between neurons of hidden state of first LSTM and
+        # neurons of hidden state of second layer
+        self._hooks['correlation12'] = tf.reduce_mean(
+            tensor_ops.get_correlation_values_2t(
+                intermediate[0],
+                intermediate[1],
+                reduced_axes=[0],
+                cor_axis=2,
+            ) ** 2
+        )
+        # self._hooks['correlation_distribution'] = tensor_ops
+
     def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
             rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
@@ -479,41 +516,7 @@ class Rnn(Pupil):
             #         intermediate[0], [0, 1], 2, reduction='mean', norm='abs'
             #     )
             if rnn_map['module_name'] == 'char_enc_dec':
-                # Mean correlation between neurons of hidden state of first LSTM
-                self._hooks['correlation'] = tensor_ops.corcov_loss(
-                    intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
-                    norm=self._corcov_norm,
-                )
-                # Correlation between neurons of hidden state of first LSTM. All values preserved no averaging.
-                self._hooks['correlation_values'] = tensor_ops.get_correlation_values(
-                    intermediate[0],
-                    reduced_axes=[0],
-                    cor_axis=2,
-                )
-                # Correlation between neurons of hidden state of first LSTM
-                # and neurons of hidden state of second LSTM. All values preserved no averaging.
-                self._hooks['correlation_values_1-2'] = tensor_ops.get_correlation_values_2t(
-                    intermediate[0],
-                    intermediate[1],
-                    reduced_axes=[0],
-                    cor_axis=2,
-                )
-                # Mean correlation between neurons of hidden state of second LSTM
-                self._hooks['correlation2'] = tensor_ops.corcov_loss(
-                    intermediate[1], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
-                    norm=self._corcov_norm,
-                )
-                # Mean correlation between neurons of hidden state of first LSTM and
-                # neurons of hidden state of second layer
-                self._hooks['correlation12'] = tf.reduce_mean(
-                    tensor_ops.get_correlation_values_2t(
-                        intermediate[0],
-                        intermediate[1],
-                        reduced_axes=[0],
-                        cor_axis=2,
-                    )**2
-                )
-                # self._hooks['correlation_distribution'] = tensor_ops
+                self._add_correlation_hooks(intermediate)
         return inp
 
     def _add_rnn_and_output_module(self, embeddings_by_gpu, training):
