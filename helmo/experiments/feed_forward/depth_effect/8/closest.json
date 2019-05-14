@@ -29,7 +29,7 @@
         100
       ],
       "input_idx": null,
-      "output_idx": null,
+      "output_idx": null
     },
     "num_output_nodes": [],
     "emb_size": 100,
