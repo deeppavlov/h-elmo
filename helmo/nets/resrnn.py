@@ -464,6 +464,10 @@ class Rnn(Pupil):
         )
         # self._hooks['correlation_distribution'] = tensor_ops
 
+    def _add_hidden_state_hook(self, hidden_states, module_name):
+        for i, s in enumerate(hidden_states):
+            self._hooks[self._hook_templates['hidden_states'].format(module_name, i)] = s
+
     def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
             rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
@@ -515,8 +519,10 @@ class Rnn(Pupil):
             #     self._hooks['correlation'] = tensor_ops.corcov_loss(
             #         intermediate[0], [0, 1], 2, reduction='mean', norm='abs'
             #     )
-            if rnn_map['module_name'] == 'char_enc_dec':
-                self._add_correlation_hooks(intermediate)
+            if inp.device == '/device:GPU:0':
+                if rnn_map['module_name'] == 'char_enc_dec':
+                    self._add_correlation_hooks(intermediate)
+                self._add_hidden_state_hook(intermediate, rnn_map['module_name'])
         return inp
 
     def _add_rnn_and_output_module(self, embeddings_by_gpu, training):
@@ -850,6 +856,15 @@ class Rnn(Pupil):
                 )
             return inputs_by_device, labels_by_device
 
+    def _init_hidden_state_hook_entries(self, rnn_map):
+        name = rnn_map['module_name']
+        num_layers = len(rnn_map['num_nodes'])
+        for i in range(num_layers):
+            self._hooks[self._hook_templates['hidden_states'].format(name, i)] = None
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
+                self._init_hidden_state_hook_entries(branch)
+
     def __init__(self, **kwargs):
 
         if 'rnn_map' in kwargs:
@@ -904,6 +919,10 @@ class Rnn(Pupil):
 
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 
+        self._hook_templates = dict(
+            hidden_states='{}_{}_hidden_state'
+        )
+
         self._hooks = dict(
             inputs=None,
             labels=None,
@@ -931,6 +950,7 @@ class Rnn(Pupil):
         for metric_name in self._metrics:
             self._hooks[metric_name] = None
             self._hooks['validation_' + metric_name] = None
+        self._init_hidden_state_hook_entries(self._rnn_map)
 
         self._gpu_names = ['/gpu:%s' % i for i in range(self._num_gpus)]
         if self._num_gpus == 1:
