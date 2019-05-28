@@ -1,6 +1,68 @@
 import os
 
 
+def splitall(path):
+    allparts = []
+    while 1:
+        parts = os.path.split(path)
+        if parts[0] == path:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == path: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            path = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts
+
+
+def pad_lists(lists, value):
+    n = max([len(ls) for ls in lists])
+    padded = []
+    for ls in lists:
+        ls = ls.copy()
+        ls += [value] * (n - len(ls))
+        padded.append(ls)
+    return padded
+
+
+def _get_index_of_first_non_matching(lists):
+    num_lists = len(lists)
+    i = 0
+    while True:
+        non_matching_elements_found = False
+        for j in range(num_lists - 1):
+            list_1 = lists[j]
+            list_2 = lists[j + 1]
+            if len(list_1) <= i or len(list_2) <= i:
+                return None
+            if list_1[i] != list_2[i]:
+                non_matching_elements_found = True
+        if non_matching_elements_found:
+            return i
+        i += 1
+
+
+def _get_index_of_last_non_matching(lists):
+    padded_lists = pad_lists(lists, None)
+    n = len(padded_lists[0])
+    for ls in padded_lists:
+        ls.reverse()
+    i = _get_index_of_first_non_matching(padded_lists)
+    if i is None:
+        return None
+    return n - i - 1
+
+
+def labels_from_paths(paths):
+    splitted_paths = [splitall(p) for p in paths]
+    i = _get_index_of_first_non_matching(splitted_paths)
+    j = _get_index_of_last_non_matching(splitted_paths)
+    labels = [os.path.join(*p[i:j+1]) for p in splitted_paths]
+    return labels
+
+
 def split_path_entirely(path):
     splitted_path = list()
     head, tail = os.path.split(path)

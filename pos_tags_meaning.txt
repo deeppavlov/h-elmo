@@ -1,0 +1,39 @@
+CC coordinating conjunction
+CD cardinal digit
+DT determiner
+EX existential ("there" is)
+FW foreign word
+IN preposition/subordinating conjunction
+JJ adjective, ‘big’
+JJR adjective, comparative
+JJS adjective, superlative
+LS list marker 1)
+MD modal could, will
+NN noun, singular ‘desk’
+NNS noun plural ‘desks’
+NNP proper noun
+NNPS proper noun
+PDT predeterminer ‘all the kids’
+POS possessive ending parent’s
+PRP personal pronoun
+PRP$ possessive pronoun
+RB adverb
+RBR adverb, comparative
+RBS adverb, superlative
+RP particle, give up
+SYM single symbol
+TO to go ‘to’ the store.
+UH interjection, errrrrrrrm
+VB verb, base form
+VBD verb, past tense
+VBG verb, gerund
+VBN verb, past participle
+VBP verb, sing. present, non-3d
+VBZ verb, 3rd person sing. present
+WDT wh-determiner, which
+WP wh-pronoun who, what
+WP$ possessive wh-pronoun, whose
+WRB wh-abverb where, when
+`` opening quotation mark
+'' closing quotation mark
+$ dollar

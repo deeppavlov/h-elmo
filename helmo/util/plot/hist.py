@@ -5,8 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import container
 from matplotlib.patches import Rectangle
-from plot_helpers import PatchHandler, COLORS
 
+import helmo.util.path_help as path_help
+from helmo.util.modifiers import describe_pos_tag
+import plot_helpers
+from plot_helpers import PatchHandler, COLORS
 from learning_to_learn.useful_functions import create_path
 
 
@@ -19,7 +22,7 @@ parser.add_argument(
 parser.add_argument(
     '--labels',
     help='Labels of data.',
-    nargs='+',
+    nargs='*',
 )
 parser.add_argument(
     "--xlabel",
@@ -30,6 +33,13 @@ parser.add_argument(
     "--ylabel",
     help="Label on vertical axis. Default is 'density'",
     default='density',
+)
+parser.add_argument(
+    "--nbins",
+    "-b",
+    help="Number of bins for points.",
+    type=int,
+    default=1000
 )
 parser.add_argument(
     '--output',
@@ -49,6 +59,25 @@ parser.add_argument(
     help='If provided plots are not saved but showed.',
     action='store_true',
 )
+parser.add_argument(
+    "--density_plot",
+    "-d",
+    help="If provided instead of histogram density plot is drawn. "
+         "The bancdwidth is computed from `nbins` param by dividing "
+         "data values diapason.",
+    action="store_true",
+)
+parser.add_argument(
+    "--no_grid",
+    "-g",
+    help="If provided grid is not drawn on the plot.",
+    action="store_true",
+)
+parser.add_argument(
+    "--label_modifier",
+    "-m",
+    help="A right hand part of an equation which modifies label.",
+)
 args = parser.parse_args()
 
 
@@ -65,55 +94,75 @@ def load(file_name):
     return data.reshape([-1])
 
 
+if args.labels is None:
+    labels = [None] * len(args.files)
+else:
+    labels = args.labels + path_help.labels_from_paths(args.files[len(args.labels):])
+
+if args.label_modifier is not None:
+    labels = [eval(args.label_modifier.format(repr(lbl))) for lbl in labels]
+
+
 data = {}
-for label, file_name in zip(args.labels, args.files):
+for label, file_name in zip(labels, args.files):
     data[label] = load(file_name)
 
-for (label, x), color in zip(data.items(), COLORS):
-    line = plt.hist(x, bins=1000, density=True, color=color, label=label, histtype=u'step')
+if args.density_plot:
+    dt = np.array(list(data.values()))
+    bandwidth = (np.max(dt) - np.min(dt)) / args.nbins
 
-# print('labels are provided')
-if args.lgd == 'outside':
-    pos_dict = dict(
-        bbox_to_anchor=(1.05, 1),
-        loc=2,
-    )
-elif args.lgd == 'upper_right':
-    pos_dict = dict(
-        bbox_to_anchor=(.95, .95),
-        loc=1,
-    )
-elif args.lgd == 'upper_left':
-    pos_dict = dict(
-        bbox_to_anchor=(.05, .95),
-        loc=2,
-    )
+for (label, x), color in zip(data.items(), COLORS):
+    if args.density_plot:
+        line = plot_helpers.density_plot(x, bandwidth, label, color)
+    else:
+        line = plt.hist(x, bins=args.nbins, density=True, color=color, label=label, histtype=u'step')
 
 plt.xlabel(args.xlabel)
 plt.ylabel(args.ylabel)
+if not args.no_grid:
+    plt.grid()
 
-ax = plt.gca()
-handles, labels = ax.get_legend_handles_labels()
-handler_map = dict(
-    zip(
-        handles,
-        [
-            PatchHandler(color=color) for _, color in
-            zip(
-                sorted(handles, key=lambda x: x.get_label()),
-                COLORS
-            )
-        ]
+if args.labels is not None:
+    # print('labels are provided')
+    if args.lgd == 'outside':
+        pos_dict = dict(
+            bbox_to_anchor=(1.05, 1),
+            loc=2,
+        )
+    elif args.lgd == 'upper_right':
+        pos_dict = dict(
+            bbox_to_anchor=(.95, .95),
+            loc=1,
+        )
+    elif args.lgd == 'upper_left':
+        pos_dict = dict(
+            bbox_to_anchor=(.05, .95),
+            loc=2,
+        )
+    ax = plt.gca()
+    handles, labels = ax.get_legend_handles_labels()
+    handler_map = dict(
+        zip(
+            handles,
+            [
+                PatchHandler(color=color) for _, color in
+                zip(
+                    sorted(handles, key=lambda x: x.get_label()),
+                    COLORS
+                )
+            ]
+        )
     )
-)
-lgd = ax.legend(
-    # handles,
-    # labels,
-    **pos_dict,
-    borderaxespad=0.,
-    handler_map=handler_map
-)
-bbox_extra_artists = [lgd]
+    lgd = ax.legend(
+        # handles,
+        # labels,
+        **pos_dict,
+        borderaxespad=0.,
+        handler_map=handler_map
+    )
+    bbox_extra_artists = [lgd]
+else:
+    bbox_extra_artists = []
 
 if not args.show:
     for format in ['pdf', 'png']:

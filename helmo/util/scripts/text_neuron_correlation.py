@@ -112,7 +112,7 @@ def get_and_save_stats(data, markup, tags, directory):
 
 
 def remove_tags_with_small_counts(counter):
-    for tag in counter:
+    for tag in list(counter.keys()):
         if counter[tag] < 2:
             del counter[tag]
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
 
     markup = mark_up_spaces_with_pos_in_text8(words, tags, len(text))
     markup = markup[args.start:args.start + args.length]
-    tag_counter = Counter(tags)
+    tag_counter = Counter(markup)
     del tag_counter[0]
     remove_tags_with_small_counts(tag_counter)
     unique_tags = list(tag_counter.keys()) if args.tags is None else args.tags

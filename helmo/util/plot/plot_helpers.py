@@ -6,6 +6,8 @@ import itertools
 from collections import UserDict
 from typing import List
 
+import numpy as np
+from scipy.stats import gaussian_kde
 from matplotlib import pyplot as plt, rc
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib import container
@@ -690,3 +692,13 @@ def plot_lines_from_diff_hp_searches(
         plot_outer_legend(
             plot_data, None, xlabel, ylabel, xscale, yscale, file_name_without_ext, style
         )
+
+
+def density_plot(data, bandwidth, label, color):
+    min_ = min(data)
+    max_ = max(data)
+    xs = np.linspace(min_, max_, int((max_ - min_) / bandwidth))
+
+    density = gaussian_kde(data)
+    density.covariance_factor = lambda: bandwidth
+    return plt.plot(xs, density(np.reshape(xs, (1, -1))), label=label, color=color)
