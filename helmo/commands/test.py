@@ -95,7 +95,10 @@ n = len(restore_paths)
 for i in range(n):
     launch_folder = str(i)
     if str(i) not in finished_launches:
-        restore_path = restore_paths[int(launch_folder)]
+        try:
+            restore_path = restore_paths[int(launch_folder)]
+        except KeyError:
+            continue
         print("LAUNCH NUMBER %s" % launch_folder)
         print('RESTORING FROM {}'.format(restore_path))
         q = mp.Queue()

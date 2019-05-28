@@ -43,7 +43,7 @@
     "backward_connections": false
   },
   "restore_paths": {
-    "paths": ["0"],
+    "paths": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
     "prefix": "~/h-elmo/expres/resrnn/depth_effect/4/closest",
     "postfix": "checkpoints/best"
   },
