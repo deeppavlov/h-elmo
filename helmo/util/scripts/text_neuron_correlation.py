@@ -61,6 +61,7 @@ def get_matches(activations, markup):
 
 
 def compute_stats(data, markup_for_tag):
+    markup_for_tag = np.array(markup_for_tag)
     stats = {}
     stats['markup'] = markup_for_tag
     stats['relevant_markup'] = list(filter(lambda x: x != 0, markup_for_tag))
@@ -174,7 +175,8 @@ if __name__ == '__main__':
     parser.add_argument(
         "--tags",
         "-t",
-        help="Tags to process. You should specify at list one.",
+        help="Tags to process. You should specify at list one. By default all tags are "
+             "processed.",
         nargs='+',
     )
     parser.add_argument(

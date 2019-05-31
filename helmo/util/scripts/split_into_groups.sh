@@ -21,5 +21,9 @@ for a in "${list[@]}"; do
   fi
 done
 
+if [[ "${#group[@]}" -gt 0 ]]; then
+  groups+=("${group[*]}")
+fi
+
 groups=$( IFS=$'\n'; echo "${groups[*]}" )
 echo "$groups"

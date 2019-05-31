@@ -108,7 +108,7 @@ for label, file_name in zip(labels, args.files):
     data[label] = load(file_name)
 
 if args.density_plot:
-    dt = np.array(list(data.values()))
+    dt = np.concatenate([np.reshape(array, (-1,)) for array in data.values()], 0)
     bandwidth = (np.max(dt) - np.min(dt)) / args.nbins
 
 for (label, x), color in zip(data.items(), COLORS):

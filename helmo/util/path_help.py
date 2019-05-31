@@ -1,4 +1,5 @@
 import os
+import sys
 
 
 def splitall(path):
@@ -18,6 +19,8 @@ def splitall(path):
 
 
 def pad_lists(lists, value):
+    if len(lists) == 0:
+        return []
     n = max([len(ls) for ls in lists])
     padded = []
     for ls in lists:
@@ -29,8 +32,13 @@ def pad_lists(lists, value):
 
 def _get_index_of_first_non_matching(lists):
     num_lists = len(lists)
+    if num_lists < 2:
+        return None
+    max_len = max([len(ls) for ls in lists])
     i = 0
     while True:
+        if i >= max_len:
+            return None
         non_matching_elements_found = False
         for j in range(num_lists - 1):
             list_1 = lists[j]
@@ -45,6 +53,8 @@ def _get_index_of_first_non_matching(lists):
 
 
 def _get_index_of_last_non_matching(lists):
+    if len(lists) == 0:
+        return None
     padded_lists = pad_lists(lists, None)
     n = len(padded_lists[0])
     for ls in padded_lists:
@@ -56,9 +66,15 @@ def _get_index_of_last_non_matching(lists):
 
 
 def labels_from_paths(paths):
+    with open('log.txt', 'a') as f:
+        print(paths, file=f)
+    if len(paths) == 0:
+        return []
     splitted_paths = [splitall(p) for p in paths]
     i = _get_index_of_first_non_matching(splitted_paths)
     j = _get_index_of_last_non_matching(splitted_paths)
+    if i is None:
+        return None
     labels = [os.path.join(*p[i:j+1]) for p in splitted_paths]
     return labels
 

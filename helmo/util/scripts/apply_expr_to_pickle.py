@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     'files',
@@ -36,7 +37,9 @@ arrays = []
 for file in args.files:
     arrays.append(pickle.load(file))
 
-result = eval(args.code.format(*args.files))
+names = ['arrays[{}]'.format(i) for i in range(len(arrays))]
 
-with open(args.output) as f:
+result = eval(args.code.format(*names))
+
+with open(args.output, 'wb') as f:
     pickle.dump(result, f)

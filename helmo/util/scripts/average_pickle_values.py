@@ -1,3 +1,4 @@
+import os
 import argparse
 import pickle
 
@@ -67,6 +68,10 @@ N = for_averaging.shape[0]
 m = np.mean(for_averaging, axis=0, keepdims=False)
 s = np.std(for_averaging, axis=0, keepdims=False, ddof=1)
 sm = s / N**0.5
+
+os.makedirs(os.path.split(args.mean)[0], exist_ok=True)
+os.makedirs(os.path.split(args.stddev)[0], exist_ok=True)
+os.makedirs(os.path.split(args.stderr_of_mean)[0], exist_ok=True)
 
 with open(args.mean, 'wb') as f:
     pickle.dump(m, f)

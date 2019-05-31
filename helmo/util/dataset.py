@@ -109,3 +109,15 @@ def get_datasets_using_config(dataset_config):
         valid_datasets[dataset_name] = get_dataset_text(text_config)
     train_dataset = dict(train=get_dataset_text(dataset_config['train']))
     return test_datasets, valid_datasets, train_dataset
+
+
+def load_tag_descriptions(tag_file):
+    with open(tag_file) as f:
+        lines = f.readlines()
+    descriptions = {}
+    for line in filter(lambda x: len(x) > 0, lines):
+        words = line.split()
+        tag = words[0]
+        description = ' '.join(words[1:])
+        descriptions[tag] = description
+    return descriptions

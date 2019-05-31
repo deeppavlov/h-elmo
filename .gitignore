@@ -1,6 +1,7 @@
 .ipynb_checkpoints/
 .idea/
 notes/.*
+misc/
 datasets/
 dataset_tags/
 results/
@@ -11,6 +12,7 @@ personachat/
 expres/
 testres/
 reserve/
+misc/
 log
 helmo/launch/results/
 helmo/interact/pkg/
