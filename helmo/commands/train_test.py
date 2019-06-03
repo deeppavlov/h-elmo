@@ -48,9 +48,13 @@ metrics, launches_for_testing, trained_launches = helmo.util.results.load_tt_res
 
 test_datasets, valid_datasets, train_dataset = helmo.util.dataset.get_datasets_using_config(config['dataset'])
 
+text = ''
+for datasets in [test_datasets, valid_datasets, train_dataset]:
+    for txt in datasets.values():
+        text += txt
 vocabulary, vocabulary_size = helmo.util.dataset.get_vocab(
     config['dataset']['vocab_path'],
-    helmo.util.dataset.get_text(config['dataset']['path']),
+    text,
 )
 
 env = Environment(Net, BatchGenerator, vocabulary=vocabulary)

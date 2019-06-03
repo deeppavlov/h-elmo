@@ -441,27 +441,29 @@ class Rnn(Pupil):
         )
         # Correlation between neurons of hidden state of first LSTM
         # and neurons of hidden state of second LSTM. All values preserved no averaging.
-        self._hooks['correlation_values_1-2'] = tensor_ops.get_correlation_values_2t(
-            intermediate[0],
-            intermediate[1],
-            reduced_axes=[0],
-            cor_axis=2,
-        )
-        # Mean correlation between neurons of hidden state of second LSTM
-        self._hooks['correlation2'] = tensor_ops.corcov_loss(
-            intermediate[1], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
-            norm=self._corcov_norm,
-        )
-        # Mean correlation between neurons of hidden state of first LSTM and
-        # neurons of hidden state of second layer
-        self._hooks['correlation12'] = tf.reduce_mean(
-            tensor_ops.get_correlation_values_2t(
+        if len(intermediate) >= 2:
+            self._hooks['correlation_values_1-2'] = tensor_ops.get_correlation_values_2t(
                 intermediate[0],
                 intermediate[1],
                 reduced_axes=[0],
                 cor_axis=2,
-            ) ** 2
-        )
+            )
+            # Mean correlation between neurons of hidden state of second LSTM
+            self._hooks['correlation2'] = tensor_ops.corcov_loss(
+                intermediate[1], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
+                norm=self._corcov_norm,
+            )
+            # Mean correlation between neurons of hidden state of first LSTM and
+            # neurons of hidden state of second layer
+
+            self._hooks['correlation12'] = tf.reduce_mean(
+                tensor_ops.get_correlation_values_2t(
+                    intermediate[0],
+                    intermediate[1],
+                    reduced_axes=[0],
+                    cor_axis=2,
+                ) ** 2
+            )
         # self._hooks['correlation_distribution'] = tensor_ops
 
     def _add_hidden_state_hook(self, hidden_states, module_name):
@@ -504,7 +506,11 @@ class Rnn(Pupil):
                 #         )
                 #
                 #     s = tuple(ps)
-                inp, new_s = rnn(inp, initial_state=s, training=training)
+                old_inp, new_s = rnn(inp, initial_state=s, training=training)
+                if self._residual_connections and not self._matrix_dim_adjustment:
+                    inp = old_inp + self._adjust_dim(inp, old_inp)
+                else:
+                    inp = old_inp
                 if rnn_map['input_idx'] is not None or rnn_idx < len(rnn_map['rnns']) - 1:
                     inp = tf.nn.dropout(inp, keep_prob=1. - self._reg_placeholders['dropout_rate'])
                 intermediate.append(inp)
@@ -916,6 +922,7 @@ class Rnn(Pupil):
             self._matrix_dim_adjustment = not self._backward_connections
         else:
             self._matrix_dim_adjustment = kwargs.get('matrix_dim_adjustment', False)
+        self._residual_connections = kwargs.get('residual_connections', False)
 
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 
