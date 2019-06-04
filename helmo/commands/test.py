@@ -25,7 +25,15 @@ parser.add_argument(
          " directory testres in repo root.",
     action='store_true',
 )
+parser.add_argument(
+    "--no_logging",
+    help="If provided tf logs are not shown. Errors are still shown.",
+    action="store_true",
+)
 args = parser.parse_args()
+
+if args.no_logging:
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 config_path = args.config_path
 
