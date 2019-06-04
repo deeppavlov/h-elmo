@@ -222,14 +222,14 @@ class Rnn(Pupil):
                         outputs.append(x)
         return outputs
 
-    def _adjust_dim(self, inp, target, matrix=None, bias=None):
-        # print("(Rnn._adjust_dim)inp:", inp)
+    def _adjust_last_dim(self, inp, target, matrix=None, bias=None):
+        # print("(Rnn._adjust_last_dim)inp:", inp)
         # print(inp.get_shape())
         # print(inp.get_shape().as_list(), end='\n'*2)
-        # print("(Rnn._adjust_dim)target:", target)
+        # print("(Rnn._adjust_last_dim)target:", target)
         # print(target.get_shape())
         # print(target.get_shape().as_list(), end='\n'*2)
-        # print("(Rnn._adjust_dim)matrix:", matrix)
+        # print("(Rnn._adjust_last_dim)matrix:", matrix)
         # print(matrix.get_shape())
         # print(matrix.get_shape().as_list())
         # print('***************')
@@ -240,7 +240,18 @@ class Rnn(Pupil):
                 return tf.cond(
                     tf.shape(inp)[-1] > tf.shape(target)[-1],
                     true_fn=lambda: tensor_ops.reduce_last_dim(inp, target),
-                    false_fn=lambda: tensor_ops.increase_last_dim(inp, target)
+                    false_fn=lambda: tensor_ops.tile_to_match_target(inp, target)
+                )
+
+    def _adjust_last_dim_v2(self, inp, target_dim, matrix=None, bias=None):
+        if self._matrix_dim_adjustment:
+            return tf.einsum('ijk,kl->ijl', inp, matrix) + bias
+        else:
+            with tf.name_scope('adjust_dim'):
+                return tf.cond(
+                    tf.shape(inp)[-1] > target_dim,
+                    true_fn=lambda: tensor_ops.reduce_last_dim_v2(inp, target_dim),
+                    false_fn=lambda: tensor_ops.adjust_last_dim(inp, target_dim)
                 )
 
     def _add_saved_state(self, rnn_map, gpu_name, state_name):
@@ -286,7 +297,7 @@ class Rnn(Pupil):
                         else state[branch[new_state_name][gpu_name]][0][0]
                     am = branch['in_back_adapter_matrix'] if 'in_back_adapter_matrix' in branch else None
                     ab = branch['in_back_adapter_bias'] if 'in_back_adapter_bias' in branch else None
-                    x += self._adjust_dim(s, x, matrix=am, bias=ab)
+                    x += self._adjust_last_dim(s, x, matrix=am, bias=ab)
         return x
 
     def _distribute_states(self, state, rnn_map, new_state_name, gpu_name):
@@ -331,7 +342,7 @@ class Rnn(Pupil):
                         )
                         am = branch['adapter_matrix'] if 'adapter_matrix' in branch else None
                         ab = branch['adapter_bias'] if 'adapter_bias' in branch else None
-                        x += self._adjust_dim(branch_res, x, matrix=am, bias=ab,)
+                        x += self._adjust_last_dim(branch_res, x, matrix=am, bias=ab, )
                         branch_idx += 1
                     with tf.name_scope('add_backward_connection'):
                         if rnn_idx == branch_length - 1:
@@ -339,14 +350,14 @@ class Rnn(Pupil):
                                 st = back_state if self._rnn_type == 'gru' else back_state[0]
                                 am = rnn_map['out_back_adapter_matrix'] if 'out_back_adapter_matrix' in rnn_map else None
                                 ab = rnn_map['out_back_adapter_bias'] if 'out_back_adapter_bias' in rnn_map else None
-                                x += self._adjust_dim(st, x, matrix=am, bias=ab,)
+                                x += self._adjust_last_dim(st, x, matrix=am, bias=ab, )
                         else:
                             st = state_list[rnn_idx + 1] if self._rnn_type == 'gru' else state_list[rnn_idx + 1][0]
                             am = rnn_map['intermediate_back_adapter_matrices'][rnn_idx] \
                                 if 'intermediate_back_adapter_matrices' in rnn_map else None
                             ab = rnn_map['intermediate_back_adapter_biases'][rnn_idx] \
                                 if 'intermediate_back_adapter_biases' in rnn_map else None
-                            x += self._adjust_dim(st, x, matrix=am, bias=ab,)
+                            x += self._adjust_last_dim(st, x, matrix=am, bias=ab, )
                     x = self._add_states_from_derived_branches(rnn_idx, rnn_map, x, state, new_state_name, gpu_name)
                     # print("(Rnn._rec_back_rnn_graph)rnn.num_units:", rnn.num_units)
                     # print("(Rnn._rec_back_rnn_graph)x:", x)
@@ -510,17 +521,18 @@ class Rnn(Pupil):
                 #     s = tuple(ps)
                 old_inp, new_s = rnn(inp, initial_state=s, training=training)
                 if (self._residual_connections or res_conn) and not self._matrix_dim_adjustment:
-                    inp = old_inp + self._adjust_dim(inp, old_inp)
+                    inp = old_inp + self._adjust_last_dim(inp, old_inp)
                 else:
                     inp = old_inp
                 if rnn_map['input_idx'] is not None or rnn_idx < len(rnn_map['rnns']) - 1:
                     inp = tf.nn.dropout(inp, keep_prob=1. - self._reg_placeholders['dropout_rate'])
                 intermediate.append(inp)
                 rnn_map[new_state_name][gpu_name].append(new_s)
-            if 'adapter_matrix' in rnn_map:
-                inp = tf.einsum('ijk,kl->ijl', inp, rnn_map['adapter_matrix'])
-            if 'adapter_bias' in rnn_map:
-                inp += rnn_map['adapter_bias']
+            # if 'adapter_matrix' in rnn_map:
+            #     inp = tf.einsum('ijk,kl->ijl', inp, rnn_map['adapter_matrix'])
+            # if 'adapter_bias' in rnn_map:
+            #     inp += rnn_map['adapter_bias']
+
             # with tf.device('/cpu:0'):
             #     inp = tf.Print(inp, [inp], message="(Rnn._add_rnn_graph)inp (%s):\n" % inp.name)
             # if rnn_map['module_name'] == 'char_enc_dec':
@@ -531,6 +543,12 @@ class Rnn(Pupil):
                 if rnn_map['module_name'] == 'char_enc_dec':
                     self._add_correlation_hooks(intermediate)
                 self._add_hidden_state_hook(intermediate, rnn_map['module_name'])
+        if rnn_map['out_size'] is not None:
+            inp = self._adjust_last_dim_v2(
+                inp, rnn_map['out_size'],
+                rnn_map.get('adapter_matrix'),
+                rnn_map.get('adapter_bias')
+            )
         return inp
 
     def _add_rnn_and_output_module(self, embeddings_by_gpu, training):
@@ -676,6 +694,9 @@ class Rnn(Pupil):
             rnn_map['intermediate_back_adapter_matrices'] = intermediate_back_adapter_matrices
             rnn_map['intermediate_back_adapter_biases'] = intermediate_back_adapter_biases
         # print("(Rnn._build_recursive)input_sizes:", input_sizes)
+
+        rnn_map['out_size'] = out_size
+
         if add_adapter_between_branches:
             rnn_map['adapter_matrix'] = tf.Variable(
                 tf.zeros([rnn_map['num_nodes'][-1], out_size]),

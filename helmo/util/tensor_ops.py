@@ -288,12 +288,28 @@ def reduce_last_dim(inp_tensor, target_tensor):
         return tf.einsum('ijk,kl->ijl', inp_tensor, squeezing_matrix)
 
 
-def increase_last_dim(inp_tensor, target_tensor):
-    with tf.name_scope('increase_last_dim'):
+def reduce_last_dim_v2(inp_tensor, target_last_dim):
+    with tf.name_scope('reduce_last_dim_v2'):
+        N = inp_tensor.get_shape().as_list()[-1]
+        squeezing_matrix = squeezing_dense_matrix_tf(N, target_last_dim)
+        return tf.einsum('ijk,kl->ijl', inp_tensor, squeezing_matrix)
+
+
+def tile_to_match_target(inp_tensor, target_tensor):
+    with tf.name_scope('tile_to_match_target'):
         num_dims = tf.shape(tf.shape(inp_tensor))
         num_repeats = tf.shape(target_tensor) // tf.shape(inp_tensor)
         repeated = tf.tile(inp_tensor, num_repeats + 1)
         return tf.slice(repeated, tf.zeros(num_dims, dtype=tf.int32), tf.shape(target_tensor))
+
+
+def adjust_last_dim(inp_tensor, target_dim):
+    with tf.name_scope('adjust_last_dim'):
+        num_dims = tf.shape(tf.shape(inp_tensor))
+        target_shape = tf.concat([tf.shape(inp_tensor)[:-1], tf.reshape(target_dim, [1])], 0)
+        num_repeats = target_shape // tf.shape(inp_tensor)
+        repeated = tf.tile(inp_tensor, num_repeats + 1)
+        return tf.slice(repeated, tf.zeros(num_dims, dtype=tf.int32), target_shape)
 
 
 def get_shapes(nested):
