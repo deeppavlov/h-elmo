@@ -482,7 +482,9 @@ class Rnn(Pupil):
             prepared_state = tensor_ops.prepare_init_state(
                 rnn_map[saved_state_name][gpu_name], inp, rnn_map['rnns'], self._network_type)
             # print("(Rnn._add_rnn_graph).prepared_state:", prepared_state)
-            for rnn_idx, (rnn, s) in enumerate(zip(rnn_map['rnns'], prepared_state)):
+            residual_connections = rnn_map.get('residual_connections', [False]*len(rnn_map['rnns']))
+
+            for rnn_idx, (rnn, s, res_conn) in enumerate(zip(rnn_map['rnns'], prepared_state, residual_connections)):
                 # print("(Rnn._add_rnn_graph).inp:", inp)
                 # print("(Rnn._add_rnn_graph).s:", s)
                 if 'derived_branches' in rnn_map \
@@ -507,7 +509,7 @@ class Rnn(Pupil):
                 #
                 #     s = tuple(ps)
                 old_inp, new_s = rnn(inp, initial_state=s, training=training)
-                if self._residual_connections and not self._matrix_dim_adjustment:
+                if (self._residual_connections or res_conn) and not self._matrix_dim_adjustment:
                     inp = old_inp + self._adjust_dim(inp, old_inp)
                 else:
                     inp = old_inp
