@@ -21,7 +21,7 @@ for config in ${tt[@]}; do
   python3 $TT $config --test --no_logging
 done
 
-for config in ${tt[@]}; do
+for config in ${hs[@]}; do
   echo "Processing" $config
   python3 $HS $config --test --no_logging
 done
