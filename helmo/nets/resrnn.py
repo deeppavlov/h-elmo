@@ -481,6 +481,11 @@ class Rnn(Pupil):
         for i, s in enumerate(hidden_states):
             self._hooks[self._hook_templates['hidden_states'].format(module_name, i)] = s
 
+    def _add_quarter_of_hidden_state_hooks(self, hidden_states, module_name):
+        for i, s in enumerate(hidden_states):
+            self._hooks[self._hook_templates['axis_quarters_of_hidden_states'].format(module_name, i)] = \
+                tensor_ops.get_axis_quarters(s[..., :20])
+
     def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
             rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
@@ -543,6 +548,7 @@ class Rnn(Pupil):
                 if rnn_map['module_name'] == 'char_enc_dec':
                     self._add_correlation_hooks(intermediate)
                 self._add_hidden_state_hook(intermediate, rnn_map['module_name'])
+                self._add_quarter_of_hidden_state_hooks(intermediate, rnn_map['module_name'])
         if rnn_map['out_size'] is not None:
             inp = self._adjust_last_dim_v2(
                 inp, rnn_map['out_size'],
@@ -890,6 +896,7 @@ class Rnn(Pupil):
         num_layers = len(rnn_map['num_nodes'])
         for i in range(num_layers):
             self._hooks[self._hook_templates['hidden_states'].format(name, i)] = None
+            self._hooks[self._hook_templates['axis_quarters_of_hidden_states'].format(name, i)] = None
         if 'derived_branches' in rnn_map:
             for branch in rnn_map['derived_branches']:
                 self._init_hidden_state_hook_entries(branch)
@@ -950,7 +957,8 @@ class Rnn(Pupil):
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 
         self._hook_templates = dict(
-            hidden_states='{}_{}_hidden_state'
+            hidden_states='{}_{}_hidden_state',
+            axis_quarters_of_hidden_states='{}_{}_axis_quarters'
         )
 
         self._hooks = dict(
