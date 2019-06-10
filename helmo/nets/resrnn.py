@@ -528,7 +528,7 @@ class Rnn(Pupil):
                 #     s = tuple(ps)
                 old_inp, new_s = rnn(inp, initial_state=s, training=training)
                 if (self._residual_connections or res_conn) and not self._matrix_dim_adjustment:
-                    residual_factor = 0.5 if self._half_of_residual else 1.0
+                    residual_factor = 0.5**0.5 if self._half_of_residual else 1.0
                     inp = old_inp + residual_factor * self._adjust_last_dim(inp, old_inp)
                 else:
                     inp = old_inp
