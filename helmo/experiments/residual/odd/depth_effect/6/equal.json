@@ -1,0 +1,97 @@
+{
+  "num_repeats": 10,
+  "seed": null,
+  "batch_gen": {
+    "path": "resrnn",
+    "cls_name": "LmFastBatchGenerator"
+  },
+  "net": {
+    "path": "resrnn",
+    "cls_name": "Rnn"
+  },
+  "dataset": {
+    "path": "text8.txt",
+    "test_size": 6.4e6,
+    "valid_size": 6.4e5,
+    "vocab_path": "text8_voc.txt"
+  },
+  "graph": {
+    "rnn_map": {
+      "module_name": "level0",
+      "num_nodes": [
+        115,
+        115,
+        115,
+        115,
+        115,
+        115
+      ],
+      "residual_connections": [false, true, false, true, false, true],
+      "input_idx": null,
+      "output_idx": null
+    },
+    "num_output_nodes": [],
+    "emb_size": 115,
+    "num_gpus": 1,
+    "metrics": [
+      "bpc",
+      "perplexity",
+      "accuracy"
+    ],
+    "optimizer": "adam",
+    "matrix_dim_adjustment": false,
+    "backward_connections": false
+  },
+  "train": {
+    "allow_growth": true,
+    "restore_path": null,
+    "learning_rate": {
+      "type": "adaptive_change",
+      "max_no_progress_points": 50,
+      "decay": 0.5,
+      "init": 2e-3,
+      "path_to_target_metric_storage": ["valid", "loss"]
+    },
+    "batch_size": 32,
+    "num_unrollings": 100,
+    "checkpoint_steps": null,
+    "stop": {
+      "type": "while_progress",
+      "max_no_progress_points": 50,
+      "changing_parameter_name": "learning_rate",
+      "path_to_target_metric_storage": ["valid", "loss"]
+    },
+    "no_validation": false,
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "results_collect_interval": 1000,
+    "validation_batch_size": 32,
+    "init_parameter": 3.0,
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "train_batch_kwargs": {"random_batch_initiation": true},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ],
+    "validation_additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  },
+  "test": {
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "validation_batch_size": 32,
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  }
+}
