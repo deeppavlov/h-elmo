@@ -526,7 +526,8 @@ class Rnn(Pupil):
                 #     s = tuple(ps)
                 old_inp, new_s = rnn(inp, initial_state=s, training=training)
                 if (self._residual_connections or res_conn) and not self._matrix_dim_adjustment:
-                    inp = old_inp + self._adjust_last_dim(inp, old_inp)
+                    residual_factor = 0.5 if self._half_of_residual else 1.0
+                    inp = old_inp + residual_factor * self._adjust_last_dim(inp, old_inp)
                 else:
                     inp = old_inp
                 if rnn_map['input_idx'] is not None or rnn_idx < len(rnn_map['rnns']) - 1:
@@ -953,6 +954,7 @@ class Rnn(Pupil):
         else:
             self._matrix_dim_adjustment = kwargs.get('matrix_dim_adjustment', False)
         self._residual_connections = kwargs.get('residual_connections', False)
+        self._half_of_residual = kwargs.get('half_of_residual', False)
 
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 

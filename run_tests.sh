@@ -13,7 +13,8 @@ tt=("$HOME/h-elmo/tests/experiments/correlation/nocorrloss/batch_mean/100_100sho
     "$HOME/h-elmo/tests/experiments/resrnn/no_matrix_dim_adjustment.json" \
     "$HOME/h-elmo/tests/experiments/resrnn/matrix_dim_adjustment.json" \
     "$HOME/h-elmo/tests/experiments/residual/straight1.json" \
-    "$HOME/h-elmo/tests/experiments/entropy/20.json")
+    "$HOME/h-elmo/tests/experiments/entropy/20.json" \
+    "$HOME/h-elmo/tests/experiments/residual/half_residual.json")
 
 hs=("$HOME/h-elmo/tests/experiments/resrnn/small/char/hp/200.json" \
     "$HOME/h-elmo/tests/experiments/resrnn/residual/200.json")
