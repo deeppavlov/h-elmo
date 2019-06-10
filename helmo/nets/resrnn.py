@@ -499,8 +499,10 @@ class Rnn(Pupil):
                 rnn_map[saved_state_name][gpu_name], inp, rnn_map['rnns'], self._network_type)
             # print("(Rnn._add_rnn_graph).prepared_state:", prepared_state)
             residual_connections = rnn_map.get('residual_connections', [False]*len(rnn_map['rnns']))
+            post_factors = rnn_map.get('post_factors', [1.]*len(rnn_map['rnns']))
 
-            for rnn_idx, (rnn, s, res_conn) in enumerate(zip(rnn_map['rnns'], prepared_state, residual_connections)):
+            for rnn_idx, (rnn, s, res_conn, post_factor) in enumerate(
+                    zip(rnn_map['rnns'], prepared_state, residual_connections, post_factors)):
                 # print("(Rnn._add_rnn_graph).inp:", inp)
                 # print("(Rnn._add_rnn_graph).s:", s)
                 if 'derived_branches' in rnn_map \
@@ -530,6 +532,9 @@ class Rnn(Pupil):
                     inp = old_inp + residual_factor * self._adjust_last_dim(inp, old_inp)
                 else:
                     inp = old_inp
+
+                inp *= post_factor
+
                 if rnn_map['input_idx'] is not None or rnn_idx < len(rnn_map['rnns']) - 1:
                     inp = tf.nn.dropout(inp, keep_prob=1. - self._reg_placeholders['dropout_rate'])
                 intermediate.append(inp)

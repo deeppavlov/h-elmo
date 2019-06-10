@@ -1,5 +1,5 @@
 {
-  "num_repeats": 2,
+  "num_repeats": 10,
   "seed": null,
   "batch_gen": {
     "path": "resrnn",
@@ -10,26 +10,38 @@
     "cls_name": "Rnn"
   },
   "dataset": {
-    "path": "enwiki1G.txt",
+    "path": "text8.txt",
     "test_size": 6.4e6,
-    "valid_size": 9e5,
-    "vocab_path": "enwiki1G_voc.txt"
+    "valid_size": 6.4e5,
+    "vocab_path": "text8_voc.txt"
   },
   "graph": {
     "rnn_map": {
-      "module_name": "char_enc_dec",
-      "num_nodes": [20, 20],
+      "module_name": "level0",
+      "num_nodes": [
+        115,
+        116,
+        115,
+        116,
+        115,
+        116
+      ],
       "input_idx": null,
-      "output_idx": null
+      "output_idx": null,
+      "post_factors": [0.5, 0.333, 0.25, 0.2, 0.167, 0.143]
     },
     "num_output_nodes": [],
-    "emb_size": 256,
-    "init_parameter": 3.0,
+    "emb_size": 115,
     "num_gpus": 1,
-    "metrics": ["bpc", "perplexity", "accuracy"],
+    "metrics": [
+      "bpc",
+      "perplexity",
+      "accuracy"
+    ],
     "optimizer": "adam",
-    "clip_norm": 1,
-    "corcov_norm": "sqr"
+    "backward_connections": false,
+    "matrix_dim_adjustment": false,
+    "residual_connections": true
   },
   "train": {
     "allow_growth": true,
@@ -42,21 +54,21 @@
       "path_to_target_metric_storage": ["valid", "loss"]
     },
     "batch_size": 32,
-    "num_unrollings": 10,
+    "num_unrollings": 100,
     "checkpoint_steps": null,
-    "subgraphs_to_save": {"char_enc_dec": "base"},
-    "stop": 100,
+    "stop": {
+      "type": "while_progress",
+      "max_no_progress_points": 50,
+      "changing_parameter_name": "learning_rate",
+      "path_to_target_metric_storage": ["valid", "loss"]
+    },
     "no_validation": false,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
-    "results_collect_interval": 10,
-    "validation_batch_size": 10000,
+    "results_collect_interval": 1000,
+    "validation_batch_size": 32,
     "init_parameter": 3.0,
-    "valid_batch_kwargs": {"num_unrollings": 90},
-    "validation_tensor_schedule": {
-      "valid_pickle_mean_tensors": {"correlation": 1},
-      "valid_counts_of_values": {"char_enc_dec_0_axis_quarters": 1}
-    },
+    "valid_batch_kwargs": {"num_unrollings": 200},
     "train_batch_kwargs": {"random_batch_initiation": true},
     "additions_to_feed_dict": [
       {
