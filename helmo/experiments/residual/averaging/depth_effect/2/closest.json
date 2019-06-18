@@ -24,7 +24,7 @@
       ],
       "input_idx": null,
       "output_idx": null,
-      "post_factors": [0.5, 0.333]
+      "post_factors": [0.707, 0.577]
     },
     "num_output_nodes": [],
     "emb_size": 199,
