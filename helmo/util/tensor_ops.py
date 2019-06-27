@@ -386,6 +386,7 @@ def self_outer_product(tensor, axis):
 
 
 def outer_product(tensor1, tensor2, axis):
+    """Only for tensors which have similar dims on all axes except for `axis`"""
     with tf.name_scope('outer_product'):
         num_dims = len(tensor1.get_shape().as_list())
         eq = self_outer_product_eq(num_dims, axis)
