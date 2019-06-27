@@ -473,7 +473,7 @@ def get_all_values_except_specified(tensor, excluded):
 def expand_multiple_dims(tensor, num_dims, axes):
     """
     Inserts dimensions of 1 in `tensor`. Old `tensor` dimensions are
-    moved to permuted to positions specified in `axes`. Number of dimensions
+    moved to permuted positions specified in `axes`. Number of dimensions
     in result is equal to `num_dims`.
     ```python
     tensor = tf.constant([[1, 2], [3, 4]])
@@ -649,10 +649,11 @@ def corcov_loss(
 
 
 def get_axis_quarters(tensor):
-    last_dim = tf.cast(tf.shape(tensor)[-1], dtype=tf.float32)
-    exponents = tf.range(0., last_dim, 1., dtype=tf.float32)
-    powers = tf.math.pow(2., exponents)
-    binary_format = tf.cast(tensor > 0, tf.float32)
-    linear_combination = powers * binary_format
-    numbers = tf.reduce_sum(linear_combination, axis=-1)
-    return tf.cast(numbers, tf.int32)
+    with tf.name_scope('get_axis_quarters'):
+        last_dim = tf.cast(tf.shape(tensor)[-1], dtype=tf.float32)
+        exponents = tf.range(0., last_dim, 1., dtype=tf.float32)
+        powers = tf.math.pow(2., exponents)
+        binary_format = tf.cast(tensor > 0, tf.float32)
+        linear_combination = powers * binary_format
+        numbers = tf.reduce_sum(linear_combination, axis=-1)
+        return tf.cast(numbers, tf.int32)
