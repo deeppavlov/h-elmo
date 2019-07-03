@@ -907,6 +907,24 @@ class Rnn(Pupil):
             for branch in rnn_map['derived_branches']:
                 self._init_hidden_state_hook_entries(branch)
 
+    def _add_inference_accumulators_hook_templates(self):
+        tmpl = self._hook_templates
+        hs_tmpl = tmpl['hidden_states']
+        tmpl['accumulators'] = {}
+        for pp in self._accumulator_postprocessing:
+            tmpl['accumulators'][pp] = dict(hidden_states='{}_' + hs_tmpl)
+
+    def _init_accumulators_hook_entries(self, rnn_map):
+        name = rnn_map['module_name']
+        num_layers = len(rnn_map['num_nodes'])
+        for i in range(num_layers):
+            for pp, templates in self._hook_templates['accumulators'].items():
+                for tensor_type, tmpl in templates.items():
+                    self._hooks[tmpl.format(pp, name, i)] = None
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
+                self._init_accumulators_hook_entries(branch)
+
     def __init__(self, **kwargs):
 
         if 'rnn_map' in kwargs:
@@ -963,10 +981,21 @@ class Rnn(Pupil):
 
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 
+        self._accumulator_postprocessing = [
+            'entropy',
+            'mean_entropy',
+            'mutual_info',
+            'mean_mutual_info',
+            'min_value_of_nonzero_count',
+            'support'
+        ]
+
         self._hook_templates = dict(
             hidden_states='{}_{}_hidden_state',
             axis_quarters_of_hidden_states='{}_{}_axis_quarters'
         )
+
+        self._add_inference_accumulators_hook_templates()
 
         self._hooks = dict(
             inputs=None,
@@ -996,6 +1025,7 @@ class Rnn(Pupil):
             self._hooks[metric_name] = None
             self._hooks['validation_' + metric_name] = None
         self._init_hidden_state_hook_entries(self._rnn_map)
+        self._init_accumulators_hook_entries(self._rnn_map)
 
         self._gpu_names = ['/gpu:%s' % i for i in range(self._num_gpus)]
         if self._num_gpus == 1:
