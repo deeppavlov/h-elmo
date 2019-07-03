@@ -61,11 +61,11 @@
       "valid_tensor_post_processing": {
         "level0_0_hidden_state": {
           "schedule": 1,
-          "post_processing": ["mean_mutual_information_100", "mean_neuron_entropy_100", "min_size_of_support_100"]
+          "post_processing": ["mean_mutual_information_100", "mean_neuron_entropy_100", "min_value_of_nonzero_counts_100"]
         },
         "level0_1_hidden_state": {
           "schedule": 1,
-          "post_processing": ["mean_mutual_information_100", "mean_neuron_entropy_100", "min_size_of_support_100"]
+          "post_processing": ["mean_mutual_information_100", "mean_neuron_entropy_100", "min_value_of_nonzero_counts_100"]
         }
       }
     },
