@@ -912,15 +912,22 @@ class Rnn(Pupil):
         hs_tmpl = tmpl['hidden_states']
         tmpl['accumulators'] = {}
         for pp in self._accumulator_postprocessing:
-            tmpl['accumulators'][pp] = dict(hidden_states='{}_' + hs_tmpl)
+            common = '{}_' + hs_tmpl
+            tmpl['accumulators'][pp] = dict(
+                hidden_states={
+                    'accumulate': 'accumulate_' + common,
+                    'get': 'get_' + common
+                }
+            )
 
     def _init_accumulators_hook_entries(self, rnn_map):
         name = rnn_map['module_name']
         num_layers = len(rnn_map['num_nodes'])
         for i in range(num_layers):
-            for pp, templates in self._hook_templates['accumulators'].items():
-                for tensor_type, tmpl in templates.items():
-                    self._hooks[tmpl.format(pp, name, i)] = None
+            for pp, pp_templates in self._hook_templates['accumulators'].items():
+                for tensor_type, action_templates in pp_templates.items():
+                    for tmpl in action_templates.values():
+                        self._hooks[tmpl.format(pp, name, i)] = None
         if 'derived_branches' in rnn_map:
             for branch in rnn_map['derived_branches']:
                 self._init_accumulators_hook_entries(branch)
