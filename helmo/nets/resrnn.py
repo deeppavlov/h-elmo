@@ -932,6 +932,27 @@ class Rnn(Pupil):
             for branch in rnn_map['derived_branches']:
                 self._init_accumulators_hook_entries(branch)
 
+    def _add_accumulators_from_rnn_map(self, rnn_map, accumulators):
+        accumulators[rnn_map['module_name']] = {}
+        d = accumulators[rnn_map['module_name']]
+        num_layers = len(rnn_map['num_nodes'])
+        for i in range(num_layers):
+            d[i] = {}
+            d[i]['hidden_state'] = {}
+            for pp in self._accumulator_postprocessing:
+                d[i]['hidden_state'][pp] = tf.Variable(
+                    trainable=False,
+                    validate_shape=False
+                )
+        if 'derived_branches' in rnn_map:
+            for branch in rnn_map['derived_branches']:
+                self._add_accumulators_from_rnn_map(branch, accumulators)
+
+    def _create_accumulators(self, rnn_map):
+        accumulators = {}
+        self._add_accumulators_from_rnn_map(rnn_map, accumulators)
+        return accumulators
+
     def __init__(self, **kwargs):
 
         if 'rnn_map' in kwargs:
@@ -996,6 +1017,7 @@ class Rnn(Pupil):
             'min_value_of_nonzero_count',
             'support'
         ]
+        self._accumulators = self._create_accumulators(self._rnn_map)
 
         self._hook_templates = dict(
             hidden_states='{}_{}_hidden_state',
