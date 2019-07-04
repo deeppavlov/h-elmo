@@ -1,6 +1,7 @@
-import sys
 from copy import deepcopy
+import itertools
 import random
+import sys
 
 import numpy as np
 import tensorflow as tf
@@ -13,9 +14,8 @@ from learning_to_learn.useful_functions import create_vocabulary, get_positions_
     compose_save_list, compose_reset_list, compose_randomize_list, construct_dict_without_none_entries, \
     append_to_nested, get_average_with_weights_func, func_on_list_in_nested, tensor_stats
 from learning_to_learn.pupils.pupil import Pupil
-
 from learning_to_learn.tensors import compute_metrics_raw_lbls
-
+import learning_to_learn.tensors as tensors_l2l
 import helmo.util.tensor_ops as tensor_ops
 
 
@@ -486,6 +486,35 @@ class Rnn(Pupil):
             self._hooks[self._hook_templates['axis_quarters_of_hidden_states'].format(module_name, i)] = \
                 tensor_ops.get_axis_quarters(s[..., :20])
 
+    def _get_update_op(self, accumulator, tensor, accumulator_method, args):
+        func = getattr(accumulator_method, tensors_l2l)
+        if accumulator_method in ['hist_1d', 'cross_hist_from_tensor']:
+            if args[0] == 'reshape_to_matrix':
+                shape = tf.shape(tensor)
+                tensor = tf.reshape(tensor, tf.concat([-1], shape[-1:]))
+            hist = func(tensor, *args[1:])
+            update_op = tf.assign_add(accumulator, hist)
+        else:
+            raise NotImplementedError()
+        return update_op
+
+    def _get_hidden_state_accumulators(self, module_name):
+        a = self._accumulators[module_name]
+        return [layer_a['hidden_state'] for layer_a in a]
+
+    def _add_hidden_state_accumulation_ops(self, hidden_states, module_name):
+        with tf.name_scope('_add_hidden_state_accumulation_ops'):
+            d = self._accumulators['rnn_map'][module_name]
+            for i, hs in enumerate(hidden_states):
+                for accumulator_specs in d[str(i)]['hidden_state'].values():
+                    accumulator_specs['update_op'] = self._get_update_op(
+                        accumulator_specs['accumulator'],
+                        hs,
+                        accumulator_specs['method'],
+                        accumulator_specs['args']
+                    )
+                    accumulator_specs['hook'] = accumulator_specs['update_op']
+
     def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
             rnn_map['derived_branches'] = sorted(rnn_map['derived_branches'], key=lambda x: x['output_idx'])
@@ -555,6 +584,8 @@ class Rnn(Pupil):
                     self._add_correlation_hooks(intermediate)
                 self._add_hidden_state_hook(intermediate, rnn_map['module_name'])
                 self._add_quarter_of_hidden_state_hooks(intermediate, rnn_map['module_name'])
+                if 'hidden_state' in self._accumulator_postprocessing and not training:
+                    self._add_hidden_state_accumulation_ops(intermediate, rnn_map['module_name'])
         if rnn_map['out_size'] is not None:
             inp = self._adjust_last_dim_v2(
                 inp, rnn_map['out_size'],
@@ -897,61 +928,82 @@ class Rnn(Pupil):
                 )
             return inputs_by_device, labels_by_device
 
-    def _init_hidden_state_hook_entries(self, rnn_map):
-        name = rnn_map['module_name']
-        num_layers = len(rnn_map['num_nodes'])
-        for i in range(num_layers):
-            self._hooks[self._hook_templates['hidden_states'].format(name, i)] = None
-            self._hooks[self._hook_templates['axis_quarters_of_hidden_states'].format(name, i)] = None
-        if 'derived_branches' in rnn_map:
-            for branch in rnn_map['derived_branches']:
-                self._init_hidden_state_hook_entries(branch)
+    def _init_accumulators(self):
+        if 'rnn_map' in self._accumulators:
+            d = self._accumulators['rnn_map']
+            for module_specs in d.values():
+                for layer_specs in module_specs.values():
+                    for tensor_type_specs in layer_specs.values():
+                        for accumulator_specs in tensor_type_specs.values():
+                            accumulator_specs['accumulator'] = tf.Variable(
+                                0,
+                                trainable=False,
+                                validate_shape=False,
+                            )
 
-    def _add_inference_accumulators_hook_templates(self):
-        tmpl = self._hook_templates
-        hs_tmpl = tmpl['hidden_states']
-        tmpl['accumulators'] = {}
-        for pp in self._accumulator_postprocessing:
-            common = '{}_' + hs_tmpl
-            tmpl['accumulators'][pp] = dict(
-                hidden_states={
-                    'accumulate': 'accumulate_' + common,
-                    'get': 'get_' + common
-                }
-            )
+    # def _add_inference_accumulators_hook_templates(self):
+    #     tmpl = self._hook_templates
+    #     tmpl['accumulators'] = {}
+    #     for tensor_type, tensor_type_postprocessing in self._accumulator_postprocessing.items():
+    #         # first slot is for postprocessing name
+    #         if tensor_type in tmpl:
+    #             common = '{}_' + tmpl[tensor_type]
+    #         else:
+    #             common = '{}_' + tensor_type
+    #         for pp in tensor_type_postprocessing:
+    #             tmpl['accumulators'][pp] = dict(
+    #                 hidden_states={
+    #                     'update_op': 'update_' + common,
+    #                     'get_op': 'get_' + common
+    #                 }
+    #             )
 
-    def _init_accumulators_hook_entries(self, rnn_map):
-        name = rnn_map['module_name']
-        num_layers = len(rnn_map['num_nodes'])
-        for i in range(num_layers):
-            for pp, pp_templates in self._hook_templates['accumulators'].items():
-                for tensor_type, action_templates in pp_templates.items():
-                    for tmpl in action_templates.values():
-                        self._hooks[tmpl.format(pp, name, i)] = None
-        if 'derived_branches' in rnn_map:
-            for branch in rnn_map['derived_branches']:
-                self._init_accumulators_hook_entries(branch)
+    # def _create_accumulator_storage_from_rnn_map(self, rnn_map, accumulators):
+    #     accumulators[rnn_map['module_name']] = []
+    #     d = accumulators[rnn_map['module_name']]
+    #     num_layers = len(rnn_map['num_nodes'])
+    #     for i in range(num_layers):
+    #         d.append({})
+    #         if 'hidden_state' in self._accumulator_postprocessing:
+    #             d[i]['hidden_state'] = {}
+    #             for pp in self._accumulator_postprocessing['hidden_state']:
+    #                 accumulator_names = self._accumulators_for_postprocessing[pp]
+    #                 for a_name in accumulator_names:
+    #                     if a_name not in d[i]['hidden_state']:
+    #                         d[i]['hidden_state'][a_name] = dict(
+    #                             accumulator=tf.Variable(
+    #                                 0,
+    #                                 trainable=False,
+    #                                 validate_shape=False
+    #                             ),
+    #                             update_op=None
+    #                         )
+    #     if 'derived_branches' in rnn_map:
+    #         for branch in rnn_map['derived_branches']:
+    #             self._create_accumulator_storage_from_rnn_map(branch, accumulators)
 
-    def _add_accumulators_from_rnn_map(self, rnn_map, accumulators):
-        accumulators[rnn_map['module_name']] = {}
-        d = accumulators[rnn_map['module_name']]
-        num_layers = len(rnn_map['num_nodes'])
-        for i in range(num_layers):
-            d[i] = {}
-            d[i]['hidden_state'] = {}
-            for pp in self._accumulator_postprocessing:
-                d[i]['hidden_state'][pp] = tf.Variable(
-                    trainable=False,
-                    validate_shape=False
-                )
-        if 'derived_branches' in rnn_map:
-            for branch in rnn_map['derived_branches']:
-                self._add_accumulators_from_rnn_map(branch, accumulators)
+    # def _create_accumulator_storage(self, rnn_map):
+    #     accumulators = {}
+    #     self._create_accumulator_storage_from_rnn_map(rnn_map, accumulators)
+    #     return accumulators
 
-    def _create_accumulators(self, rnn_map):
-        accumulators = {}
-        self._add_accumulators_from_rnn_map(rnn_map, accumulators)
-        return accumulators
+    def _add_accumulator_hooks(self, accumulators):
+        if 'rnn_map' in accumulators:
+            d = accumulators['rnn_map']
+            for module_specs in d.values():
+                for layer_specs in module_specs.values():
+                    for tensor_type_specs in layer_specs.values():
+                        for accumulator_specs in tensor_type_specs.values():
+                            self._hooks[accumulator_specs['hook']] = None
+
+    def _add_postprocessing_hooks(self, postprocessing):
+        if 'rnn_map' in postprocessing:
+            d = postprocessing['rnn_map']
+            for module_specs in d.values():
+                for layer_specs in module_specs.values():
+                    for tensor_type_specs in layer_specs.values():
+                        for postprocessing_specs in tensor_type_specs.values():
+                            self._hooks[postprocessing_specs['hook']] = None
 
     def __init__(self, **kwargs):
 
@@ -1009,22 +1061,71 @@ class Rnn(Pupil):
 
         # print("(Rnn.__init__)self._network_type:", self._network_type)
 
-        self._accumulator_postprocessing = [
-            'entropy',
-            'mean_entropy',
-            'mutual_info',
-            'mean_mutual_info',
-            'min_value_of_nonzero_count',
-            'support'
-        ]
-        self._accumulators = self._create_accumulators(self._rnn_map)
+        # possible postprocessing:
+        # [
+        #     'entropy',
+        #     'mean_entropy',
+        #     'mutual_info',
+        #     'mean_mutual_info',
+        #     'min_value_of_nonzero_count_for_mutual_info',
+        #     'support_for_mutual_info'
+        #     'support_for_entropy'
+        # ]
+
+        self._accumulators_for_postprocessing = dict(
+            entropy=['hist'],
+            mean_entropy=['hist'],
+            mutual_info=['cross_hist'],
+            mean_mutual_info=['cross_hist'],
+            min_value_of_nonzero_count_for_mutual_info=['cross_hist'],
+            support_for_mutual_info=['cross_hist'],
+            support_for_entropy=['hist'],
+        )
+
+        example_of_post_processing_specs = dict(
+            rnn_map=dict(
+                level0={
+                    "0": dict(
+                        hidden_state=dict(
+                            entropy=dict(
+                                method='neuron_entropy_with_digitalization',
+                                hook='entropy_level0_0_hidden_state',
+                                accumulators=['hist'],
+                                args=[0, 100, [-1., 1.]],
+                            )
+                        )
+                    )
+                }
+            )
+        )
+
+        self._accumulator_postprocessing = kwargs.get(
+            'accumulator_postprocessing',
+            {},
+        )
+        example_of_accumulator_specs = dict(
+            rnn_map=dict(
+                level0={
+                    "0": dict(
+                        hidden_state=dict(
+                            hist=dict(
+                                method='hist_1d',
+                                hook='update_level0_0_hidden_state_hist',
+                                args=['reshape_to_matrix', 100, [-1., 1.], 0],
+                            )
+                        )
+                    )
+                }
+            )
+        )
+        self._accumulators = kwargs.get("accumulator_specs")
+        # self._accumulators = self._create_accumulator_storage(self._rnn_map)
 
         self._hook_templates = dict(
             hidden_states='{}_{}_hidden_state',
             axis_quarters_of_hidden_states='{}_{}_axis_quarters'
         )
 
-        self._add_inference_accumulators_hook_templates()
 
         self._hooks = dict(
             inputs=None,
@@ -1054,7 +1155,8 @@ class Rnn(Pupil):
             self._hooks[metric_name] = None
             self._hooks['validation_' + metric_name] = None
         self._init_hidden_state_hook_entries(self._rnn_map)
-        self._init_accumulators_hook_entries(self._rnn_map)
+        self._add_accumulator_hooks(self._accumulators)
+        self._add_postprocessing_hooks(self._accumulator_postprocessing)
 
         self._gpu_names = ['/gpu:%s' % i for i in range(self._num_gpus)]
         if self._num_gpus == 1:
