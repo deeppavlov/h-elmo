@@ -488,12 +488,12 @@ class Rnn(Pupil):
 
     def _get_update_op(self, accumulator, tensor, accumulator_method, args):
         func = getattr(tensors_l2l, accumulator_method)
-        if accumulator_method in ['hist_1d', 'cross_hist_from_tensor']:
+        if accumulator_method in ['hist_1d', 'get_self_cross_histograms']:
             if args[0] == 'reshape_to_matrix':
                 shape = tf.shape(tensor)
                 tensor = tf.reshape(tensor, tf.concat([[-1], shape[-1:]], 0))
             hist = func(tensor, *args[1:])
-            update_op = tf.assign_add(accumulator, hist)
+            update_op = tf.assign(accumulator, accumulator+hist, validate_shape=False)
         else:
             raise NotImplementedError()
         return update_op
@@ -505,16 +505,16 @@ class Rnn(Pupil):
     def _add_hidden_state_accumulation_ops(self, hidden_states, module_name):
         with tf.name_scope('_add_hidden_state_accumulation_ops'):
             if 'rnn_map' in self._accumulators:
-                d = self._accumulators['rnn_map']
-                if module_name in d:
-                    d = d[module_name]
+                rnn_a = self._accumulators['rnn_map']
+                if module_name in rnn_a:
+                    module_a = rnn_a[module_name]
                     for i, hs in enumerate(hidden_states):
                         i = str(i)
-                        if i in d:
-                            d = d[i]
-                            if 'hidden_state' in d:
-                                d = d['hidden_state']
-                                for accumulator_specs in d.values():
+                        if i in module_a:
+                            layer_a = module_a[i]
+                            if 'hidden_state' in layer_a:
+                                tensor_a = layer_a['hidden_state']
+                                for accumulator_specs in tensor_a.values():
                                     accumulator_specs['update_op'] = self._get_update_op(
                                         accumulator_specs['accumulator'],
                                         hs,
@@ -937,63 +937,21 @@ class Rnn(Pupil):
             return inputs_by_device, labels_by_device
 
     def _init_accumulators(self):
+        accumulators = []
         if 'rnn_map' in self._accumulators:
             d = self._accumulators['rnn_map']
             for module_specs in d.values():
                 for layer_specs in module_specs.values():
                     for tensor_type_specs in layer_specs.values():
                         for accumulator_specs in tensor_type_specs.values():
-                            accumulator_specs['accumulator'] = tf.Variable(
+                            v = tf.Variable(
                                 0,
                                 trainable=False,
                                 validate_shape=False,
                             )
-
-    # def _add_inference_accumulators_hook_templates(self):
-    #     tmpl = self._hook_templates
-    #     tmpl['accumulators'] = {}
-    #     for tensor_type, tensor_type_postprocessing in self._accumulator_postprocessing.items():
-    #         # first slot is for postprocessing name
-    #         if tensor_type in tmpl:
-    #             common = '{}_' + tmpl[tensor_type]
-    #         else:
-    #             common = '{}_' + tensor_type
-    #         for pp in tensor_type_postprocessing:
-    #             tmpl['accumulators'][pp] = dict(
-    #                 hidden_states={
-    #                     'update_op': 'update_' + common,
-    #                     'get_op': 'get_' + common
-    #                 }
-    #             )
-
-    # def _create_accumulator_storage_from_rnn_map(self, rnn_map, accumulators):
-    #     accumulators[rnn_map['module_name']] = []
-    #     d = accumulators[rnn_map['module_name']]
-    #     num_layers = len(rnn_map['num_nodes'])
-    #     for i in range(num_layers):
-    #         d.append({})
-    #         if 'hidden_state' in self._accumulator_postprocessing:
-    #             d[i]['hidden_state'] = {}
-    #             for pp in self._accumulator_postprocessing['hidden_state']:
-    #                 accumulator_names = self._accumulators_for_postprocessing[pp]
-    #                 for a_name in accumulator_names:
-    #                     if a_name not in d[i]['hidden_state']:
-    #                         d[i]['hidden_state'][a_name] = dict(
-    #                             accumulator=tf.Variable(
-    #                                 0,
-    #                                 trainable=False,
-    #                                 validate_shape=False
-    #                             ),
-    #                             update_op=None
-    #                         )
-    #     if 'derived_branches' in rnn_map:
-    #         for branch in rnn_map['derived_branches']:
-    #             self._create_accumulator_storage_from_rnn_map(branch, accumulators)
-
-    # def _create_accumulator_storage(self, rnn_map):
-    #     accumulators = {}
-    #     self._create_accumulator_storage_from_rnn_map(rnn_map, accumulators)
-    #     return accumulators
+                            accumulators.append(v)
+                            accumulator_specs['accumulator'] = v
+        return tensor_ops.assign_zero_to_vars(accumulators)
 
     def _add_accumulator_hooks(self, accumulators):
         if 'rnn_map' in accumulators:
@@ -1083,19 +1041,6 @@ class Rnn(Pupil):
         self._residual_connections = kwargs.get('residual_connections', False)
         self._half_of_residual = kwargs.get('half_of_residual', False)
 
-        # print("(Rnn.__init__)self._network_type:", self._network_type)
-
-        # possible postprocessing:
-        # [
-        #     'entropy',
-        #     'mean_entropy',
-        #     'mutual_info',
-        #     'mean_mutual_info',
-        #     'min_value_of_nonzero_count_for_mutual_info',
-        #     'support_for_mutual_info'
-        #     'support_for_entropy'
-        # ]
-
         self._accumulators_for_postprocessing = dict(
             entropy=['hist'],
             mean_entropy=['hist'],
@@ -1106,44 +1051,44 @@ class Rnn(Pupil):
             support_for_entropy=['hist'],
         )
 
-        example_of_post_processing_specs = dict(
-            rnn_map=dict(
-                level0={
-                    "0": dict(
-                        hidden_state=dict(
-                            entropy=dict(
-                                method='neuron_entropy_with_digitalization',
-                                hook='entropy_level0_0_hidden_state',
-                                accumulators=['hist'],
-                                args=[0, 100, [-1., 1.]],
-                            )
-                        )
-                    )
-                }
-            )
-        )
+        # example_of_post_processing_specs = dict(
+        #     rnn_map=dict(
+        #         level0={
+        #             "0": dict(
+        #                 hidden_state=dict(
+        #                     entropy=dict(
+        #                         method='neuron_entropy_with_digitalization',
+        #                         hook='entropy_level0_0_hidden_state',
+        #                         accumulators=['hist'],
+        #                         args=[0, 100, [-1., 1.]],
+        #                     )
+        #                 )
+        #             )
+        #         }
+        #     )
+        # )
 
         self._accumulator_postprocessing = kwargs.get(
             'accumulator_postprocessing',
             {},
         )
-        example_of_accumulator_specs = dict(
-            rnn_map=dict(
-                level0={
-                    "0": dict(
-                        hidden_state=dict(
-                            hist=dict(
-                                method='hist_1d',
-                                hook='update_level0_0_hidden_state_hist',
-                                args=['reshape_to_matrix', 100, [-1., 1.], 0],
-                            )
-                        )
-                    )
-                }
-            )
-        )
-        self._accumulators = kwargs.get("accumulator_specs")
-        self._init_accumulators()
+        # example_of_accumulator_specs = dict(
+        #     rnn_map=dict(
+        #         level0={
+        #             "0": dict(
+        #                 hidden_state=dict(
+        #                     hist=dict(
+        #                         method='hist_1d',
+        #                         hook='update_level0_0_hidden_state_hist',
+        #                         args=['reshape_to_matrix', 100, [-1., 1.], 0],
+        #                     )
+        #                 )
+        #             )
+        #         }
+        #     )
+        # )
+        self._accumulators = kwargs.get("accumulator_specs", {})
+        accumulator_reset_op = self._init_accumulators()
         # self._accumulators = self._create_accumulator_storage(self._rnn_map)
 
         self._hook_templates = dict(
@@ -1173,6 +1118,8 @@ class Rnn(Pupil):
             correlation_values=None,
             correlation2=None,
             correlation12=None,
+
+            accumulators_reset=accumulator_reset_op,
         )
         self._hooks['correlation_values_1-2'] = None
         for metric_name in self._metrics:

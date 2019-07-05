@@ -658,3 +658,11 @@ def get_axis_quarters(tensor):
         linear_combination = powers * binary_format
         numbers = tf.reduce_sum(linear_combination, axis=-1)
         return tf.cast(numbers, tf.int32)
+
+
+def assign_zero_to_vars(variables):
+    with tf.name_scope('assign_zero_to_variables'):
+        ops = []
+        for v in variables:
+            ops.append(tf.assign(v, 0))
+    return tf.group(*ops)
