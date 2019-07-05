@@ -487,11 +487,11 @@ class Rnn(Pupil):
                 tensor_ops.get_axis_quarters(s[..., :20])
 
     def _get_update_op(self, accumulator, tensor, accumulator_method, args):
-        func = getattr(accumulator_method, tensors_l2l)
+        func = getattr(tensors_l2l, accumulator_method)
         if accumulator_method in ['hist_1d', 'cross_hist_from_tensor']:
             if args[0] == 'reshape_to_matrix':
                 shape = tf.shape(tensor)
-                tensor = tf.reshape(tensor, tf.concat([-1], shape[-1:]))
+                tensor = tf.reshape(tensor, tf.concat([[-1], shape[-1:]], 0))
             hist = func(tensor, *args[1:])
             update_op = tf.assign_add(accumulator, hist)
         else:
@@ -504,16 +504,24 @@ class Rnn(Pupil):
 
     def _add_hidden_state_accumulation_ops(self, hidden_states, module_name):
         with tf.name_scope('_add_hidden_state_accumulation_ops'):
-            d = self._accumulators['rnn_map'][module_name]
-            for i, hs in enumerate(hidden_states):
-                for accumulator_specs in d[str(i)]['hidden_state'].values():
-                    accumulator_specs['update_op'] = self._get_update_op(
-                        accumulator_specs['accumulator'],
-                        hs,
-                        accumulator_specs['method'],
-                        accumulator_specs['args']
-                    )
-                    accumulator_specs['hook'] = accumulator_specs['update_op']
+            if 'rnn_map' in self._accumulators:
+                d = self._accumulators['rnn_map']
+                if module_name in d:
+                    d = d[module_name]
+                    for i, hs in enumerate(hidden_states):
+                        i = str(i)
+                        if i in d:
+                            d = d[i]
+                            if 'hidden_state' in d:
+                                d = d['hidden_state']
+                                for accumulator_specs in d.values():
+                                    accumulator_specs['update_op'] = self._get_update_op(
+                                        accumulator_specs['accumulator'],
+                                        hs,
+                                        accumulator_specs['method'],
+                                        accumulator_specs['args']
+                                    )
+                                    self._hooks[accumulator_specs['hook']] = accumulator_specs['update_op']
 
     def _add_rnn_graph(self, inp, rnn_map, gpu_name, training, saved_state_name, new_state_name):
         if 'derived_branches' in rnn_map:
@@ -584,7 +592,7 @@ class Rnn(Pupil):
                     self._add_correlation_hooks(intermediate)
                 self._add_hidden_state_hook(intermediate, rnn_map['module_name'])
                 self._add_quarter_of_hidden_state_hooks(intermediate, rnn_map['module_name'])
-                if 'hidden_state' in self._accumulator_postprocessing and not training:
+                if not training:
                     self._add_hidden_state_accumulation_ops(intermediate, rnn_map['module_name'])
         if rnn_map['out_size'] is not None:
             inp = self._adjust_last_dim_v2(
@@ -1005,6 +1013,22 @@ class Rnn(Pupil):
                         for postprocessing_specs in tensor_type_specs.values():
                             self._hooks[postprocessing_specs['hook']] = None
 
+    def _add_accumulator_postprocessing(self, accumulators, postprocessing):
+        if 'rnn_map' in postprocessing:
+            d = postprocessing['rnn_map']
+            for module_name, module_specs in d.items():
+                for layer_name, layer_specs in module_specs.items():
+                    for tensor_type, tensor_type_specs in layer_specs.items():
+                        for postprocessing_specs in tensor_type_specs.values():
+                            func = getattr(tensors_l2l, postprocessing_specs['method'])
+                            a = []
+                            for a_name in postprocessing_specs['accumulators']:
+                                accumulator_specs = \
+                                    accumulators['rnn_map'][module_name][layer_name][tensor_type][a_name]
+                                a.append(accumulator_specs['accumulator'])
+                            postprocessing_specs['result'] = func(*a, *postprocessing_specs['args'])
+                            self._hooks[postprocessing_specs['hook']] = postprocessing_specs['result']
+
     def __init__(self, **kwargs):
 
         if 'rnn_map' in kwargs:
@@ -1119,13 +1143,13 @@ class Rnn(Pupil):
             )
         )
         self._accumulators = kwargs.get("accumulator_specs")
+        self._init_accumulators()
         # self._accumulators = self._create_accumulator_storage(self._rnn_map)
 
         self._hook_templates = dict(
             hidden_states='{}_{}_hidden_state',
             axis_quarters_of_hidden_states='{}_{}_axis_quarters'
         )
-
 
         self._hooks = dict(
             inputs=None,
@@ -1154,7 +1178,6 @@ class Rnn(Pupil):
         for metric_name in self._metrics:
             self._hooks[metric_name] = None
             self._hooks['validation_' + metric_name] = None
-        self._init_hidden_state_hook_entries(self._rnn_map)
         self._add_accumulator_hooks(self._accumulators)
         self._add_postprocessing_hooks(self._accumulator_postprocessing)
 
@@ -1211,6 +1234,7 @@ class Rnn(Pupil):
 
         valid_logits_by_gpu, valid_preds_by_gpu, reset_valid_state, randomize_valid_state = \
             self._add_rnn_and_output_module(embeddings_by_gpu, False)
+        self._add_accumulator_postprocessing(self._accumulators, self._accumulator_postprocessing)
 
         valid_loss, _, valid_metrics = self._compute_loss_and_metrics(
             valid_logits_by_gpu,
