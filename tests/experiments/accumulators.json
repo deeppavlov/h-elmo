@@ -166,7 +166,9 @@
         "min_nonzero_count_level0_0_hidden_state",
         "entropy_level0_1_hidden_state",
         "mutual_info_level0_1_hidden_state",
-        "min_nonzero_count_level0_1_hidden_state"
+        "min_nonzero_count_level0_1_hidden_state",
+        "cross_hist_level0_0_hidden_state",
+        "cross_hist_level0_1_hidden_state"
       ]
     },
     "train_batch_kwargs": {"random_batch_initiation": true},
