@@ -86,6 +86,12 @@
                 "hook": "min_nonzero_count_level0_0_hidden_state",
                 "accumulators": ["cross_hist"],
                 "args": []
+              },
+              "cross_hist": {
+                "method": "identity",
+                "hook": "cross_hist_level0_0_hidden_state",
+                "accumulators": ["cross_hist"],
+                "args": []
               }
             }
           },
@@ -106,6 +112,12 @@
               "min_nonzero_count": {
                 "method": "get_min_nonzero",
                 "hook": "min_nonzero_count_level0_1_hidden_state",
+                "accumulators": ["cross_hist"],
+                "args": []
+              },
+              "cross_hist": {
+                "method": "identity",
+                "hook": "cross_hist_level0_1_hidden_state",
                 "accumulators": ["cross_hist"],
                 "args": []
               }
