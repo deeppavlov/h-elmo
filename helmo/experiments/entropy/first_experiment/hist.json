@@ -1,0 +1,174 @@
+{
+  "num_repeats": 10,
+  "seed": null,
+  "batch_gen": {
+    "path": "resrnn",
+    "cls_name": "LmFastBatchGenerator"
+  },
+  "net": {
+    "path": "resrnn",
+    "cls_name": "Rnn"
+  },
+  "dataset": {
+    "path": "enwiki1G.txt",
+    "test_size": 6.4e6,
+    "valid_size": 6.4e4,
+    "vocab_path": "enwiki1G_voc.txt"
+  },
+  "graph": {
+    "rnn_map": {
+      "module_name": "level0",
+      "num_nodes": [100, 100],
+      "input_idx": null,
+      "output_idx": null
+    },
+    "num_output_nodes": [],
+    "emb_size": 256,
+    "init_parameter": 3.0,
+    "num_gpus": 1,
+    "metrics": ["bpc", "perplexity", "accuracy"],
+    "optimizer": "adam",
+    "clip_norm": 1,
+    "corcov_norm": "sqr",
+    "accumulator_specs": {
+      "rnn_map": {
+        "level0": {
+          "0": {
+            "hidden_state": {
+              "hist": {
+                "method": "hist_1d",
+                "hook": "update_level0_0_hidden_state_hist",
+                "args": ["reshape_to_matrix", 100, [-1.0, 1.0], 0]
+              },
+              "cross_hist": {
+                "method": "get_self_cross_histograms",
+                "hook": "update_level0_0_hidden_state_cross_hist",
+                "args": ["reshape_to_matrix", 0, 1, 100, [-1.0, 1.0]]
+              }
+            }
+          },
+          "1": {
+            "hidden_state": {
+              "hist": {
+                "method": "hist_1d",
+                "hook": "update_level0_1_hidden_state_hist",
+                "args": ["reshape_to_matrix", 100, [-1.0, 1.0], 0]
+              },
+              "cross_hist": {
+                "method": "get_self_cross_histograms",
+                "hook": "update_level0_1_hidden_state_cross_hist",
+                "args": ["reshape_to_matrix", 0, 1, 100, [-1.0, 1.0]]
+              }
+            }
+          }
+        }
+      }
+    },
+    "accumulator_postprocessing": {
+      "rnn_map": {
+        "level0": {
+          "0": {
+            "hidden_state": {
+              "hist": {
+                "method": "identity",
+                "hook": "hist_level0_0_hidden_state",
+                "accumulators": ["hist"],
+                "args": []
+              },
+              "cross_hist": {
+                "method": "identity",
+                "hook": "cross_hist_level0_0_hidden_state",
+                "accumulators": ["cross_hist"],
+                "args": []
+              }
+            }
+          },
+          "1": {
+            "hidden_state": {
+              "hist": {
+                "method": "identity",
+                "hook": "hist_level0_1_hidden_state",
+                "accumulators": ["hist"],
+                "args": []
+              },
+              "cross_hist": {
+                "method": "identity",
+                "hook": "cross_hist_level0_1_hidden_state",
+                "accumulators": ["cross_hist"],
+                "args": []
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "train": {
+    "allow_growth": true,
+    "restore_path": null,
+    "learning_rate": {
+      "type": "adaptive_change",
+      "max_no_progress_points": 50,
+      "decay": 0.5,
+      "init": 2e-3,
+      "path_to_target_metric_storage": ["valid", "loss"]
+    },
+    "batch_size": 32,
+    "num_unrollings": 10,
+    "checkpoint_steps": null,
+    "subgraphs_to_save": {"level0": "base"},
+    "stop": 1000,
+    "no_validation": false,
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "results_collect_interval": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 50, 53, 56, 59, 62, 65, 68, 72, 76, 80, 84, 88, 92, 97, 102,
+            107, 112, 117, 123, 129, 135, 141, 148, 155, 162, 170, 178, 186, 195, 204, 214, 224, 234, 245, 256, 268,
+            280, 293, 306, 320, 335, 350, 366, 383, 400, 418, 437, 457, 478, 500, 523, 547, 572, 598, 625, 653, 682,
+            713, 745, 779, 814, 851, 889, 929, 971, 1000],
+    "validation_batch_size": 40,
+    "init_parameter": 3.0,
+    "valid_batch_kwargs": {"num_unrollings": 500},
+    "validation_tensor_schedule": {
+      "accumulate_on_validation_ops": {
+        "update_level0_0_hidden_state_hist": {"schedule": 1},
+        "update_level0_1_hidden_state_hist": {"schedule": 1},
+        "update_level0_0_hidden_state_cross_hist": {"schedule": 1},
+        "update_level0_1_hidden_state_cross_hist": {"schedule": 1}
+      },
+      "accumulator_postprocessing": [
+        "entropy_level0_0_hidden_state",
+        "mutual_info_level0_0_hidden_state",
+        "min_nonzero_count_level0_0_hidden_state",
+        "entropy_level0_1_hidden_state",
+        "mutual_info_level0_1_hidden_state",
+        "min_nonzero_count_level0_1_hidden_state"
+      ]
+    },
+    "train_batch_kwargs": {"random_batch_initiation": true},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ],
+    "validation_additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  },
+  "test": {
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "validation_batch_size": 32,
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  }
+}
