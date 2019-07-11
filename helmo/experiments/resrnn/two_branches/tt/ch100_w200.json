@@ -1,4 +1,5 @@
 {
+  "num_repeats": 10,
   "seed": null,
   "batch_gen": {
     "path": "resrnn",
@@ -14,37 +15,16 @@
     "valid_size": 6.4e5,
     "vocab_path": "enwiki1G_voc.txt"
   },
-  "evaluation": {
-    "result_types": [
-      "perplexity",
-      "loss",
-      "bpc",
-      "accuracy"
-    ],
-    "batch_kwargs": {
-      "num_unrollings": 200
-    },
-    "batch_size": 32,
-    "additional_feed_dict": [
-      {
-        "placeholder": "dropout",
-        "value": 0.0
-      }
-    ]
-  },
-  "build": {
+  "graph": {
     "rnn_map": {
       "module_name": "char_enc_dec",
-      "num_nodes": [
-        100,
-        100
-      ],
+      "num_nodes": [100, 100],
       "input_idx": null,
       "output_idx": null,
       "derived_branches": [
         {
           "module_name": "word_enc_dec",
-          "num_nodes": [100, 100],
+          "num_nodes": [200, 200],
           "input_idx": 0,
           "output_idx": 1
         }
@@ -52,18 +32,15 @@
     },
     "num_output_nodes": [],
     "emb_size": 256,
-    "num_gpus": 1,
-    "metrics": [
-      "bpc",
-      "perplexity",
-      "accuracy"
-    ],
-    "optimizer": "adam",
     "init_parameter": 3.0,
-    "backward_connections": false
+    "num_gpus": 1,
+    "metrics": ["bpc", "perplexity", "accuracy"],
+    "optimizer": "adam",
+    "dropout_rate": 0.1,
+    "clip_norm": 1
   },
-  "launch": {
-    "ctrl_restore_saver_name": "char_enc_dec",
+  "train": {
+    "allow_growth": true,
     "learning_rate": {
       "type": "adaptive_change",
       "max_no_progress_points": 50,
@@ -71,10 +48,10 @@
       "init": 1e-4,
       "path_to_target_metric_storage": ["valid", "loss"]
     },
-    "allow_growth": true,
     "batch_size": 32,
-    "num_unrollings": 200,
+    "num_unrollings": 10,
     "checkpoint_steps": null,
+    "subgraphs_to_save": {"char_enc_dec": "base"},
     "stop": {
       "type": "while_progress",
       "max_no_progress_points": 50,
@@ -82,10 +59,11 @@
       "path_to_target_metric_storage": ["valid", "loss"]
     },
     "no_validation": false,
-    "printed_result_types": ["loss", "perplexity", "accuracy", "bpc"],
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "results_collect_interval": 1000,
     "validation_batch_size": 32,
+    "init_parameter": 3.0,
     "valid_batch_kwargs": {"num_unrollings": 200},
     "additions_to_feed_dict": [
       {
@@ -100,13 +78,16 @@
       }
     ]
   },
-  "build_hyperparameters": {},
-  "other_hyperparameters": {
-    "num_unrollings": {
-      "varying": [10],
-      "hp_type": "batch_kwarg",
-      "dtype": "int"
-    }
-  },
-  "num_repeats": 10
+  "test": {
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "validation_batch_size": 32,
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  }
 }
