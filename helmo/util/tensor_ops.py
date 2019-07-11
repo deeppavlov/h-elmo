@@ -653,7 +653,7 @@ def get_axis_quarters(tensor):
     with tf.name_scope('get_axis_quarters'):
         last_dim = tf.cast(tf.shape(tensor)[-1], dtype=tf.float32)
         exponents = tf.range(0., last_dim, 1., dtype=tf.float32)
-        powers = tf.math.pow(2., exponents)
+        powers = tf.pow(2., exponents)
         binary_format = tf.cast(tensor > 0, tf.float32)
         linear_combination = powers * binary_format
         numbers = tf.reduce_sum(linear_combination, axis=-1)
