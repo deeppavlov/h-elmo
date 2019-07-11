@@ -11,7 +11,7 @@
   },
   "dataset": {
     "path": "text8.txt",
-    "test_size": 6.4e5,
+    "test_size": 6.4e4,
     "valid_size": 6.4e4,
     "vocab_path": "text8_voc.txt"
   },
