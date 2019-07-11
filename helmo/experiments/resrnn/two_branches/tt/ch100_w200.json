@@ -41,6 +41,7 @@
   },
   "train": {
     "allow_growth": true,
+    "allow_soft_placement": true,
     "learning_rate": {
       "type": "adaptive_change",
       "max_no_progress_points": 50,
