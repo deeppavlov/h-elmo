@@ -4,7 +4,6 @@ import pickle
 import helmo.util.plot.plot_helpers as plot_helpers
 
 parser = argparse.ArgumentParser()
-
 parser.add_argument(
     "files",
     help="File names from which data is taken. File names are matched with labels in "
