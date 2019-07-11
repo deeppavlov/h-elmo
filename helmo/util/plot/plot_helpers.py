@@ -694,9 +694,9 @@ def plot_lines_from_diff_hp_searches(
         )
 
 
-def density_plot(data, bandwidth, label, color):
-    min_ = min(data)
-    max_ = max(data)
+def density_plot(data, bandwidth, label, color, range_=None):
+    min_ = min(data) if range_ is None else range_[0]
+    max_ = max(data) if range_ is None else range_[1]
     xs = np.linspace(min_, max_, int((max_ - min_) / bandwidth))
 
     density = gaussian_kde(data)
