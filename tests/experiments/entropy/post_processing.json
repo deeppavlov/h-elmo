@@ -1,5 +1,5 @@
 {
-  "num_repeats": 2,
+  "num_repeats": 1,
   "seed": null,
   "batch_gen": {
     "path": "resrnn",
@@ -11,7 +11,7 @@
   },
   "dataset": {
     "path": "enwiki1G.txt",
-    "test_size": 6.4e6,
+    "test_size": 6.4e4,
     "valid_size": 6.4e4,
 
     "vocab_path": "enwiki1G_voc.txt"
@@ -46,7 +46,7 @@
     "num_unrollings": 10,
     "checkpoint_steps": null,
     "subgraphs_to_save": {"level0": "base"},
-    "stop": 3,
+    "stop": 2,
     "no_validation": false,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],

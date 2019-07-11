@@ -11,8 +11,8 @@
   },
   "dataset": {
     "path": "enwiki1G.txt",
-    "test_size": 6.4e6,
-    "valid_size": 6.4e5,
+    "test_size": 6.4e4,
+    "valid_size": 6.4e4,
     "vocab_path": "enwiki1G_voc.txt"
   },
   "graph": {
@@ -49,7 +49,7 @@
     "no_validation": false,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
-    "results_collect_interval": 10,
+    "results_collect_interval": 40,
     "validation_batch_size": 32,
     "init_parameter": 3.0,
     "valid_batch_kwargs": {"num_unrollings": 200},
