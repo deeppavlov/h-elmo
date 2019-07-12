@@ -33,3 +33,5 @@ for config in ${hs[@]}; do
   echo "Processing" $config
   python3 $HS $config --test --no_logging
 done
+
+python3 $HH/util/plot/plot_from_pickle.py ~/h-elmo/tests/plot/loss_plot_data.pickle -y loss -X log -t fill -d upper_right -O -g -o ~/h-elmo/testres/plot/loss_plot -r 900

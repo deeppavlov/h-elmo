@@ -363,6 +363,39 @@ class PatchHandler:
         return patch
 
 
+def add_legend(artists, position, only_color_as_marker_in_legend):
+    if position == 'outside':
+        pos_dict = dict(
+            bbox_to_anchor=(1.05, 1),
+            loc=2,
+        )
+    elif position == 'upper_right':
+        pos_dict = dict(
+            bbox_to_anchor=(.95, .95),
+            loc=1,
+        )
+    elif position == 'upper_left':
+        pos_dict = dict(
+            bbox_to_anchor=(.05, .95),
+            loc=2,
+        )
+    if only_color_as_marker_in_legend:
+        handler_map = dict(list(zip(artists, [PatchHandler() for _ in range(len(artists))])))
+    else:
+        handler_map = dict(list(zip(artists, [HandlerLine2D(numpoints=1) for _ in range(len(artists))])))
+    ax = plt.gca()
+    handles, labels = ax.get_legend_handles_labels()
+    handles = [h[0] if isinstance(h, container.ErrorbarContainer) else h for h in handles]
+    lgd = ax.legend(
+        handles,
+        labels,
+        **pos_dict,
+        borderaxespad=0.,
+        handler_map=handler_map,
+    )
+    return lgd
+
+
 def plot_outer_legend(
         plot_data,
         description,
@@ -463,37 +496,7 @@ def plot_outer_legend(
     plt.grid(b=grid, which=which_grid)
 
     if plot_data.labels_are_provided():
-        # print('labels are provided')
-        if legend_pos == 'outside':
-            pos_dict = dict(
-                bbox_to_anchor=(1.05, 1),
-                loc=2,
-            )
-        elif legend_pos == 'upper_right':
-            pos_dict = dict(
-                bbox_to_anchor=(.95, .95),
-                loc=1,
-            )
-        elif legend_pos == 'upper_left':
-            pos_dict = dict(
-                bbox_to_anchor=(.05, .95),
-                loc=2,
-            )
-        if only_color_as_marker_in_legend:
-            handler_map = dict(list(zip(lines, [PatchHandler() for _ in range(len(lines))])))
-        else:
-            handler_map = dict(list(zip(lines, [HandlerLine2D(numpoints=1) for _ in range(len(lines))])))
-        ax = plt.gca()
-        handles, labels = ax.get_legend_handles_labels()
-        handles = [h[0] if isinstance(h, container.ErrorbarContainer) else h for h in handles]
-        lgd = ax.legend(
-            handles,
-            labels,
-            **pos_dict,
-            borderaxespad=0.,
-            handler_map=handler_map,
-        )
-        bbox_extra_artists = [lgd]
+        bbox_extra_artists = [add_legend(lines, legend_pos, only_color_as_marker_in_legend)]
     else:
         bbox_extra_artists = ()
     fig = plt.gcf()
