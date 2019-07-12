@@ -10,8 +10,8 @@
   },
   "dataset": {
     "path": "enwiki1G.txt",
-    "test_size": 6400000.0,
-    "valid_size": 640000.0,
+    "test_size": 6.4e4,
+    "valid_size": 6.4e4,
     "vocab_path": "enwiki1G_voc.txt"
   },
   "evaluation": {
@@ -69,7 +69,7 @@
     "no_validation": false,
     "printed_result_types": ["loss", "perplexity", "accuracy", "bpc"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
-    "results_collect_interval": 10,
+    "results_collect_interval": 45,
     "validation_batch_size": 32,
     "valid_batch_kwargs": {"num_unrollings": 200},
     "additions_to_feed_dict": [

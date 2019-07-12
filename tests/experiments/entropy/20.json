@@ -42,7 +42,7 @@
       "path_to_target_metric_storage": ["valid", "loss"]
     },
     "batch_size": 32,
-    "num_unrollings": 10,
+    "num_unrollings": 40,
     "checkpoint_steps": null,
     "subgraphs_to_save": {"char_enc_dec": "base"},
     "stop": 100,

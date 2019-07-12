@@ -1,5 +1,5 @@
 {
-  "num_repeats": 2,
+  "num_repeats": 1,
   "seed": null,
   "batch_gen": {
     "path": "resrnn",

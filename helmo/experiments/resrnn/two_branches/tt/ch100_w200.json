@@ -41,11 +41,12 @@
   },
   "train": {
     "allow_growth": true,
+    "allow_soft_placement": true,
     "learning_rate": {
       "type": "adaptive_change",
       "max_no_progress_points": 50,
       "decay": 0.5,
-      "init": 2e-3,
+      "init": 1e-4,
       "path_to_target_metric_storage": ["valid", "loss"]
     },
     "batch_size": 32,

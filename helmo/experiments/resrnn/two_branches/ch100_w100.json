@@ -10,8 +10,8 @@
   },
   "dataset": {
     "path": "enwiki1G.txt",
-    "test_size": 6400000.0,
-    "valid_size": 640000.0,
+    "test_size": 6.4e6,
+    "valid_size": 6.4e5,
     "vocab_path": "enwiki1G_voc.txt"
   },
   "evaluation": {
