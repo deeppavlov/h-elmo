@@ -379,6 +379,8 @@ def add_legend(artists, position, only_color_as_marker_in_legend):
             bbox_to_anchor=(.05, .95),
             loc=2,
         )
+    elif position == 'best':
+        pos_dict = {'loc': 'best'}
     if only_color_as_marker_in_legend:
         handler_map = dict(list(zip(artists, [PatchHandler() for _ in range(len(artists))])))
     else:
