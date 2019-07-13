@@ -80,6 +80,7 @@
     ]
   },
   "test": {
+    "allow_soft_placement": true,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "validation_batch_size": 32,
