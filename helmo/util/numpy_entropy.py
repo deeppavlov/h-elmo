@@ -153,7 +153,7 @@ def entropy_MLE_from_hist_numpy(hist, axis, keepdims=False):
     n = np.sum(hist, axis=axis, keepdims=True)
     hist = hist / n
     log_prob = np.log2(hist)
-    mask = np.isnan(log_prob) or np.isinf(log_prob)
+    mask = np.logical_or(np.isnan(log_prob), np.isinf(log_prob))
     log_prob[mask] = 0.
     hist *= log_prob
     hist = np.nan_to_num(hist)

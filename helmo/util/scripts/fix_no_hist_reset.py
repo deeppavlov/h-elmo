@@ -18,7 +18,9 @@ args = parser.parse_args()
 
 
 def was_interruption(h1, h2):
-    return np.logical_and(0 <= h2, h2 < h1).any()
+    h1 = np.sum(h1, axis=0)
+    h2 = np.sum(h2, axis=0)
+    return (h2 - h1 != 64*10**6).any()
 
 
 with open(args.file, 'rb') as in_f, open(args.output, 'wb') as out_f:
