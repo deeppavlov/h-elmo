@@ -78,6 +78,55 @@ def test_hist_1d_loop_numpy():
     print(hist)
 
 
+def test_mutual_information_from_hist():
+    sets_of_args = [
+        (
+            np.full([100, 10], 100),
+            np.stack(
+                [np.diag([100 for _ in range(10)]).reshape([-1]) for _ in range(10**4)]).reshape([100, 100, -1]),
+            0,
+            -1,
+            -1,
+            'MLE'
+        ),
+        (
+            np.full([100, 10], 100),
+            np.stack(
+                [np.diag([100 for _ in range(10)]).reshape([-1]) for _ in range(10 ** 4)]).reshape([100, 100, -1]),
+            0,
+            -1,
+            -1,
+            'MM'
+        ),
+        (
+            np.full([100, 10], 100),
+            np.full([100, 100, 100], 10),
+            0,
+            -1,
+            -1,
+            'MLE'
+        ),
+        (
+            np.full([100, 10], 100),
+            np.full([100, 100, 100], 10),
+            0,
+            -1,
+            -1,
+            'MM'
+        )
+    ]
+    answers = [
+        np.full([100, 100], np.log2(10)),
+        # Because empty bins are excluded from support size
+        np.full([100, 100], np.log2(10) + 0.0045),
+        np.zeros([100, 100]),
+        np.full([100, 100], -0.04049999999999976)
+    ]
+    for i, (args, ans) in enumerate(zip(sets_of_args, answers)):
+        mi = mutual_information_from_hist(*args)
+        assert np.all(mi == ans), 'test #{}'.format(i)
+
+
 if __name__ == '__main__':
     test_shift_axis_numpy()
     test_hist_from_nonnegative_ints_numpy()
@@ -98,3 +147,4 @@ if __name__ == '__main__':
     print(t)
 
     test_hist_1d_loop_numpy()
+    test_mutual_information_from_hist()

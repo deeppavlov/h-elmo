@@ -198,3 +198,27 @@ def mutual_information_and_min_nonzero_count_numpy(
     if keepdims:
         return entropy, min_nonzero
     return np.squeeze(entropy, axis=value_axis), min_nonzero
+
+
+def mutual_information_from_hist(
+        hist,
+        cross_hist,
+        cross_axis,
+        hist_bin_axis,
+        cross_hist_bin_axis,
+        method,
+        keepdims=False,
+):
+    if method == 'MLE':
+        entropy_func = entropy_MLE_from_hist_numpy
+    elif method == 'MM':
+        entropy_func = entropy_MM_from_hist_numpy
+    else:
+        raise NotImplementedError()
+    entropy = entropy_func(hist, hist_bin_axis, keepdims=True)
+    entropy_sum = self_cross_sum_numpy(entropy, cross_axis)
+    joint_entropy = entropy_func(cross_hist, cross_hist_bin_axis, keepdims=True)
+    mutual_information = entropy_sum - joint_entropy
+    if keepdims:
+        return mutual_information
+    return np.squeeze(mutual_information, cross_hist_bin_axis)
