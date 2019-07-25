@@ -127,6 +127,17 @@ def test_mutual_information_from_hist():
         assert np.all(mi == ans), 'test #{}'.format(i)
 
 
+def test_mean_without_diag():
+    inputs = [
+        ([[[1, 0], [0, 1]], [[1, 0], [0, 1]]], [-2, -1]),
+        ([[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [1, 2]),
+        ([[[1, 2], [2, 1]], [[1, 4], [4, 1]]], [1, 2]),
+    ]
+    answers = [0, 1, 3]
+    for i, (inp, ans) in enumerate(zip(inputs, answers)):
+        assert ans == mean_without_diag(*inp), "failed test #{}".format(i)
+
+
 if __name__ == '__main__':
     test_shift_axis_numpy()
     test_hist_from_nonnegative_ints_numpy()
@@ -148,3 +159,4 @@ if __name__ == '__main__':
 
     test_hist_1d_loop_numpy()
     test_mutual_information_from_hist()
+    test_mean_without_diag()

@@ -526,10 +526,11 @@ def expand_multiple_dims(tensor, num_dims, axes):
 
 
 def move_axes_to_front(tensor, axes):
-    nd = tf.shape(tf.shape(tensor))[0]
-    remained_axes = get_all_values_except_specified(tf.range(nd), axes)
-    perm = tf.concat([axes, remained_axes], 0)
-    return tf.transpose(tensor, perm=perm)
+    with tf.name_scope('move_axes_to_front'):
+        nd = tf.shape(tf.shape(tensor))[0]
+        remained_axes = get_all_values_except_specified(tf.range(nd), axes)
+        perm = tf.concat([axes, remained_axes], 0)
+        return tf.transpose(tensor, perm=perm)
 
 
 def get_low_triangle_values(tensor, axes):

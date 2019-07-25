@@ -153,6 +153,8 @@ def entropy_MLE_from_hist_numpy(hist, axis, keepdims=False):
     n = np.sum(hist, axis=axis, keepdims=True)
     hist = hist / n
     log_prob = np.log2(hist)
+    mask = np.isnan(log_prob) or np.isinf(log_prob)
+    log_prob[mask] = 0.
     hist *= log_prob
     hist = np.nan_to_num(hist)
     return -np.sum(hist, axis=axis, keepdims=keepdims)
@@ -222,3 +224,12 @@ def mutual_information_from_hist(
     if keepdims:
         return mutual_information
     return np.squeeze(mutual_information, cross_hist_bin_axis)
+
+
+def mean_without_diag(
+        tensor,
+        axes,
+):
+    tensor = np.array(tensor)
+    d = np.diagonal(tensor, axis1=axes[0], axis2=axes[1])
+    return (np.sum(tensor) - np.sum(d)) / (tensor.size - d.size)
