@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     'hist',
     help="Path to pickle file with objects with"
-         "histograms. File has to pickle dump of"
+         "histograms. File has to be pickle dump of"
          " numpy arrays."
 )
 parser.add_argument(
