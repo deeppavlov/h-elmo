@@ -21,8 +21,27 @@ def mark_up_spaces_with_pos(words, tags, text_len):
     return markup
 
 
+def mark_up_word_characters_with_pos(words, tags, text_len):
+    markup = [0] * text_len
+    idx = 0
+    for i in range(len(words)):
+        tag = tags[i]
+        for j in range(len(words[i])):
+            try:
+                markup[idx+j] = tag
+            except IndexError:
+                print(idx+j, idx, j, i)
+                raise
+            idx += len(words[i]) + 1
+    return markup
+
+
 def mark_up_spaces_with_pos_in_text8(words, tags, text_len):
     return [0] + mark_up_spaces_with_pos(words, tags, text_len-1)
+
+
+def mark_up_word_characters_with_pos_in_text8(words, tags, text_len):
+    return [0] + mark_up_word_characters_with_pos(words, tags, text_len-1)
 
 
 def get_markup_for_1_tag(markup, tag):
@@ -122,7 +141,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="The script is for measuring correlation between neurons activation "
                     "and text features. Inputs are a text on which model is tested and "
-                    "array of neuron activations measured on each character of input text. "
+                    " an array of neuron activations measured on each character of input text. "
                     ""
                     "The script finds matches between specified features and neuron "
                     "activations and saves them in `matches.pickle`. Matches are products "
@@ -138,8 +157,8 @@ if __name__ == '__main__':
                     "Match is divided by stddevs of activation and feature before stddev "
                     "computation. "
                     ""
-                    "Mean square of feature correlation for a layer is computed. This "
-                    "are saved in `mean_square_correlation.pickle`. "
+                    "Mean square of feature correlation for a layer is computed. It "
+                    "is saved in `mean_square_correlation.pickle`. "
                     ""
                     "Of course initial feature maps are also can be saved as `markup.pickle`. "
                     ""
@@ -166,7 +185,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "markup",
         help="The way text is marked up. Possible options are: (1)"
-             "`space_pos`."
+             "`space_pos`, (2)`word_char_pos`."
     )
     parser.add_argument(
         "--data",
@@ -193,14 +212,20 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.text_file, 'rb') as f:
         text = f.read()
-    with open(args.tagged_words_file, 'rb') as f:
-        words_with_tags = pickle.load(f)
-    replace_None_tag_with_zero(words_with_tags)
     with open(args.data, 'rb') as f:
         data = pickle.load(f)
-    words, tags = zip(*words_with_tags)
 
-    markup = mark_up_spaces_with_pos_in_text8(words, tags, len(text))
+    if args.markup in ['space_pos', 'word_char_pos']:
+        with open(args.tagged_words_file, 'rb') as f:
+            words_with_tags = pickle.load(f)
+        replace_None_tag_with_zero(words_with_tags)
+        words, tags = zip(*words_with_tags)
+        if args.markup == 'space_pos':
+            markup = mark_up_spaces_with_pos_in_text8(words, tags, len(text))
+        elif args.markup == 'word_char_pos':
+            markup = mark_up_word_characters_with_pos_in_text8(words, tags, len(text))
+        else:
+            raise NotImplementedError
     markup = markup[args.start:args.start + args.length]
     tag_counter = Counter(markup)
     del tag_counter[0]
