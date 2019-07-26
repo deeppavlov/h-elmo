@@ -65,3 +65,26 @@ def get_stddev_rounding_num_digits(std, std_acc):
     if higher_digit_change:
         nz_err += 1
     return nz_err
+
+
+def custom_round(number, digit_num):
+    if digit_num >= 0:
+        exp = 10**digit_num
+        remainder = number % exp
+        n = number - remainder
+        if remainder >= exp / 2:
+            return n + exp
+        return n
+    else:
+        return round(number, -digit_num)
+
+
+def round_mean_and_std(mean, std, std_acc):
+    nd = get_stddev_rounding_num_digits(std, std_acc)
+    return custom_round(mean, nd), custom_round(std, nd), nd
+
+
+def create_plus_minus_str(mean, error, nd):
+    if nd < 0:
+        nd = -nd
+    return ("{:.%sf} ± {:.%sf}" % (nd, nd)).format(mean, error)

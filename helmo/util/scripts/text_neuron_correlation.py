@@ -2,7 +2,7 @@ import os
 import pickle
 import argparse
 from collections import Counter
-import gc
+import string
 
 import numpy as np
 
@@ -32,7 +32,7 @@ def mark_up_word_characters_with_pos(words, tags, text_len):
             except IndexError:
                 print(idx+j, idx, j, i)
                 raise
-            idx += len(words[i]) + 1
+        idx += len(words[i]) + 1
     return markup
 
 
@@ -42,6 +42,16 @@ def mark_up_spaces_with_pos_in_text8(words, tags, text_len):
 
 def mark_up_word_characters_with_pos_in_text8(words, tags, text_len):
     return [0] + mark_up_word_characters_with_pos(words, tags, text_len-1)
+
+
+def mark_up_letters(text):
+    markup = []
+    for char in text:
+        if char in string.ascii_letters:
+            markup.append(char)
+        else:
+            markup.append(0)
+    return markup
 
 
 def get_markup_for_1_tag(markup, tag):
@@ -98,9 +108,11 @@ def compute_stats(data, markup_for_tag):
     return stats
 
 
-def save_tag_stats(stats, directory):
+def save_tag_stats(stats, directory, no_big=False):
     os.makedirs(directory, exist_ok=True)
     for stat, value in stats.items():
+        if stat in ['matches', 'relevant_activations'] and no_big:
+            continue
         path = os.path.join(directory, stat + '.pickle')
         with open(path, 'wb') as f:
             pickle.dump(value, f)
@@ -118,17 +130,17 @@ def replace_None_tag_with_zero(words_with_tags):
             words_with_tags[i] = (wt[0], 0)
 
 
-def get_and_save_stats_for_tag(data, markup, tag, directory):
+def get_and_save_stats_for_tag(data, markup, tag, directory, no_big=False):
     markup_for_tag = get_markup_for_1_tag(markup, tag)
     stats = compute_stats(data, markup_for_tag)
-    save_tag_stats(stats, directory)
+    save_tag_stats(stats, directory, no_big=no_big)
 
 
-def get_and_save_stats(data, markup, tags, directory):
+def get_and_save_stats(data, markup, tags, directory, no_big=False):
     os.makedirs(directory, exist_ok=True)
     for tag in tags:
         print("Processing tag {}".format(tag))
-        get_and_save_stats_for_tag(data, markup, tag, os.path.join(directory, tag))
+        get_and_save_stats_for_tag(data, markup, tag, os.path.join(directory, tag), no_big=no_big)
 
 
 def remove_tags_with_small_counts(counter):
@@ -185,7 +197,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "markup",
         help="The way text is marked up. Possible options are: (1)"
-             "`space_pos`, (2)`word_char_pos`."
+             "`space_pos`, (2)`word_char_pos`, (3)`letters`."
     )
     parser.add_argument(
         "--data",
@@ -204,13 +216,19 @@ if __name__ == '__main__':
         help="File with tagged words.",
     )
     parser.add_argument(
+        "--no_big",
+        "-b",
+        help="If provided matches and relevant activations are not saved.",
+        action="store_true",
+    )
+    parser.add_argument(
         "--output",
         "-o",
         help="Path to directory with results",
         default=".",
     )
     args = parser.parse_args()
-    with open(args.text_file, 'rb') as f:
+    with open(args.text_file, 'r') as f:
         text = f.read()
     with open(args.data, 'rb') as f:
         data = pickle.load(f)
@@ -225,14 +243,19 @@ if __name__ == '__main__':
         elif args.markup == 'word_char_pos':
             markup = mark_up_word_characters_with_pos_in_text8(words, tags, len(text))
         else:
-            raise NotImplementedError
+            raise NotImplementedError()
+        del words_with_tags, words
+    elif args.markup == 'letters':
+        markup = mark_up_letters(text)
+    else:
+        raise NotImplementedError()
     markup = markup[args.start:args.start + args.length]
     tag_counter = Counter(markup)
     del tag_counter[0]
     remove_tags_with_small_counts(tag_counter)
     unique_tags = list(tag_counter.keys()) if args.tags is None else args.tags
-    del words_with_tags, words
+
     # gc.collect()
-    get_and_save_stats(data, markup, unique_tags, args.output)
+    get_and_save_stats(data, markup, unique_tags, args.output, args.no_big)
     # stats_by_tags = get_stats_by_tags(data, markup, tags)
     # save_stats_by_tags(stats_by_tags, args.output)
