@@ -54,6 +54,19 @@ def mark_up_letters(text):
     return markup
 
 
+def mark_up_spaces_after_letters(text):
+    markup = [0]
+    char1 = text[0]
+    length = len(text)
+    for i in range(1, length):
+        if char1 in string.ascii_letters and text[i] == ' ':
+            markup.append(char1)
+        else:
+            markup.append(0)
+        char1 = text[i]
+    return markup
+
+
 def get_markup_for_1_tag(markup, tag):
     markup = markup.copy()
     for i, t in enumerate(markup):
@@ -197,7 +210,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "markup",
         help="The way text is marked up. Possible options are: (1)"
-             "`space_pos`, (2)`word_char_pos`, (3)`letters`."
+             "`space_pos`, (2)`word_char_pos`, (3)`letters`, (4)`space_letter'."
     )
     parser.add_argument(
         "--data",
@@ -247,6 +260,8 @@ if __name__ == '__main__':
         del words_with_tags, words
     elif args.markup == 'letters':
         markup = mark_up_letters(text)
+    elif args.markup == 'space_letter':
+        markup = mark_up_spaces_after_letters(text)
     else:
         raise NotImplementedError()
     markup = markup[args.start:args.start + args.length]
