@@ -16,7 +16,7 @@ from learning_to_learn.useful_functions import create_path
 parser = argparse.ArgumentParser()
 parser.add_argument(
     'files',
-    help='Path to pickle file with data.',
+    help='Path to pickle files with data.',
     nargs='+',
 )
 parser.add_argument(
