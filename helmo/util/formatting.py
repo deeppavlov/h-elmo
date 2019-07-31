@@ -88,3 +88,8 @@ def create_plus_minus_str(mean, error, nd):
     if nd < 0:
         nd = -nd
     return ("{:.%sf} ± {:.%sf}" % (nd, nd)).format(mean, error)
+
+
+def create_plus_minus_str_full(mean, std, std_acc):
+    mean, std, nd = round_mean_and_std(mean, std, std_acc)
+    return create_plus_minus_str(mean, std, nd)
