@@ -1,5 +1,6 @@
 import argparse
 import pickle
+from collections import OrderedDict
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -78,6 +79,14 @@ parser.add_argument(
     "-m",
     help="A right hand part of an equation which modifies label.",
 )
+parser.add_argument(
+    "--formats",
+    "-f",
+    help="List of formats in which image is saved. png and pdf options"
+         "are available. Default is only png",
+    nargs="+",
+    default=["png"],
+)
 args = parser.parse_args()
 
 
@@ -103,7 +112,7 @@ if args.label_modifier is not None:
     labels = [eval(args.label_modifier.format(repr(lbl))) for lbl in labels]
 
 
-data = {}
+data = OrderedDict()
 for label, file_name in zip(labels, args.files):
     data[label] = load(file_name)
 
@@ -140,10 +149,10 @@ if args.labels is not None:
             loc=2,
         )
     ax = plt.gca()
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _ = ax.get_legend_handles_labels()
     handler_map = dict(
         zip(
-            handles,
+            sorted(handles, key=lambda x: x.get_label()),
             [
                 PatchHandler(color=color) for _, color in
                 zip(
@@ -165,10 +174,10 @@ else:
     bbox_extra_artists = []
 
 if not args.show:
-    for format in ['pdf', 'png']:
-        if format == 'pdf':
+    for format_ in args.formats:
+        if format_ == 'pdf':
             fig_path = args.output + '.pdf'
-        elif format == 'png':
+        elif format_ == 'png':
             fig_path = args.output + '.png'
         else:
             fig_path = None

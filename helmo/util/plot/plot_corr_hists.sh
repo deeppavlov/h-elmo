@@ -13,6 +13,6 @@ do
     do
       python3 $HH/util/scripts/apply_expr_to_pickle.py $i/$layer/$tag/correlations.pickle $i/$layer/$tag/match_stddevs.pickle -c "np.abs({0})/{1}" -o $i/$layer/$tag/correlations_relative_to_match_stddevs.pickle
     done
-    python3 $HH/util/plot/hist.py $i/*/$tag/correlations_relative_to_match_stddevs.pickle --labels $labels -o $i/plots/correlations_relative_to_match_stddevs/$tag --lgd upper_left -d
+    python3 $HH/util/plot/hist.py $i/*/$tag/correlations_relative_to_match_stddevs.pickle --labels $labels -o $i/plots/correlations_relative_to_match_stddevs/$tag --lgd upper_right --xlabel "correlation / match_stddev" -d
   done
 done
