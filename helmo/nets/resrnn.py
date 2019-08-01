@@ -537,9 +537,10 @@ class Rnn(Pupil):
             # print("(Rnn._add_rnn_graph).prepared_state:", prepared_state)
             residual_connections = rnn_map.get('residual_connections', [False]*len(rnn_map['rnns']))
             post_factors = rnn_map.get('post_factors', [1.]*len(rnn_map['rnns']))
+            post_factors_2 = rnn_map.get('post_factors_2', [1.]*len(rnn_map['rnns']))
 
-            for rnn_idx, (rnn, s, res_conn, post_factor) in enumerate(
-                    zip(rnn_map['rnns'], prepared_state, residual_connections, post_factors)):
+            for rnn_idx, (rnn, s, res_conn, post_factor, post_factor_2) in enumerate(
+                    zip(rnn_map['rnns'], prepared_state, residual_connections, post_factors, post_factors_2)):
                 # print("(Rnn._add_rnn_graph).inp:", inp)
                 # print("(Rnn._add_rnn_graph).s:", s)
                 if 'derived_branches' in rnn_map \
@@ -563,7 +564,7 @@ class Rnn(Pupil):
                 #         )
                 #
                 #     s = tuple(ps)
-                old_inp, new_s = rnn(inp, initial_state=s, training=training)
+                old_inp, new_s = rnn(inp*post_factor_2, initial_state=s, training=training)
                 if (self._residual_connections or res_conn) and not self._matrix_dim_adjustment:
                     residual_factor = 0.5**0.5 if self._half_of_residual else 1.0
                     inp = old_inp + residual_factor * self._adjust_last_dim(inp, old_inp)

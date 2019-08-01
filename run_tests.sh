@@ -17,7 +17,8 @@ tt=("$HOME/h-elmo/tests/experiments/correlation/nocorrloss/batch_mean/100_100sho
     "$HOME/h-elmo/tests/experiments/entropy/post_processing.json" \
     "$HOME/h-elmo/tests/experiments/residual/half_residual.json" \
     "$HOME/h-elmo/tests/experiments/residual/averaging.json" \
-    "$HOME/h-elmo/tests/experiments/accumulators.json" )
+    "$HOME/h-elmo/tests/experiments/accumulators.json" \
+    "$HOME/h-elmo/tests/experiments/residual/normalizing.json")
 
 hs=("$HOME/h-elmo/tests/experiments/resrnn/small/char/hp/200.json" \
     "$HOME/h-elmo/tests/experiments/resrnn/residual/200.json")
