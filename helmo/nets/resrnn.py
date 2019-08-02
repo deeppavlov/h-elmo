@@ -495,7 +495,7 @@ class Rnn(Pupil):
             hist = func(tensor, *args[1:])
             update_op = tf.assign(accumulator, accumulator+hist, validate_shape=False)
         else:
-            raise NotImplementedError()
+            raise ValueError()
         return update_op
 
     def _get_hidden_state_accumulators(self, module_name):

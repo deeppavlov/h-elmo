@@ -256,14 +256,14 @@ if __name__ == '__main__':
         elif args.markup == 'word_char_pos':
             markup = mark_up_word_characters_with_pos_in_text8(words, tags, len(text))
         else:
-            raise NotImplementedError()
+            raise ValueError()
         del words_with_tags, words
     elif args.markup == 'letters':
         markup = mark_up_letters(text)
     elif args.markup == 'space_letter':
         markup = mark_up_spaces_after_letters(text)
     else:
-        raise NotImplementedError()
+        raise ValueError()
     markup = markup[args.start:args.start + args.length]
     tag_counter = Counter(markup)
     del tag_counter[0]

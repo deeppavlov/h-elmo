@@ -216,7 +216,7 @@ def mutual_information_from_hist(
     elif method == 'MM':
         entropy_func = entropy_MM_from_hist_numpy
     else:
-        raise NotImplementedError()
+        raise ValueError()
     entropy = entropy_func(hist, hist_bin_axis, keepdims=True)
     entropy_sum = self_cross_sum_numpy(entropy, cross_axis)
     joint_entropy = entropy_func(cross_hist, cross_hist_bin_axis, keepdims=True)
