@@ -1,0 +1,92 @@
+{
+  "seed": null,
+  "batch_gen": {
+    "path": "resrnn",
+    "cls_name": "LmFastBatchGenerator"
+  },
+  "net": {
+    "path": "resrnn",
+    "cls_name": "Rnn"
+  },
+  "dataset": {
+    "path": "text8.txt",
+    "test_size": 6400000.0,
+    "valid_size": 640000.0,
+    "vocab_path": "text8_voc.txt"
+  },
+  "evaluation": {
+    "result_types": [
+      "perplexity",
+      "loss",
+      "bpc",
+      "accuracy"
+    ],
+    "batch_kwargs": {
+      "num_unrollings": 200
+    },
+    "batch_size": 256,
+    "additional_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  },
+  "build": {
+    "num_output_nodes": [],
+    "emb_size": 100,
+    "num_gpus": 1,
+    "metrics": [
+      "bpc",
+      "perplexity",
+      "accuracy"
+    ],
+    "optimizer": "adam"
+  },
+  "launch": {
+    "ctrl_restore_saver_name": "char_enc_dec",
+    "learning_rate": {
+      "type": "adaptive_change",
+      "max_no_progress_points": 50,
+      "decay": 0.5,
+      "init": 2e-3,
+      "path_to_target_metric_storage": ["valid", "loss"]
+    },
+    "allow_growth": true,
+    "batch_size": 32,
+    "num_unrollings": 10,
+    "checkpoint_steps": null,
+    "stop": {
+      "type": "while_progress",
+      "max_no_progress_points": 50,
+      "changing_parameter_name": "learning_rate",
+      "path_to_target_metric_storage": ["valid", "loss"]
+    },
+    "no_validation": false,
+    "printed_result_types": ["loss", "perplexity", "accuracy", "bpc"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "results_collect_interval": 1000,
+    "validation_batch_size": 256,
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ],
+    "validation_additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  },
+  "build_hyperparameters": {
+    "num_nodes": {
+      "dtype": "list",
+      "values": [[100, 100, 100, 100], [85, 156, 76, 65], [84, 83, 48, 188], [121, 40, 119, 118], [28, 144, 21, 209], [78, 134, 126, 32], [48, 173, 26, 159], [124, 33, 146, 88], [55, 86, 113, 144], [169, 37, 50, 127], [34, 140, 54, 176], [77, 54, 134, 130], [80, 118, 144, 27], [163, 96, 44, 58], [174, 21, 124, 56], [61, 134, 38, 175], [49, 140, 78, 136], [131, 106, 37, 123], [39, 151, 145, 17], [75, 154, 22, 156], [150, 48, 113, 77], [61, 83, 88, 169], [89, 54, 127, 127], [94, 71, 56, 181], [134, 92, 76, 90], [74, 59, 205, 24], [173, 34, 137, 14], [112, 61, 126, 99], [55, 145, 84, 117], [186, 65, 53, 43], [73, 115, 112, 97], [102, 136, 31, 133], [174, 59, 40, 103], [115, 91, 119, 62], [156, 90, 34, 101], [169, 106, 17, 50], [72, 60, 156, 102], [97, 162, 17, 118], [88, 133, 42, 143], [28, 132, 46, 195], [148, 76, 107, 46]]
+    }
+  },
+  "other_hyperparameters": {},
+  "num_repeats": 4
+}
