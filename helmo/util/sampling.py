@@ -255,3 +255,27 @@ def sample_point_from_sum_triangle(s, nd, frac):
     normed_point = sample_point_from_sum_prism(nd, frac)
     normed_point = project_on_sum_plane(normed_point)
     return [c*s for c in normed_point]
+
+
+def get_hidden_size(input_size, num_param):
+    discriminant = 16*(input_size + 1)**2 + 16*num_param
+    root = discriminant**0.5
+    hidden_size = (-4*input_size - 4 + root) / 8
+    return int(round(hidden_size))
+
+
+def get_hidden_sizes_from_num_param(num_param, input_size):
+    hidden_sizes = []
+    for np in num_param:
+        hs = get_hidden_size(input_size, np)
+        hidden_sizes.append(hs)
+        input_size = hs
+    return hidden_sizes
+
+
+def sample_hidden_sizes(total_num_param, frac, num_layers, input_size, n):
+    num_param = [sample_point_from_sum_triangle(total_num_param, num_layers, frac) for _ in range(n)]
+    hidden_sizes = []
+    for np in num_param:
+        hidden_sizes.append(get_hidden_sizes_from_num_param(np, input_size))
+    return hidden_sizes
