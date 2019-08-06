@@ -1,0 +1,3 @@
+random batch initiation is applied
+mean sqr correlation is computed
+wide networks are studied
