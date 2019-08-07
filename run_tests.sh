@@ -6,7 +6,8 @@ dpenv
 
 setdev 0
 
-tt=("$HOME/h-elmo/tests/experiments/correlation/nocorrloss/batch_mean/100_100short.json" \
+tt=("$HOME/h-elmo/tests/experiments/logarithmic_controller.json" \
+    "$HOME/h-elmo/tests/experiments/correlation/nocorrloss/batch_mean/100_100short.json" \
     "$HOME/h-elmo/tests/experiments/correlation/nocorrloss/overfitting/validate_on_train.json" \
     "$HOME/h-elmo/tests/experiments/residual/nocorrloss/batch_mean/100_100short.json" \
     "$HOME/h-elmo/tests/experiments/residual/nocorrloss/overfitting/validate_on_train.json" \
