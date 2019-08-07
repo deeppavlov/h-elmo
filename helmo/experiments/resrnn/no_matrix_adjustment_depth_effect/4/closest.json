@@ -41,7 +41,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam",
+    "optimizer_type": "adam",
     "matrix_dim_adjustment": false,
     "backward_connections": false
   },

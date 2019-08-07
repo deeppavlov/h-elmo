@@ -50,7 +50,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam",
+    "optimizer_type": "adam",
     "backward_connections": true
   },
   "launch": {

@@ -35,7 +35,7 @@
     "init_parameter": 4.0,
     "num_gpus": 1,
     "metrics": ["bpc", "perplexity", "accuracy"],
-    "optimizer": "adam",
+    "optimizer_type": "adam",
     "dropout_rate": 0.1,
     "clip_norm": 1.0
   },

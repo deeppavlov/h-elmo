@@ -703,7 +703,7 @@ class Rnn(Pupil):
         if back_adapters:
             intermediate_back_adapter_matrices = []
             intermediate_back_adapter_biases = []
-        stddevs = tensor_ops.compute_lstm_gru_stddevs(rnn_map['num_nodes'], self._voc_size, self._init_parameter)
+        stddevs = tensor_ops.compute_lstm_gru_stddevs(rnn_map['num_nodes'], inp_size, self._init_parameter)
         if self._rnn_type == 'lstm':
             Rnn = CudnnLSTM
         elif self._rnn_type == 'gru':
@@ -1017,6 +1017,7 @@ class Rnn(Pupil):
         self._reg_rate = kwargs.get('reg_rate', 6e-6)
         self._metrics = kwargs.get('metrics', [])
         self._optimizer_type = kwargs.get('optimizer_type', 'adam')
+        print(self._optimizer_type, self._init_parameter)
         self._rho = kwargs.get('rho', 0.95)  # used for adadelta
         self._decay = kwargs.get('decay', 0.9)  # used for rmsprop
         self._num_gpus = kwargs.get('num_gpus', 1)

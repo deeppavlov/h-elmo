@@ -51,7 +51,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam"
+    "optimizer_type": "adam"
   },
   "launch": {
     "allow_growth": true,

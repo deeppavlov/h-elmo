@@ -36,7 +36,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam",
+    "optimizer_type": "adam",
     "backward_connections": false,
     "matrix_dim_adjustment": false,
     "residual_connections": true

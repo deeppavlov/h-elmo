@@ -50,7 +50,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam"
+    "optimizer_type": "adam"
   },
   "launch": {
     "ctrl_restore_saver_name": "char_enc_dec",

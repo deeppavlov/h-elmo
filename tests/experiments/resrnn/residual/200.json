@@ -49,7 +49,7 @@
       "perplexity",
       "accuracy"
     ],
-    "optimizer": "adam",
+    "optimizer_type": "adam",
     "residual_connections": true
   },
   "launch": {

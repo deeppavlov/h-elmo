@@ -6,6 +6,6 @@
   "input_replica_file": "~/h-elmo/helmo/interact/replicas.txt",
   "num_unrollings": 200,
   "results_collect_interval": 1000,
-  "optimizer": "adam",
+  "optimizer_type": "adam",
   "stop_specs": 200
 }
