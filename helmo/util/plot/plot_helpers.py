@@ -58,7 +58,7 @@ class Line(UserDict):
                 # print("(Line.__init__)key:", key)
                 if key in self.value_keys:
                     self.expand_values(key)
-                    print(self['y'])
+                    # print(self['y'])
                     if len(self['x']) != len(self['y']):
                         raise ValueError(
                             "numbers of x and y values are not equal"
