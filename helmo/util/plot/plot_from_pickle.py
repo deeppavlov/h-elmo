@@ -204,4 +204,5 @@ plot_helpers.plot_outer_legend(
     size_factor=args.size_factor,
     grid=args.grid,
     which_grid=args.which_grid,
+    formats=args.save_formats,
 )
