@@ -40,6 +40,12 @@ parser.add_argument(
          "expression will be applied to numpy array",
     default=None,
 )
+parser.add_argument(
+    '--no_stack',
+    help="No dimension added to values. Used when pickle files "
+         " contain single array each.",
+    action='store_true',
+)
 
 args = parser.parse_args()
 
@@ -56,7 +62,12 @@ def load_pickle_file(file):
 
 for_averaging = []
 for file in args.files:
-    for_averaging.append(np.stack(load_pickle_file(file)))
+    loaded = load_pickle_file(file)
+    if args.no_stack:
+        loaded = loaded[0]
+    else:
+        loaded = np.stack(loaded)
+    for_averaging.append(loaded)
     file.close()
 
 for_averaging = np.stack(for_averaging)
