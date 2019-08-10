@@ -59,7 +59,11 @@ class Line(UserDict):
                 if key in self.value_keys:
                     self.expand_values(key)
                     if len(self['x']) != len(self['y']):
-                        raise ValueError("numbers of x and y values are not equal")
+                        raise ValueError(
+                            "numbers of x and y values are not equal"
+                            "\nkey: {}\nlen(self['x']): {}\nlen(self['y']): {}".format(
+                                key, len(self['x']), len(self['y']))
+                        )
                     if len(self['x']) == 0:
                         raise ValueError("no points were provided")
                     if self.value_error_pairs[key] in self:
