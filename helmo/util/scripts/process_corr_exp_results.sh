@@ -21,12 +21,12 @@ function average_correlation () {
 function average_loss () {
   local current_dir=$(pwd)
   cd $1
-  mkdir -p mean/loss
+  mkdir -p mean
   local loss_files=()
   for launch in $(ls | grep -E '^[0-9]+$'); do
     loss_files+=(${launch}/results/loss_valid.txt)
   done
-  python3 ~/h-elmo/helmo/util/scripts/average_txt.py ${loss_files[@]} -o $2
+  python3 ~/h-elmo/helmo/util/scripts/average_txt.py ${loss_files[@]} -o mean/loss.txt
   cd ${current_dir}
 }
 
