@@ -127,7 +127,8 @@ def save_mean_and_stddev(results, output_dir, output_file_name):
 def main():
     args = get_args()
     results = get_mean_and_stddev(args.dir_with_launches, args.dataset_name, args.checkpoint_subgraph_name)
-    save_mean_and_stddev(results, args.output_dir, args.output_file_name)
+    output_dir = args.dir_with_launches if args.output_dir is None else args.output_dir
+    save_mean_and_stddev(results, output_dir, args.output_file_name)
 
 
 if __name__ == '__main__':
