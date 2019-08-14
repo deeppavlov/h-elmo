@@ -56,10 +56,11 @@ def get_metric_and_dataset_name_from_file_name(file_name):
 
 def get_metric_file_names(launch_dir, dataset_name):
     result = {}
-    for fn in os.listdir(launch_dir):
+    result_dir = os.path.join(launch_dir, 'results')
+    for fn in os.listdir(result_dir):
         metric, dt_name = get_metric_and_dataset_name_from_file_name(fn)
         if dt_name == dataset_name:
-            result[metric] = os.path.join(launch_dir, fn)
+            result[metric] = os.path.join(result_dir, fn)
     return result
 
 
