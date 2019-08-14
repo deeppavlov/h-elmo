@@ -1,5 +1,6 @@
 from typing import Dict, List
 import copy
+import string
 import warnings
 
 
@@ -80,3 +81,13 @@ def add_scalar_to_iterable(it, scalar):
     :return: new list with summation results
     """
     return [e + scalar for e in it]
+
+
+def is_string_non_negative_int(s):
+    digits = set(string.digits)
+    chars = set(s)
+    if not chars.issubset(digits):
+        return False
+    if len(s) > 1 and s[0] == '0':
+        return False
+    return True
