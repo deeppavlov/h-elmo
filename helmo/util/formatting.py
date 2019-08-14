@@ -68,6 +68,8 @@ def get_stddev_rounding_num_digits(std, std_acc):
 
 
 def custom_round(number, digit_num):
+    if digit_num is None:
+        return number
     if digit_num >= 0:
         exp = 10**digit_num
         remainder = number % exp
