@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# used on results of dropout experiments
+# applied to results of dropout experiments
 
 current_dir=$(pwd)
 
