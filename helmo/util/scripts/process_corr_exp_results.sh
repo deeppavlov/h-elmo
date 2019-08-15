@@ -9,8 +9,8 @@ function average_correlation () {
   cd $1
   mkdir -p mean/corr
   local pickle_files=()
-  for launch in $(ls | grep -E '^[0-9]+$'); do
-    pickle_files+=(${launch}/tensors/valid_pickle_mean_tensors/correlation_valid.pickle)
+  for launch in $(ls | grep -E '^(0|[1-9][0-9]*)$'); do
+    pickle_files+=(${launch}/tensors/valid/pickle_mean_tensors/correlation.pickle)
   done
   python3 ~/h-elmo/helmo/util/scripts/average_pickle_values.py ${pickle_files[@]} --preprocess $2 \
     --mean mean/corr/mean.pickle --stddev mean/corr/stddev.pickle --stderr_of_mean mean/corr/stderr_of_mean.pickle
@@ -23,7 +23,7 @@ function average_loss () {
   cd $1
   mkdir -p mean
   local loss_files=()
-  for launch in $(ls | grep -E '^[0-9]+$'); do
+  for launch in $(ls | grep -E '^(0|[1-9][0-9]*)$'); do
     loss_files+=(${launch}/results/loss_valid.txt)
   done
   python3 ~/h-elmo/helmo/util/scripts/average_txt.py ${loss_files[@]} -o mean/loss.txt
@@ -33,6 +33,7 @@ function average_loss () {
 
 current_dir=$(pwd)
 cd $1
-average_correlation "." sqrt
+average_correlation "." "np.sqrt({array})"
 average_loss "."
 cd ${current_dir}
+unset current_dir
