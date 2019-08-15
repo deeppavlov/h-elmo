@@ -30,6 +30,7 @@ function average_loss () {
   cd ${current_dir}
 }
 
+
 echo "  computing average for $1"
 current_dir=$(pwd)
 cd $1
