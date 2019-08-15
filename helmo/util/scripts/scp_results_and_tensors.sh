@@ -3,9 +3,6 @@
 # This script is for copying collected tensors, results and
 # testing results from servers
 
-# alias dgx1="ssh peganov@dgx1.ipavlov.mipt.ru"
-
-
 
 function main () {
   mkdir -p $1

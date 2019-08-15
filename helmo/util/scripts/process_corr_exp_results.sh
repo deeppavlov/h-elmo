@@ -37,3 +37,5 @@ average_correlation "." "np.sqrt({array})"
 average_loss "."
 cd ${current_dir}
 unset current_dir
+unset average_correlation
+unset average_loss
