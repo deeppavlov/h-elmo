@@ -18,20 +18,22 @@ function main () {
   local launch_dirs=$(dgx1 "ls ${remote_path} | grep -E '^(0|[1-9][0-9]*)$'")
   local txt_files=$(dgx1 "ls ${remote_path} | grep -E '\.txt$'")
 
+  echo ${remote_path}
+
   for f in ${txt_files}
   do
-    scp ${LSERV}:${remote_path}/${f} ./
+    scp -q ${LSERV}:${remote_path}/${f} ./
   done
 
   for d in ${launch_dirs}
   do
     mkdir -p ${d}/checkpoints/all_vars
-    scp -r  ${LSERV}:${remote_path}/${d}/tensors ${d}/
-    scp -r  ${LSERV}:${remote_path}/${d}/results ${d}/
+    scp -r -q  ${LSERV}:${remote_path}/${d}/tensors ${d}/
+    scp -r -q  ${LSERV}:${remote_path}/${d}/results ${d}/
     local checkpoint_txt=$(dgx1 "ls ${remote_path}/${d}/checkpoints/all_vars | grep -E '\.txt$'")
     for ckpt_txt in ${checkpoint_txt}
     do
-      scp -r  ${LSERV}:${remote_path}/${d}/checkpoints/all_vars/${ckpt_txt} ${d}/checkpoints/all_vars
+      scp -r -q  ${LSERV}:${remote_path}/${d}/checkpoints/all_vars/${ckpt_txt} ${d}/checkpoints/all_vars
     done
   done
 
