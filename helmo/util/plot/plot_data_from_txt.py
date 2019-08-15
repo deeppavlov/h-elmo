@@ -12,12 +12,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "--labels",
+    "-l",
     help="Names of lines on plot. Number of labels has to match number of "
          "files.",
     nargs='+',
 )
 parser.add_argument(
     "--x_col",
+    "-x",
     help="A number column in txt results which store x values. Default is"
          " 0.",
     type=int,
@@ -25,12 +27,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "--y_col",
+    "-y",
     help="A number column in txt results which store y values. Default is 1.",
     type=int,
     default=1,
 )
 parser.add_argument(
     "--err_col",
+    "-e",
     help="A number column in txt results which store y error values.",
     type=int,
     default=None,
