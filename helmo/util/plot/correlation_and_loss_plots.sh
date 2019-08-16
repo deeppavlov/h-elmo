@@ -15,6 +15,7 @@ function main () {
   IFS="@"
   local labels=($1)
   local exp_dirs=($2)
+  IFS=${oldIFS}
   mkdir -p $3
   local loss_file="${exp_dirs[0]}"/0/results/loss_valid.txt
   local -a mean_corr
