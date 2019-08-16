@@ -27,13 +27,13 @@ function main () {
     err_corr+=(${exp_dir}/mean/corr/stddev.pickle)
     loss_files+=(${exp_dir}/mean/loss.txt)
   done
-  python3 ${SCRIPTS}/plot_data_from_pickle.py -l ${labels[*]} -s ${loss_file} \
+  python3 ${PLOT}/plot_data_from_pickle.py -l ${labels[*]} -s ${loss_file} \
     -m ${mean_corr[*]} -d ${err_corr[*]} -n -o $3/corr_plot_data.pickle
-  python3 ${SCRIPTS}/plot_from_pickle.py $3/corr_plot_data.pickle -x step -y correlation \
+  python3 ${PLOT}/plot_from_pickle.py $3/corr_plot_data.pickle -x step -y correlation \
     -X log -o $3/corr_plot -t fill -d best -O -s png -r 900 -g -w both
-  python3 ${SCRIPTS}/plot_data_from_txt.py ${loss_files[*]} -l ${labels[*]} -x 0 -y 1 -e 2 \
+  python3 ${PLOT}/plot_data_from_txt.py ${loss_files[*]} -l ${labels[*]} -x 0 -y 1 -e 2 \
     -o $3/loss_plot_data.pickle
-  python3 ${SCRIPTS}/plot_from_pickle.py $3/loss_plot_data.pickle -x step -y correlation \
+  python3 ${PLOT}/plot_from_pickle.py $3/loss_plot_data.pickle -x step -y correlation \
     -X log -o $3/loss_plot -t fill -d best -O -s png -r 900 -g -w both
 }
 
