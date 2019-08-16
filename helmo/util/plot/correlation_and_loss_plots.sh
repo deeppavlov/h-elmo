@@ -5,11 +5,17 @@
 # Plot data is created and put in the same directory with
 # plot.
 
+# Args:
+#   labels: string of artist labels separated by at signs
+#   exp_dirs: string of experiment result dirs separated by at signs
+#   Path to dir where results will be stored
+
 function main () {
   oldIFS="$IFS"
   IFS="@"
   local labels=($1)
   local exp_dirs=($2)
+  mkdir -p $3
   local loss_file="${exp_dirs[0]}"/0/results/loss_valid.txt
   local -a mean_corr
   local -a err_corr
