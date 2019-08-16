@@ -20,11 +20,14 @@ function main () {
 
   echo ${remote_path}
 
+  local f
   for f in ${txt_files}
   do
     scp -q ${LSERV}:${remote_path}/${f} ./
   done
 
+  local d
+  local ckpt_txt
   for d in ${launch_dirs}
   do
     mkdir -p ${d}/checkpoints/all_vars
