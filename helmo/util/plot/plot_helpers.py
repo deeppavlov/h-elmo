@@ -492,6 +492,8 @@ def plot_outer_legend(
         plt.gca().invert_yaxis()
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    if select is not None:
+        plt.xlim(select)
     scale_kwargs = dict()
     if xscale == 'symlog':
         linthreshx = get_linthresh(

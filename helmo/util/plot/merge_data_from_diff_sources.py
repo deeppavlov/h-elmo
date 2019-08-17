@@ -1,4 +1,5 @@
 import argparse
+import os
 import pickle
 
 import helmo.util.plot.plot_helpers as plot_helpers
@@ -75,6 +76,18 @@ parser.add_argument(
     help="Do not sort --labels and files before zipping.",
     action="store_true",
 )
+parser.add_argument(
+    "--sorting_key",
+    "-k",
+    help="A function used for sorting lines before plotting. "
+         "A function returns a value used for comparing labels "
+         "and works the same way as `key` parameter in built-in "
+         "`sorted()` function. Function passed as a string "
+         "containing definition of function with name "
+         "'sorting_key'. For instance \n"
+         "-k 'def sorting_key(x):\n\treturn int(x[-1])'\n\n"
+         "ATTENTION. anonymous functions are not supported."
+)
 args = parser.parse_args()
 
 
@@ -118,6 +131,10 @@ else:
         args.yerrsrc.sort()
 
 plot_data_init = []
+# print(len(args.labels))
+# print(len(args.xsrc))
+# print(len(args.xerrsrc))
+# print(len(args.yerrsrc))
 for lbl, xsrc, ysrc, xerrsrc, yerrsrc in zip(args.labels, args.xsrc, args.ysrc, args.xerrsrc, args.yerrsrc):
     x, x_err = fill_values_and_err(xsrc, args.colx, xerrsrc, args.xerrcol)
     y, y_err = fill_values_and_err(ysrc, args.coly, yerrsrc, args.yerrcol)
@@ -125,6 +142,13 @@ for lbl, xsrc, ysrc, xerrsrc, yerrsrc in zip(args.labels, args.xsrc, args.ysrc, 
     plot_data_init.append((lbl, dict(x=x, y=y, x_err=x_err, y_err=y_err)))
 
 pd = plot_helpers.PlotData(plot_data_init)
+if args.sorting_key is not None:
+    exec(args.sorting_key)
+    pd.set_sorting_key(sorting_key)
+
+    exec_file_name = os.path.splitext(args.output.name)[0] + '_exec.py'
+    with open(exec_file_name, 'w') as exec_f:
+        exec_f.write(args.sorting_key)
 
 pickle.dump(
     pd,
