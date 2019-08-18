@@ -35,17 +35,14 @@
     "allow_growth": true,
     "restore_path": null,
     "learning_rate": {
-      "type": "adaptive_change",
-      "max_no_progress_points": 50,
-      "decay": 0.5,
-      "init": 0.1,
-      "path_to_target_metric_storage": ["valid", "loss"]
+      "type": "fixed",
+      "init": 0.1
     },
     "batch_size": 32,
     "num_unrollings": 10,
     "checkpoint_steps": null,
     "subgraphs_to_save": {"char_enc_dec": "base"},
-    "stop": 2000,
+    "stop": 40000,
     "no_validation": false,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
