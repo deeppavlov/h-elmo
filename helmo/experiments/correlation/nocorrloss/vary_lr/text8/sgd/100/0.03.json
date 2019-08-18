@@ -36,7 +36,7 @@
     "restore_path": null,
     "learning_rate": {
       "type": "fixed",
-      "init": 0.03
+      "value": 0.03
     },
     "batch_size": 32,
     "num_unrollings": 10,
