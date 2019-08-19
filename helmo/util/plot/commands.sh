@@ -178,3 +178,31 @@ sorting_key="${sorting_key2}" \
   sgd/100@sgd/100_100@sgd/500_500@text8/sgd/100@text8/sgd/100_100@text8/sgd/500_500 enwiki1G-text8/plots/sgd
 unset sorting_key
 unset additional_artists_str
+
+# for sgd vary learning rate loss - corr plots
+cd ~/h-elmo/expres/correlation/nocorrloss/vary_lr/text8/sgd/100
+lw_params=( "--linewidth" "1.0" )
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    return -float(words[-1])
+"
+additional_artists_str=( "-a" \
+  "${EXPRES}/correlation/nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "learning rate 3@learning rate 1@learning rate 0.3@learning rate 0.1@learning rate 0.03@learning rate 0.01" \
+  3@1@0.3@0.1@0.03@0.01 plots
+unset sorting_key
+unset additional_artists_str
+unset lw_params
+
+# for sgd vary learning rate loss AND corr plots
+cd ~/h-elmo/expres/correlation/nocorrloss/vary_lr/text8/sgd/100
+sorting_key="def sorting_key(x):
+    words = x.split()
+    return -float(words[-1])
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "learning rate 3@learning rate 1@learning rate 0.3@learning rate 0.1@learning rate 0.03@learning rate 0.01" \
+  3@1@0.3@0.1@0.03@0.01 plots
+unset sorting_key

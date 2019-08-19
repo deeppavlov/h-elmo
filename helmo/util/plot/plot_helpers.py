@@ -451,6 +451,10 @@ def plot_outer_legend(
         linestyle = 'None'
     else:
         linestyle = 'solid'
+    if 'linewidth' in style and style['linewidth'] is not None:
+        lw = style['linewidth']
+    else:
+        lw=1
     if select is not None:
         plot_data.filter_points(select)
 
@@ -501,6 +505,7 @@ def plot_outer_legend(
                 color=color,
                 label=label,
                 ls=linestyle,
+                lw=lw,
             )[0]
         )
 

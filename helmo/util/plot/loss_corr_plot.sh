@@ -42,7 +42,7 @@ function main () {
   python3 ${PLOT}/plot_from_pickle.py $3/loss-corr_data.pickle -x loss -y "mean square correlation" \
     -X linear -o $3/loss_corr_plot -t bar -d best -O -s png -r 900 -g -w both \
     --no_line ${exec_scr_str} ${additional_artists_str:+"${additional_artists_str[@]}"} \
-    ${xselect_params:+"${xselect_params[@]}"}
+    ${xselect_params:+"${xselect_params[@]}"} ${lw_params:+"${lw_params[@]}"}
 }
 
 

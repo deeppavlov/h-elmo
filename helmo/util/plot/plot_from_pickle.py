@@ -167,6 +167,12 @@ parser.add_argument(
          " various artists. Possible keys in the dictionary: (1)axvspan "
          "is for drawing  vertical spans with matplotlib.pyplot.axvspan().",
 )
+parser.add_argument(
+    "--linewidth",
+    help="Line width in points. Default is 1.0",
+    type=float,
+    default=1.0,
+)
 args = parser.parse_args()
 
 if args.xselect is not None:
@@ -206,6 +212,7 @@ plot_helpers.plot_outer_legend(
         no_line=args.no_line,
         error=args.err_style,
         marker=args.marker,
+        linewidth=args.linewidth,
     ),
     shifts=[args.xshift, args.yshift],
     legend_pos=args.lgd,
