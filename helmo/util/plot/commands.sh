@@ -178,4 +178,3 @@ sorting_key="${sorting_key2}" \
   sgd/100@sgd/100_100@sgd/500_500@text8/sgd/100@text8/sgd/100_100@text8/sgd/500_500 enwiki1G-text8/plots/sgd
 unset sorting_key
 unset additional_artists_str
-
