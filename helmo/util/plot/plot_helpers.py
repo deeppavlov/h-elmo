@@ -404,6 +404,23 @@ def add_legend(artists, position, only_color_as_marker_in_legend):
     return lgd
 
 
+def add_axvspan(spec):
+    xlim = plt.xlim()
+    ylim = plt.ylim()
+    plt.axvspan(**spec)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+
+
+def add_special_artists(artists):
+    for artist_type, artist_specs in artists.items():
+        if artist_type == 'axvspan':
+            for spec in artist_specs:
+                add_axvspan(spec)
+        else:
+            raise ValueError("Unsupported artist type:\n{}".format(artist_type))
+
+
 def plot_outer_legend(
         plot_data,
         description,
@@ -426,6 +443,7 @@ def plot_outer_legend(
         size_factor=1,
         grid=False,
         which_grid='major',
+        additional_artists=None,
 ):
     if shifts is None:
         shifts = [0, 0]
@@ -504,7 +522,8 @@ def plot_outer_legend(
     plt.yscale(yscale)
 
     plt.grid(b=grid, which=which_grid)
-
+    if additional_artists is not None:
+        add_special_artists(additional_artists)
     if plot_data.labels_are_provided():
         bbox_extra_artists = [add_legend(lines, legend_pos, only_color_as_marker_in_legend)]
     else:

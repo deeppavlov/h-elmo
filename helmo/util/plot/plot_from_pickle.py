@@ -159,6 +159,14 @@ parser.add_argument(
     help="If specified the plot is not saved but showed.",
     action="store_true",
 )
+parser.add_argument(
+    "--additional_artists",
+    "-a",
+    help="Path to pickle file with specs of additional objects on plot."
+         " File has to contain a dictionary with lists of specs of"
+         " various artists. Possible keys in the dictionary: (1)axvspan "
+         "is for drawing  vertical spans with matplotlib.pyplot.axvspan().",
+)
 args = parser.parse_args()
 
 if args.xselect is not None:
@@ -179,6 +187,12 @@ if args.exec_code is not None:
 plot_data = pickle.load(args.plot_data)
 
 plot_data = plot_helpers.PlotData.old_format_to_new_format(plot_data)
+
+if args.additional_artists is not None:
+    with open(args.additional_artists, 'rb') as f:
+        additional_artists = pickle.load(f)
+else:
+    additional_artists = None
 
 plot_helpers.plot_outer_legend(
     plot_data,
@@ -205,4 +219,5 @@ plot_helpers.plot_outer_legend(
     grid=args.grid,
     which_grid=args.which_grid,
     formats=args.save_formats,
+    additional_artists=additional_artists,
 )

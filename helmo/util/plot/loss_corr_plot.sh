@@ -41,7 +41,8 @@ function main () {
     -o $3/loss-corr_data.pickle --no_sort "${sorting_str}"
   python3 ${PLOT}/plot_from_pickle.py $3/loss-corr_data.pickle -x loss -y "mean square correlation" \
     -X linear -o $3/loss_corr_plot -t bar -d best -O -s png -r 900 -g -w both \
-    --no_line ${exec_scr_str} -S 1.5 3.5
+    --no_line ${exec_scr_str} ${additional_artists_str:+"${additional_artists_str[@]}"} \
+    ${xselect_params:+"${xselect_params[@]}"}
 }
 
 
