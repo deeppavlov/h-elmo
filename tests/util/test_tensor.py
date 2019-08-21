@@ -545,3 +545,31 @@ class TestExpandMultipleDims:
                 'failed on tensor={}, num_dims={} and axes={}\noutput={}\nexpected={}'.format(
                     tensor, num_dims, axes, r, np.array(expected)
                 )
+
+
+class TestCorrelation:
+    def test_zero_dim_reduction(self):
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+            v1 = tf.random_normal([1000], stddev=10.0)
+            v2 = -v1*3
+            other = tf.random_normal([3, 1000], stddev=10)
+            one_batch_element = tf.concat([tf.stack([v1, v2]), other], 0)
+            tensor = tf.stack([one_batch_element]*32, axis=1)
+            corr = tensor_ops.correlation(tensor, [0], -1)
+            corr = tf.reduce_mean(corr, axis=0)
+            simplified = tf.where(tf.greater(tf.abs(corr), 0.95), tf.ones(tf.shape(corr))*tf.sign(corr), corr)
+            simplified = tf.where(tf.less(tf.abs(simplified), 0.05), tf.zeros(tf.shape(simplified)), corr)
+            expected = np.array(
+                [[1, -1, 0, 0, 0],
+                 [-1, 1, 0, 0, 0],
+                 [0, 0, 1, 0, 0],
+                 [0, 0, 0, 1, 0],
+                 [0, 0, 0, 0, 1]]
+            )
+            result = sess.run(simplified)
+            assert (result == expected).all(), \
+                'failed on tensor with shape={}, reduced_axes=[0], cor_axis=-1\noutput={}\nexpected={}'.format(
+                    tensor.get_shape().as_list(),
+                    result,
+                    expected
+                )

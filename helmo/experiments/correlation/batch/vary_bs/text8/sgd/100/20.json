@@ -1,0 +1,88 @@
+{
+  "num_repeats": 20,
+  "seed": null,
+  "batch_gen": {
+    "path": "resrnn",
+    "cls_name": "LmFastBatchGenerator"
+  },
+  "net": {
+    "path": "resrnn",
+    "cls_name": "Rnn"
+  },
+  "dataset": {
+    "path": "text8.txt",
+    "test_size": 6.4e6,
+    "valid_size": 6.4e5,
+    "vocab_path": "text8_voc.txt"
+  },
+  "graph": {
+    "rnn_map": {
+      "module_name": "char_enc_dec",
+      "num_nodes": [100],
+      "input_idx": null,
+      "output_idx": null
+    },
+    "num_output_nodes": [],
+    "emb_size": 256,
+    "init_parameter": 1.0,
+    "num_gpus": 1,
+    "metrics": ["bpc", "perplexity", "accuracy"],
+    "optimizer_type": "sgd",
+    "clip_norm": 1,
+    "corcov_norm": "sqr"
+  },
+  "train": {
+    "allow_growth": true,
+    "restore_path": null,
+    "learning_rate": {
+      "type": "fixed",
+      "value": 3.0
+    },
+    "batch_size": 20,
+    "num_unrollings": 10,
+    "checkpoint_steps": null,
+    "subgraphs_to_save": {"char_enc_dec": "base"},
+    "stop": 10000,
+    "no_validation": false,
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "results_collect_interval": {
+      "type": "logarithmic_truth",
+      "start": 0,
+      "factor": 1.05,
+      "end": 1e15
+    },
+    "validation_batch_size": 32,
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "validation_tensor_schedule": {
+      "valid_pickle_mean_tensors": {
+        "correlation": 1
+      }
+    },
+    "train_batch_kwargs": {"random_batch_initiation": true},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ],
+    "validation_additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  },
+  "test": {
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "validation_batch_size": 32,
+    "valid_batch_kwargs": {"num_unrollings": 200},
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  }
+}

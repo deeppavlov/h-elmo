@@ -441,13 +441,17 @@ class Rnn(Pupil):
     def _add_correlation_hooks(self, intermediate):
         # Mean correlation between neurons of hidden state of first LSTM
         self._hooks['correlation'] = tensor_ops.corcov_loss(
-            intermediate[0], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
+            intermediate[0],
+            reduced_axes=self._correlation_reduced_axes,
+            cor_axis=2,
+            punish='correlation',
+            reduction='mean',
             norm=self._corcov_norm,
         )
         # Correlation between neurons of hidden state of first LSTM. All values preserved no averaging.
         self._hooks['correlation_values'] = tensor_ops.get_correlation_values(
             intermediate[0],
-            reduced_axes=[0],
+            reduced_axes=self._correlation_reduced_axes,
             cor_axis=2,
         )
         # Correlation between neurons of hidden state of first LSTM
@@ -456,12 +460,16 @@ class Rnn(Pupil):
             self._hooks['correlation_values_1-2'] = tensor_ops.get_correlation_values_2t(
                 intermediate[0],
                 intermediate[1],
-                reduced_axes=[0],
+                reduced_axes=self._correlation_reduced_axes,
                 cor_axis=2,
             )
             # Mean correlation between neurons of hidden state of second LSTM
             self._hooks['correlation2'] = tensor_ops.corcov_loss(
-                intermediate[1], reduced_axes=[0], cor_axis=2, punish='correlation', reduction='mean',
+                intermediate[1],
+                reduced_axes=self._correlation_reduced_axes,
+                cor_axis=2,
+                punish='correlation',
+                reduction='mean',
                 norm=self._corcov_norm,
             )
             # Mean correlation between neurons of hidden state of first LSTM and
@@ -471,7 +479,7 @@ class Rnn(Pupil):
                 tensor_ops.get_correlation_values_2t(
                     intermediate[0],
                     intermediate[1],
-                    reduced_axes=[0],
+                    reduced_axes=self._correlation_reduced_axes,
                     cor_axis=2,
                 ) ** 2
             )
@@ -1028,6 +1036,7 @@ class Rnn(Pupil):
         self._regime = kwargs.get('regime', 'train')
 
         self._corcov_norm = kwargs.get('corcov_norm', 'sqr')
+        self._correlation_reduced_axes = kwargs.get('correlation_reduced_axes', [0])
 
         if self._rnn_type == 'lstm':
             self._network_type = 'cudnn_lstm_stacked'
