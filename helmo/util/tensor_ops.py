@@ -585,39 +585,39 @@ def corcov_loss(
         punish='correlation', reduction='sum', norm='sqr', epsilon=1e-12
 ):
     """
-    Computes mean or sum of norm of correlation or covariation between elements of `tensor`
+    Computes mean or sum of norm of correlation or covariance between elements of `tensor`
     with different indices along `cor_axis` dim. Each set of values of indices along
     dims not included in `cor_axis` and `reduced_axes` is considered an ensemble.
-    This means that mean or sum of norm of correlation or covariation is computed for each set of indices
+    This means that mean or sum of norm of correlation or covariance is computed for each set of indices
     that does not include `cor_axis` and `reduced_axes` and then averaged along `reduced_axes`.
-    Diagonal values are excluded when mean correlation or covariation are computed.
+    Diagonal values are excluded when mean correlation or covariance are computed.
 
     The norm is specified in `norm` and can be either `'sqr'` or `'abs'`. If `norm` is `'abs'`
-    than mean or sum of of absolute values of correlation or covariation is computed. Else mean of
-    square of correlation or covariation is computed.
+    than mean or sum of of absolute values of correlation or covariance is computed. Else mean of
+    square of correlation or covariance is computed.
 
     Let tensor `tensor` have 3 dimensions, `cor_axis = 2` , `reduced_axes = [1]`,
      `reduction = 'mean'`, `norm = 'abs'`, and
     `tensor` shape be `[A, B, C]`. Than
 
     ```
-    covarition_matrices = tf.einsum('ijk,ijl->ikl', tensor, tensor) / B
-    cov_norm = tf.abs(covarition_matrices)
-    mean_covariations = (tf.reduce_sum(cov_norm, [-2, -1]) - tf.linalg.trace(cov_norm)) / \
+    covariance_matrices = tf.einsum('ijk,ijl->ikl', tensor, tensor) / B
+    cov_norm = tf.abs(covariance_matrices)
+    mean_covariance = (tf.reduce_sum(cov_norm, [-2, -1]) - tf.linalg.trace(cov_norm)) / \
                          (C * (C-1))
-    covariation_loss = tf.reduce_mean(mean_covariations)
+    covariance_loss = tf.reduce_mean(mean_covariance)
     ```
     Correlation loss is computed the same way, except for
-    division of covariation by multiplication of variances of
+    division of covariance by multiplication of variances of
     analyzed random values.
 
     :param tensor: tf.Tensor of at least 2 dimensions.
     :param reduced_axes: list of ints
     :param cor_axis: int
-    :param punish: either `'correlation'` or `'covariation'`
-        depending on what is computed correlation or covariation
+    :param punish: either `'correlation'` or `'covariance'`
+        depending on what is computed correlation or covariance
     :param reduction: if `'sum'` than the sum of correlation
-        or covariation is returned. If it is 'mean' average
+        or covariance is returned. If it is 'mean' average
         is computed.
     :param norm: `'sqr'` or `'abs'`
     :param epsilon: a small float for division by zero when computing correlation
