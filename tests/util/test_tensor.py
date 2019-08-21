@@ -11,12 +11,15 @@ gpu_options = tf.GPUOptions(allow_growth=True)
 class TestGetLowTriangleValues:
 
     def test_dim_sizes_not_equal(self):
-        axes = tf.constant([0, 1])
-        t = tf.constant([[1, 2, 3], [4, 5, 6]])
-        low_triangle = tensor_ops.get_low_triangle_values(t, axes)
+        pl_axes = tf.placeholder(tf.int32)
+        pl_t = tf.placeholder(tf.int32)
+        
+        axes = np.array([0, 1])
+        t = np.array([[1, 2, 3], [4, 5, 6]])
+        low_triangle = tensor_ops.get_low_triangle_values(pl_t, pl_axes)
         with tf.Session() as sess:
             with pytest.raises(tf.errors.InvalidArgumentError):
-                sess.run(low_triangle)
+                sess.run(low_triangle, feed_dict={pl_axes: axes, pl_t: t})
 
 
 class TestExpandMultipleDims:
@@ -548,17 +551,17 @@ class TestExpandMultipleDims:
 
 
 class TestCorrelation:
-    def test_zero_dim_reduction(self):
+    def test_zeroth_dim_reduction(self):
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
-            v1 = tf.random_normal([1000], stddev=10.0)
+            v1 = tf.random_normal([100000], stddev=10.0)
             v2 = -v1*3
-            other = tf.random_normal([3, 1000], stddev=10)
-            one_batch_element = tf.concat([tf.stack([v1, v2]), other], 0)
+            other = tf.random_normal([100000, 3], stddev=10)
+            one_batch_element = tf.concat([tf.stack([v1, v2], axis=1), other], 1)
             tensor = tf.stack([one_batch_element]*32, axis=1)
             corr = tensor_ops.correlation(tensor, [0], -1)
             corr = tf.reduce_mean(corr, axis=0)
             simplified = tf.where(tf.greater(tf.abs(corr), 0.95), tf.ones(tf.shape(corr))*tf.sign(corr), corr)
-            simplified = tf.where(tf.less(tf.abs(simplified), 0.05), tf.zeros(tf.shape(simplified)), corr)
+            simplified = tf.where(tf.less(tf.abs(simplified), 0.05), tf.zeros(tf.shape(simplified)), simplified)
             expected = np.array(
                 [[1, -1, 0, 0, 0],
                  [-1, 1, 0, 0, 0],
@@ -573,3 +576,99 @@ class TestCorrelation:
                     result,
                     expected
                 )
+
+    def test_zeroth_dim_reduction_2(self):
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+            v1 = tf.random_normal([100000, 32], stddev=10.0)
+            v2 = -v1*3
+            other = tf.random_normal([100000, 32, 3], stddev=10)
+            tensor = tf.concat([tf.stack([v1, v2], axis=2), other], 2)
+            corr = tensor_ops.correlation(tensor, [0], -1)
+            corr = tf.reduce_mean(corr, axis=0)
+            simplified = tf.where(tf.greater(tf.abs(corr), 0.95), tf.ones(tf.shape(corr))*tf.sign(corr), corr)
+            simplified = tf.where(tf.less(tf.abs(simplified), 0.05), tf.zeros(tf.shape(simplified)), simplified)
+            expected = np.array(
+                [[1, -1, 0, 0, 0],
+                 [-1, 1, 0, 0, 0],
+                 [0, 0, 1, 0, 0],
+                 [0, 0, 0, 1, 0],
+                 [0, 0, 0, 0, 1]]
+            )
+            result = sess.run(simplified)
+            assert (result == expected).all(), \
+                'failed on tensor with shape={}, reduced_axes=[0], cor_axis=-1\noutput={}\nexpected={}'.format(
+                    tensor.get_shape().as_list(),
+                    result,
+                    expected
+                )
+
+    def test_first_dim_reduction(self):
+         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+            v1 = tf.random_normal([10, 10000], stddev=10.0)
+            v2 = -v1*3
+            other = tf.random_normal([10, 10000, 3], stddev=10)
+            tensor = tf.concat([tf.stack([v1, v2], axis=2), other], 2)
+            corr = tensor_ops.correlation(tensor, [1], 2)
+            corr = tf.reduce_mean(corr, axis=0)
+            simplified = tf.where(tf.greater(tf.abs(corr), 0.99), tf.ones(tf.shape(corr))*tf.sign(corr), corr)
+            simplified = tf.where(tf.less(tf.abs(simplified), 0.01), tf.zeros(tf.shape(simplified)), simplified)
+            expected = np.array(
+                [[1, -1, 0, 0, 0],
+                 [-1, 1, 0, 0, 0],
+                 [0, 0, 1, 0, 0],
+                 [0, 0, 0, 1, 0],
+                 [0, 0, 0, 0, 1]]
+            )
+            result = sess.run(simplified)
+            corr = sess.run(corr)
+            assert (result == expected).all(), \
+                'failed on tensor with shape={}, reduced_axes=[1], cor_axis=2\noutput={}\nexpected={}\ncorrelation={}'.format(
+                    tensor.get_shape().as_list(),
+                    result,
+                    expected,
+                    corr,
+                )
+
+    def test_last_dim_reduction(self):
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+            v1 = tf.random_normal([10, 10000], stddev=10.0)
+            v2 = -v1*3
+            other = tf.random_normal([10, 3, 10000], stddev=10)
+            tensor = tf.concat([tf.stack([v1, v2], axis=1), other], 1)
+            corr = tensor_ops.correlation(tensor, [2], 1)
+            corr = tf.reduce_mean(corr, axis=0)
+            simplified = tf.where(tf.greater(tf.abs(corr), 0.99), tf.ones(tf.shape(corr))*tf.sign(corr), corr)
+            simplified = tf.where(tf.less(tf.abs(simplified), 0.01), tf.zeros(tf.shape(simplified)), simplified)
+            expected = np.array(
+                [[1, -1, 0, 0, 0],
+                 [-1, 1, 0, 0, 0],
+                 [0, 0, 1, 0, 0],
+                 [0, 0, 0, 1, 0],
+                 [0, 0, 0, 0, 1]]
+            )
+            result = sess.run(simplified)
+            corr = sess.run(corr)
+            assert (result == expected).all(), \
+                'failed on tensor with shape={}, reduced_axes=[2], cor_axis=1\noutput={}\nexpected={}\ncorrelation={}'.format(
+                    tensor.get_shape().as_list(),
+                    result,
+                    expected,
+                    corr,
+                )
+
+
+class TestCorcovLoss:
+    def test_abs_norm(self):
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+            v1 = tf.random_normal([10, 100000], stddev=10.0)
+            v2 = -v1*3
+            other = tf.random_normal([10, 3, 100000], stddev=10)
+            tensor = tf.concat([tf.stack([v1, v2], axis=1), other], 1)
+            norm = tensor_ops.corcov_loss(tensor, reduced_axes=[2], cor_axis=1, norm='abs') 
+            expected = 10
+            result = sess.run(norm)
+            assert expected <= result <= expected+0.5, \
+               "failed on tensor with shape {}, reduced_axes=[2], cor_axis=1\n" \
+               "output={}\n" \
+               "expected={}\n".format(tensor.get_shape().as_list(), result, expected)
+
