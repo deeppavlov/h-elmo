@@ -45,13 +45,12 @@
     "batch_size": 32,
     "num_unrollings": 10,
     "checkpoint_steps": null,
-    "subgraphs_to_save": {"char_enc_dec": "base"},
     "stop": 1000,
     "no_validation": false,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "results_collect_interval": 1,
-    "validation_batch_size": 32,
+    "validation_batch_size": 256,
     "init_parameter": 3.0,
     "valid_batch_kwargs": {"num_unrollings": 200},
     "validation_tensor_schedule": {"valid_pickle_mean_tensors": {"correlation": 1}},
@@ -72,7 +71,7 @@
   "test": {
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
-    "validation_batch_size": 32,
+    "validation_batch_size": 256,
     "valid_batch_kwargs": {"num_unrollings": 200},
     "validation_tensor_schedule": {"valid_pickle_mean_tensors": {"correlation": 1}},
     "additions_to_feed_dict": [

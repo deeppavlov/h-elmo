@@ -42,7 +42,6 @@
     "batch_size": 32,
     "num_unrollings": 10,
     "checkpoint_steps": null,
-    "subgraphs_to_save": {"char_enc_dec": "base"},
     "stop": {
       "type": "while_progress",
       "max_no_progress_points": 10,
@@ -58,7 +57,7 @@
       "factor": 1.02,
       "end": 1e15
     },
-    "validation_batch_size": 32,
+    "validation_batch_size": 256,
     "valid_batch_kwargs": {"num_unrollings": 200},
     "validation_tensor_schedule": {
       "valid_pickle_mean_tensors": {
@@ -82,7 +81,7 @@
   "test": {
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
-    "validation_batch_size": 32,
+    "validation_batch_size": 256,
     "valid_batch_kwargs": {"num_unrollings": 200},
     "additions_to_feed_dict": [
       {

@@ -44,7 +44,7 @@
     "batch_size": 32,
     "num_unrollings": 10,
     "checkpoint_steps": null,
-    "subgraphs_to_save": {"char_enc_dec": "base"},
+
     "stop": 1000,
     "no_validation": false,
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
