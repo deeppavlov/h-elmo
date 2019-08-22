@@ -57,7 +57,7 @@
       1906, 2000
     ],
     "validation_batch_size": 256,
-    "valid_batch_kwargs": {"num_unrollings": 50},
+    "valid_batch_kwargs": {"num_unrollings": 25},
     "validation_tensor_schedule": {
       "valid_pickle_mean_tensors": {
         "correlation": 1
@@ -81,7 +81,7 @@
     "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "result_types": ["perplexity", "loss", "bpc", "accuracy"],
     "validation_batch_size": 256,
-    "valid_batch_kwargs": {"num_unrollings": 50},
+    "valid_batch_kwargs": {"num_unrollings": 25},
     "additions_to_feed_dict": [
       {
         "placeholder": "dropout",
