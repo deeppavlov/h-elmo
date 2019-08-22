@@ -36,8 +36,11 @@
     "allow_growth": true,
     "restore_path": null,
     "learning_rate": {
-      "type": "fixed",
-      "value": 3.0
+      "type": "adaptive_change",
+      "max_no_progress_points": 10,
+      "decay": 0.5,
+      "init": 3.0,
+      "path_to_target_metric_storage": ["valid", "loss"]
     },
     "batch_size": 128,
     "num_unrollings": 10,
