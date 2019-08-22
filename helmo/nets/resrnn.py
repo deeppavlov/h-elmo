@@ -1037,6 +1037,7 @@ class Rnn(Pupil):
 
         self._corcov_norm = kwargs.get('corcov_norm', 'sqr')
         self._correlation_reduced_axes = kwargs.get('correlation_reduced_axes', [0])
+        print("self._correlation_reduced_axes = ", self._correlation_reduced_axes)
 
         if self._rnn_type == 'lstm':
             self._network_type = 'cudnn_lstm_stacked'

@@ -29,6 +29,7 @@
     "metrics": ["bpc", "perplexity", "accuracy"],
     "optimizer_type": "adam",
     "clip_norm": 1,
+    "correlation_reduce_axes": [1],
     "corcov_norm": "sqr"
   },
   "train": {
