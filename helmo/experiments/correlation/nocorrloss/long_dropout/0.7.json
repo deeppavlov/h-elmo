@@ -44,7 +44,6 @@
     "batch_size": 32,
     "num_unrollings": 10,
     "checkpoint_steps": null,
-    "subgraphs_to_save": {"char_enc_dec": "base"},
     "stop": {
       "type": "while_progress",
       "max_no_progress_points": 10,
