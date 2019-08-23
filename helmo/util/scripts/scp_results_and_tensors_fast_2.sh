@@ -25,7 +25,7 @@ function main() {
   local line
   while read line
   do
-    printf "${line}" >> dirs_for_copy.txt
+    printf "${line}\n" >> dirs_for_copy.txt
   done
 
   local remote_expres_command=$(dgx1 "cat ~/.bashrc | grep EXPRES")

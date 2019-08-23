@@ -11,6 +11,7 @@
 
 
 function main () {
+  source ~/.bashrc
   local starting_dir="$(pwd)"
   local line
   local input_file
