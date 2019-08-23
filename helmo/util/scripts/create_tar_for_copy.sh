@@ -29,8 +29,6 @@ function main () {
     bash "${remote_scripts}/form_list_of_files_for_copy_1_dir.sh" "${line}" files_for_copy.txt
   done < "${input_file}"
 
-  ls
-
   local -a file_names
   mapfile -t file_names < <(while read line; do echo "${line}"; done < files_for_copy.txt)
 
