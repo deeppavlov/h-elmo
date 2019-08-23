@@ -282,7 +282,6 @@ source ${PLOT}/correlation_and_loss_plots.sh \
 unset sorting_key
 
 # batch copy
-cd ${EXPRES}/correlation/batch
 function gen_exp_dirs () {
   local dt
   local opt
@@ -351,10 +350,10 @@ function gen_exp_dirs () {
     echo "wide/vary_dropout/${dp}"
   done
 
-#  for unr in 5 10 20 50 100 200 400 1000
-#  do
-#    echo "vary_unr/text8/sgd/100/${unr}"
-#  done
+  for unr in 5 10 20 50 100 200 400 1000
+  do
+    echo "vary_unr/text8/sgd/100/${unr}"
+  done
 }
-source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh < <(gen_exp_dirs)
+source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh correlation/batch < <(gen_exp_dirs)
 unset gen_exp_dirs
