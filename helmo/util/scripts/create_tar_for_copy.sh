@@ -11,8 +11,11 @@
 
 
 function main () {
-  source ~/.bashrc
-  echo ${SCRIPTS}
+
+  local remote_scripts_command=$(cat ~/.bashrc | grep SCRIPTS)
+  local remote_scripts_descr=${remote_scripts_command#"export SCRIPTS="}
+  local remote_scripts=$(echo ${remote_scripts_descr})
+
   local starting_dir="$(pwd)"
   local line
   local input_file
@@ -28,7 +31,7 @@ function main () {
   while read line
   do
     echo ${line}
-    bash ${SCRIPTS}/form_list_of_files_for_copy_1_dir.sh "${line}" files_for_copy.txt
+    bash "${remote_scripts}/form_list_of_files_for_copy_1_dir.sh" "${line}" files_for_copy.txt
   done < "${input_file}"
 
   ls
