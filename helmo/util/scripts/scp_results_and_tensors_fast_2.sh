@@ -8,7 +8,7 @@
 # creation of tar.gz archive 'for_copy.tar.gz' which is then passed to
 # local machine and unpacked.
 # Args:
-#     1. Path to directory relative to which archive is formed. Paths to experiment
+#     1. Path to directory relative to which archive is formed. Paths to experiments
 #        have to be given relative to this directory. Path to this directory is
 #        given relative to expres
 # Paths to experiments are give relative to directory provided as first argument to this script

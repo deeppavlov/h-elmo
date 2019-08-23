@@ -280,3 +280,81 @@ source ${PLOT}/correlation_and_loss_plots.sh \
   "sequence length 1000@sequence length 400@sequence length 200@sequence length 100@sequence length 50@sequence length 20@sequence length 10@sequence length 5" \
   1000@400@200@100@50@20@10@5 plots
 unset sorting_key
+
+# batch copy
+cd ${EXPRES}/correlation/batch
+function gen_exp_dirs () {
+  local dt
+  local opt
+  local net
+
+  local exp
+
+  local dp
+  local bs
+  local unr
+
+  for shuffled_str in shuffled/ ""
+  do
+    for dt in enwiki1G text8
+    do
+      for opt in adam sgd
+      do
+        for net in 100 100_100 500_500
+        do
+          echo "${shuffled_str}${dt}/${opt}/${net}"
+        done
+      done
+    done
+  done
+
+  for dp in 0.4 0.7 0
+  do
+    echo "long_dropout/${dp}"
+  done
+
+  for exp in validate_on_train validate_on_train_swap
+  do
+    echo "overfitting/${exp}"
+  done
+
+  for dp in dp0.7 dp0
+  do
+    echo "second_layer/${dp}"
+  done
+
+  for bs_dir in vary_bs vary_bs_long
+  do
+    for bs in 10 20 32 64 128 256 512 1024
+    do
+      echo "${bs_dir}/text8/sgd/100/${bs}"
+    done
+  done
+
+  for dp in 0 0.2 0.3 0.4 0.5 0.6 0.7
+  do
+    echo "vary_dropout/${dp}"
+  done
+
+  for lr in 0.01 0.001 0.0001 0.00001 0.002 0.0003 0.00003 0.005
+  do
+    echo "vary_lr/text8/adam/100/${lr}"
+  done
+
+  for lr in 0.1 0.01 0.3 0.03 1 3
+  do
+    echo "vary_lr/text8/sgd/100/${lr}"
+  done
+
+  for dp in 0 0.2 0.4 0.7
+  do
+    echo "wide/vary_dropout/${dp}"
+  done
+
+  for unr in 5 10 20 50 100 200 400 1000
+  do
+    echo "vary_unr/text8/sgd/100/${unr}"
+  done
+}
+source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh < <(gen_exp_dirs)
+unset gen_exp_dirs
