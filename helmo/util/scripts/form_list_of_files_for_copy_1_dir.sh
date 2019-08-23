@@ -13,7 +13,7 @@ function main () {
   local -a txt_files
   mapfile -t launch_dirs < <(ls $1 | grep -E '^(0|[1-9][0-9]*)$')
   mapfile -t txt_files < <(ls $1 | grep -E '\.txt$')
-
+  echo "$2"
   local txt_f
   for txt_f in "${txt_file[@]}"
   do

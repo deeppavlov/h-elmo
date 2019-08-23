@@ -20,6 +20,7 @@ function main () {
   cd "$2"
 
   echo $(pwd)
+  echo ${input_file}
 
   while read line
   do
