@@ -24,6 +24,7 @@ function main () {
 
   while read line
   do
+    echo ${line}
     bash ${SCRIPTS}/form_list_of_files_for_copy_1_dir.sh "${line}" files_for_copy.txt
   done < "${input_file}"
 
