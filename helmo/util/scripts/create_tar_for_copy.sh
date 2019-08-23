@@ -21,6 +21,7 @@ function main () {
 
   echo $(pwd)
   echo ${input_file}
+  cat ${input_file}
 
   while read line
   do
