@@ -308,10 +308,10 @@ function gen_exp_dirs () {
     done
   done
 
-  for dp in 0.4 0.7 0
-  do
-    echo "long_dropout/${dp}"
-  done
+#  for dp in 0.4 0.7 0
+#  do
+#    echo "long_dropout/${dp}"
+#  done
 
   for exp in validate_on_train validate_on_train_swap
   do
@@ -323,7 +323,7 @@ function gen_exp_dirs () {
     echo "second_layer/${dp}"
   done
 
-  for bs_dir in vary_bs vary_bs_long
+  for bs_dir in vary_bs # vary_bs_long
   do
     for bs in 10 20 32 64 128 256 512 1024
     do
@@ -351,10 +351,10 @@ function gen_exp_dirs () {
     echo "wide/vary_dropout/${dp}"
   done
 
-  for unr in 5 10 20 50 100 200 400 1000
-  do
-    echo "vary_unr/text8/sgd/100/${unr}"
-  done
+#  for unr in 5 10 20 50 100 200 400 1000
+#  do
+#    echo "vary_unr/text8/sgd/100/${unr}"
+#  done
 }
 source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh < <(gen_exp_dirs)
 unset gen_exp_dirs
