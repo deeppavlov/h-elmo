@@ -24,13 +24,8 @@ function main () {
 
   cd "$2"
 
-  echo $(pwd)
-  echo ${input_file}
-  cat ${input_file}
-
   while read line
   do
-    echo ${line}
     bash "${remote_scripts}/form_list_of_files_for_copy_1_dir.sh" "${line}" files_for_copy.txt
   done < "${input_file}"
 
