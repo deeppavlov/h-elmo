@@ -463,3 +463,48 @@ do
   source ${SCRIPTS}/process_corr_exp_results.sh "correlation/batch/${line}"
 done < <(gen_exp_dirs)
 unset gen_exp_dirs
+
+
+# for plotting loss - correlation 100 100_100 500_500 for 2 optimizers text8 BATCH
+cd ~/h-elmo/expres/correlation/batch/text8
+additional_artists_str=( "-a"\
+  "../../nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+# xselect_params=( "-S" "1.5" "3.5" )
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam/100@adam/100_100@adam/500_500@sgd/100@sgd/100_100@sgd/500_500 plots
+unset sorting_key
+unset xselect_params
+unset additional_artists_str
+
+
+cd ~/h-elmo/expres/correlation/batch/enwiki1G
+additional_artists_str=( "-a"\
+  "../../nocorrloss/shuffled/enwiki1G/noise_best_loss_axvspan.pickle" )
+# xselect_params=( "-S" "1.5" "3.5" )
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam/100@adam/100_100@adam/500_500@sgd/100@sgd/100_100@sgd/500_500 plots
+unset sorting_key
+unset xselect_params
+unset additional_artists_str

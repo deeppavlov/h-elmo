@@ -2,6 +2,8 @@
 
 # This script is for copying collected tensors, results and
 # testing results from servers
+# Args:
+#     1. Path to directory with results
 
 
 function main () {
