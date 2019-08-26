@@ -46,7 +46,6 @@ parser.add_argument(
     help="Path to output file where plot data will be saved. Default is"
          " plot_data.pickle.",
     default="plot_data.pickle",
-    type=argparse.FileType('wb'),
 )
 parser.add_argument(
     "--no_sort",
@@ -95,14 +94,19 @@ for fn in args.files:
         Err.append(err)
 
 plot_data = plot_helpers.PlotData()
+
+output_dir = os.path.split(args.output)[0]
+os.makedirs(output_dir, exist_ok=True)
+
 if args.sorting_key is not None:
     exec(args.sorting_key)
     plot_data.set_sorting_key(sorting_key)
 
-    exec_file_name = os.path.splitext(args.output.name)[0] + '_exec.py'
+    exec_file_name = os.path.splitext(args.output)[0] + '_exec.py'
     with open(exec_file_name, 'w') as exec_f:
         exec_f.write(args.sorting_key)
 for lbl, x, y, err in zip(args.labels, X, Y, Err):
     plot_data[lbl] = {'x': x, 'y': y, 'y_err': err}
 
-pickle.dump(plot_data, args.output)
+with open(args.output, 'wb') as f:
+    pickle.dump(plot_data, f)

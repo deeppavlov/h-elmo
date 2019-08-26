@@ -141,4 +141,3 @@ for metric, lines_for_metric in lines_by_metrics.items():
         style,
         shifts=[int(args.xshift), 0]
     )
-
