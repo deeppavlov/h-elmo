@@ -222,6 +222,36 @@ source ${PLOT}/correlation_and_loss_plots.sh \
 unset sorting_key
 
 
+# for sgd vary learning rate loss - corr plots
+cd ~/h-elmo/expres/correlation/nocorrloss/vary_lr/text8/sgd/100
+lw_params=( "--linewidth" "1.0" )
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    return -float(words[-1])
+"
+additional_artists_str=( "-a" \
+  "${EXPRES}/correlation/nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "learning rate 0.01@learning rate 0.005@learning rate 0.002@learning rate 0.001@learning rate 0.0003@learning rate 0.0001@learning rate 0.00003@learning rate 0.00001" \
+  0.01@0.005@0.002@0.001@0.0003@0.0001@0.00003@0.00001 plots
+unset sorting_key
+unset additional_artists_str
+unset lw_params
+
+
+# for sgd vary learning rate loss AND corr plots
+cd ~/h-elmo/expres/correlation/nocorrloss/vary_lr/text8/sgd/100
+sorting_key="def sorting_key(x):
+    words = x.split()
+    return -float(words[-1])
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "learning rate 0.01@learning rate 0.005@learning rate 0.002@learning rate 0.001@learning rate 0.0003@learning rate 0.0001@learning rate 0.00003@learning rate 0.00001" \
+  0.01@0.005@0.002@0.001@0.0003@0.0001@0.00003@0.00001 plots
+unset sorting_key
+
+
 # for sgd vary batch size loss - corr plots
 cd ~/h-elmo/expres/correlation/nocorrloss/vary_bs/text8/sgd/100
 lw_params=( "--linewidth" "1.0" )
@@ -356,4 +386,80 @@ function gen_exp_dirs () {
   done
 }
 source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh correlation/batch < <(gen_exp_dirs)
+unset gen_exp_dirs
+
+# process experiment results
+cd ${EXPRES}
+function gen_exp_dirs () {
+  local dt
+  local opt
+  local net
+
+  local exp
+
+  local dp
+  local bs
+  local unr
+
+  for shuffled_str in shuffled/ ""
+  do
+    for dt in enwiki1G text8
+    do
+      for opt in adam sgd
+      do
+        for net in 100 100_100 500_500
+        do
+          echo "${shuffled_str}${dt}/${opt}/${net}"
+        done
+      done
+    done
+  done
+
+#  for dp in 0.4 0.7 0
+#  do
+#    echo "long_dropout/${dp}"
+#  done
+
+  for dp in dp0.7 dp0
+  do
+    echo "second_layer/${dp}"
+  done
+
+  for bs_dir in vary_bs # vary_bs_long
+  do
+    for bs in 10 20 32 64 128 256 512 1024
+    do
+      echo "${bs_dir}/text8/sgd/100/${bs}"
+    done
+  done
+
+  for dp in 0 0.2 0.3 0.4 0.5 0.6 0.7
+  do
+    echo "vary_dropout/${dp}"
+  done
+
+  for lr in 0.01 0.001 0.0001 0.00001 0.002 0.0003 0.00003 0.005
+  do
+    echo "vary_lr/text8/adam/100/${lr}"
+  done
+
+  for lr in 0.1 0.01 0.3 0.03 1 3
+  do
+    echo "vary_lr/text8/sgd/100/${lr}"
+  done
+
+  for dp in 0 0.2 0.4 0.7
+  do
+    echo "wide/vary_dropout/${dp}"
+  done
+
+  for unr in 5 10 20 50 100 200 400 1000
+  do
+    echo "vary_unr/text8/sgd/100/${unr}"
+  done
+}
+while read line
+do
+  source ${SCRIPTS}/process_corr_exp_results.sh "correlation/batch/${line}"
+done < <(gen_exp_dirs)
 unset gen_exp_dirs
