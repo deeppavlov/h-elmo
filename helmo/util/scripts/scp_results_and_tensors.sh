@@ -27,16 +27,17 @@ function main () {
   done
 
   local d
-  local ckpt_txt
+  local ckpt_txt_file
   for d in ${launch_dirs}
   do
-    mkdir -p ${d}/checkpoints/all_vars
+    dgx1 "[ -d \"${remote_path}/${d}/checkpoints/all_vars\" ]" && ckpt_path=checkpoints/all_vars || ckpt_path=checkpoints
+    mkdir -p "${d}/${ckpt_path}"
     scp -r -q  ${LSERV}:${remote_path}/${d}/tensors ${d}/
     scp -r -q  ${LSERV}:${remote_path}/${d}/results ${d}/
-    local checkpoint_txt=$(dgx1 "ls ${remote_path}/${d}/checkpoints/all_vars | grep -E '\.txt$'")
-    for ckpt_txt in ${checkpoint_txt}
+    local checkpoint_text_files=$(dgx1 "ls ${remote_path}/${d}/${ckpt_path} | grep -E '\.txt$'")
+    for ckpt_txt_file in ${checkpoint_text_files}
     do
-      scp -r -q  ${LSERV}:${remote_path}/${d}/checkpoints/all_vars/${ckpt_txt} ${d}/checkpoints/all_vars
+      scp -r -q  ${LSERV}:${remote_path}/${d}/${ckpt_path}/${ckpt_txt_file} ${d}/${ckpt_path}
     done
   done
 
