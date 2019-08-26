@@ -17,7 +17,7 @@
   },
   "graph": {
     "rnn_map": {
-      "module_name": "char_enc_dec",
+      "module_name": "level0",
       "num_nodes": [100, 100],
       "input_idx": null,
       "output_idx": null
