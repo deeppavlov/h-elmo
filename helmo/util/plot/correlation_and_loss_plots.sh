@@ -64,12 +64,12 @@ function main () {
     -m "${mean_corr[@]}" -d "${err_corr[@]}" -n -o $3/corr_plot_data.pickle \
     ${sorting_str:+"$sorting_str"}
   python3 ${PLOT}/plot_from_pickle.py $3/corr_plot_data.pickle -x step -y "mean square correlation" \
-    -X log -o $3/corr_plot -t ${err_style} -d best -O -s png -r 900 -g -w both \
+    -X symlog -o $3/corr_plot -t ${err_style} -d best -O -s png -r 900 -g -w both \
     ${corr_exec_scr_str:+$corr_exec_scr_str} ${lw_params:+"${lw_params[@]}"}
   python3 ${PLOT}/plot_data_from_txt.py "${loss_files[@]}" -l "${labels[@]}" -x 0 -y 1 -e 2 \
     -o $3/loss_plot_data.pickle ${sorting_str:+"$sorting_str"} -n
   python3 ${PLOT}/plot_from_pickle.py $3/loss_plot_data.pickle -x step -y loss \
-    -X log -o $3/loss_plot -t ${err_style} -d best -O -s png -r 900 -g -w both \
+    -X symlog -o $3/loss_plot -t ${err_style} -d best -O -s png -r 900 -g -w both \
     ${loss_exec_scr_str:+$loss_exec_scr_str} ${lw_params:+"${lw_params[@]}"}
 }
 

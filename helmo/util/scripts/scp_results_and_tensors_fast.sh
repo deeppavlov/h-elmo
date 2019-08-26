@@ -2,6 +2,8 @@
 
 # This script is for copying collected tensors, results and
 # testing results from servers
+# Args:
+#     1. Path to directory with results
 
 
 function main () {
@@ -44,6 +46,7 @@ function main () {
   dgx1 "cd \"${remote_path}\";tar -czf \"tmp.tar.gz\" ${archived[@]}"
   scp -q ${LSERV}:${remote_path}/tmp.tar.gz ./
 
+  tar -xzf tmp.tar.gz
   cd ${current_dir}
 }
 

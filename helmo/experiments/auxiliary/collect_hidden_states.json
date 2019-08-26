@@ -1,0 +1,71 @@
+{
+  "batch_gen": {
+    "path": "resrnn",
+    "cls_name": "LmFastBatchGenerator"
+  },
+  "net": {
+    "path": "resrnn",
+    "cls_name": "Rnn"
+  },
+  "dataset": {
+    "path": "text8.txt",
+    "test_size": 6.4e5,
+    "valid_size": 0,
+    "vocab_path": "text8_voc.txt"
+  },
+  "graph": {
+    "rnn_map": {
+      "module_name": "level0",
+      "num_nodes": [
+        141,
+        142
+      ],
+      "input_idx": null,
+      "output_idx": null,
+      "derived_branches": [
+        {
+          "module_name": "level1",
+          "num_nodes": [141, 141],
+          "input_idx": 0,
+          "output_idx": 1
+        }
+      ]
+    },
+    "num_output_nodes": [],
+    "emb_size": 142,
+    "num_gpus": 1,
+    "metrics": [
+      "bpc",
+      "perplexity",
+      "accuracy"
+    ],
+    "optimizer_type": "adam",
+    "backward_connections": false
+  },
+  "restore_paths": {
+    "paths": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    "prefix": "~/h-elmo/expres/resrnn/depth_effect/4/closest",
+    "postfix": "checkpoints/best"
+  },
+  "test": {
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "validation_batch_size": 100,
+    "valid_batch_kwargs": {"num_unrollings": 100},
+    "validation_tensor_schedule": {
+      "valid_pickle_all_tensors": {
+        "level0_0_hidden_state": 1,
+        "level0_1_hidden_state": 1,
+        "level1_0_hidden_state": 1,
+        "level1_1_hidden_state": 1
+      }
+    },
+    "additions_to_feed_dict": [
+      {
+        "placeholder": "dropout",
+        "value": 0.0
+      }
+    ]
+  },
+  "calculate_mean": false
+}

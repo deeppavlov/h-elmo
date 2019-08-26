@@ -152,6 +152,9 @@ else:
 
 steps = [extract_steps_from_valid_results(f) for f in args.step]
 
+output_dir = os.path.split(args.output)[0]
+os.makedirs(output_dir, exist_ok=True)
+
 plot_data = plot_helpers.PlotData()
 if args.sorting_key is not None:
     exec(args.sorting_key)
