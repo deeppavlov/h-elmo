@@ -57,9 +57,7 @@ def get_mean_correlation(tensor, reduced_axes, cor_axis):
     cor_axis %= tensor.ndim
     correlation = get_correlation(tensor, reduced_axes, cor_axis)
     new_cor_axis = get_new_cor_axis(cor_axis, reduced_axes, tensor.ndim)
-    print(new_cor_axis)
     axes_for_reduction = get_axes_for_reduction(tensor, [new_cor_axis, new_cor_axis+1])
-    print(correlation.shape, axes_for_reduction)
     return np.mean(correlation, axis=tuple(axes_for_reduction))
 
 
