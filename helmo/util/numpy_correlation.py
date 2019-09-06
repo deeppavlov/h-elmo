@@ -11,23 +11,31 @@ def shift_reduced_axes_if_required(reduced_axes, covcor_axis):
     return tuple(a+1 if a > covcor_axis else a for a in reduced_axes)
 
 
-def get_covariance(tensor, reduced_axes, cov_axis, keepdims=False):
+def get_reduced_size(shape, reduced_axes):
+    result = 1
+    for a in reduced_axes:
+        result *= shape[a]
+    return result
+
+
+def get_covariance(tensor, reduced_axes, cov_axis, keepdims=False, ddof=1):
     cov_axis %= tensor.ndim
+    reduced_size = get_reduced_size(tensor.shape, reduced_axes)
     reduced_axes = [a % tensor.ndim for a in reduced_axes]
     mean = np.mean(tensor, axis=tuple(reduced_axes), keepdims=True)
     devs = tensor - mean
     dev_products = get_self_outer_product(devs, cov_axis)
     reduced_axes = shift_reduced_axes_if_required(reduced_axes, cov_axis)
-    return np.mean(dev_products, axis=reduced_axes, keepdims=keepdims)
+    return np.sum(dev_products, axis=reduced_axes, keepdims=keepdims) / (reduced_size - ddof)
 
 
 def get_correlation(tensor, reduced_axes, cor_axis, keepdims=False):
     cor_axis %= tensor.ndim
     reduced_axes = tuple(a % tensor.ndim for a in reduced_axes)
     covariance = get_covariance(tensor, reduced_axes, cor_axis, keepdims=True)
-    variance = np.std(tensor, axis=reduced_axes, keepdims=True, ddof=0)
-    variance_product = get_self_outer_product(variance, cor_axis)
-    correlation = covariance / np.sqrt(variance_product)
+    std = np.std(tensor, axis=reduced_axes, keepdims=True, ddof=1)
+    std_product = get_self_outer_product(std, cor_axis)
+    correlation = covariance / std_product
     if keepdims:
         return correlation
     reduced_axes = shift_reduced_axes_if_required(reduced_axes, cor_axis)
