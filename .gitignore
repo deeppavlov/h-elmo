@@ -24,3 +24,6 @@ helmo/interact/answers*.txt
 helmo/interact/damir_dialogs.txt
 helmo/lstm_computation_effectiveness/results/
 test.txt
+*.pyc
+**/*.pyc
+
