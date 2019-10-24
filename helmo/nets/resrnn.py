@@ -438,6 +438,13 @@ class Rnn(Pupil):
         self._distribute_states(state, rnn_map, new_state_name, gpu_name)
         return out
 
+    def _add_rms_hooks(self, intermediate):
+        self._hooks['rms1'] = tf.sqrt(
+            tf.reduce_mean(tf.square(intermediate[0])))
+        if len(intermediate) >= 2:
+            self._hooks['rms2'] = tf.sqrt(
+                tf.reduce_mean(tf.square(intermediate[1])))
+
     def _add_correlation_hooks(self, intermediate):
         # Mean correlation between neurons of hidden state of first LSTM
         self._hooks['correlation'] = tensor_ops.corcov_loss(
@@ -599,6 +606,7 @@ class Rnn(Pupil):
             if inp.device == '/device:GPU:0':
                 if rnn_map['module_name'] == 'char_enc_dec':
                     self._add_correlation_hooks(intermediate)
+                    self._add_rms_hooks(intermediate)
                 self._add_hidden_state_hook(intermediate, rnn_map['module_name'])
                 self._add_quarter_of_hidden_state_hooks(intermediate, rnn_map['module_name'])
                 if not training:
