@@ -42,8 +42,8 @@ parser.add_argument(
 )
 parser.add_argument(
     '--no_stack',
-    help="No dimension added to values. Used when pickle files "
-         " contain single array each.",
+    help="If set new dimension is not added to values. "
+         "Used when pickle files contain single array each.",
     action='store_true',
 )
 

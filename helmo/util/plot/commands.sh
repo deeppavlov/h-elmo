@@ -645,3 +645,75 @@ sorting_key="${sorting_key2}" \
   enwiki1G-text8/plots_adam_init3/adam
 unset sorting_key
 unset additional_artists_str
+
+
+# for plotting loss and RMS of hidden state elements 100, 100_100, 500_500 enwiki1G BATCH ADAM - SGD
+cd ~/h-elmo/expres/hidden_state_rms
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'ADAM' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/rms_and_loss_plots.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  enwiki1G/adam/100@enwiki1G/adam/100_100@enwiki1G/adam/500_500@enwiki1G/sgd/100@enwiki1G/sgd/100_100@enwiki1G/sgd/500_500 \
+  enwiki1G/plots_adam_sgd/loss_and_rms
+unset sorting_key
+unset additional_artists_str
+
+
+# for plotting loss and RMS of hidden state elements 100, 100_100, 500_500 text8 BATCH ADAM - SGD
+cd ~/h-elmo/expres/hidden_state_rms
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'ADAM' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/rms_and_loss_plots.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  text8/adam/100@text8/adam/100_100@text8/adam/500_500@text8/sgd/100@text8/sgd/100_100@text8/sgd/500_500 \
+  text8/plots_adam_sgd/loss_and_rms
+unset sorting_key
+unset additional_artists_str
+
+
+# Average RMS of hidden states
+cd ~/h-elmo/expres/hidden_state_rms
+for ds in enwiki1G text8; do
+  for opt in adam sgd; do
+    for nn in 100 100_100 500_500; do
+      cd ${ds}/${opt}/${nn}
+      mkdir rms
+      python3 ${SCRIPTS}/average_pickle_values.py {0..19}/tensors/valid/pickle_mean_tensors/rms1.pickle \
+          --stddev rms/stddev.pickle --mean rms/mean.pickle \
+          --stderr_of_mean rms/stderr_of_mean.pickle
+      cd ../../..
+    done
+  done
+done
+
+
+# Average loss in hidden state RMS experiments
+cd ~/h-elmo/expres/hidden_state_rms
+for ds in enwiki1G text8; do
+  for opt in adam sgd; do
+    for nn in 100 100_100 500_500; do
+      cd ${ds}/${opt}/${nn}
+      python3 ${SCRIPTS}/average_txt.py {0..19}/results/loss_valid.txt \
+          -o loss_stats.txt
+      cd ../../..
+    done
+  done
+done
+
+
