@@ -694,7 +694,8 @@ for ds in enwiki1G text8; do
     for nn in 100 100_100 500_500; do
       cd ${ds}/${opt}/${nn}
       mkdir rms
-      python3 ${SCRIPTS}/average_pickle_values.py {0..19}/tensors/valid/pickle_mean_tensors/rms1.pickle \
+      python3 ${SCRIPTS}/average_pickle_values.py \
+          {0..19}/tensors/valid/pickle_mean_tensors/rms1.pickle \
           --stddev rms/stddev.pickle --mean rms/mean.pickle \
           --stderr_of_mean rms/stderr_of_mean.pickle
       cd ../../..
@@ -724,11 +725,14 @@ for f in ff2_adam ff2_adam_sh ff2_sgd ff2_sgd_sh; do
   for tensor in hs0_corr hs0_rms hs1_corr hs1_rms; do
     d=${f}/stats/${tensor}
     mkdir d
-    python3 ${SCRIPTS}/average_pickle_values.py ${f}/{0..9}/tensors/${tensor}.pickle \
-        --mean ${d}/mean.pickle --stddev ${d}/stddev.pickle \
-        --stderr_of_mean ${d}/stdder_of_mean.pickle --preprocess "np.sqrt({array})"
+    python3 ${SCRIPTS}/average_pickle_values.py \
+        ${f}/{0..9}/tensors/${tensor}.pickle --mean ${d}/mean.pickle \
+        --stddev ${d}/stddev.pickle \
+        --stderr_of_mean ${d}/stdder_of_mean.pickle \
+        --preprocess "np.sqrt({array})"
   done
-  python3 ${SCRIPTS}/average_txt.py ${f}/{0..9}/results/valid/loss.txt -o ${f}/stats/loss.txt
+  python3 ${SCRIPTS}/average_txt.py ${f}/{0..9}/results/valid/loss.txt \
+      -o ${f}/stats/loss.txt
 done
 
 
@@ -737,17 +741,48 @@ cd ~/nc-ff/results
 mkdir plots
 step_file=ff2_adam/0/results/valid/loss.txt
 tensors=(hs0_corr hs0_rms hs1_corr hs1_rms)
-ylabels=("mean square correlation" "mean square element" "mean square correlation" "mean square element")
+ylabels=("mean square correlation" "mean square element" \
+    "mean square correlation" "mean square element")
 for i in {0..3}; do
     python3 ${PLOT}/plot_data_from_pickle.py -l adam sgd \
-        -s "${step_file}" "${step_file}" -m "ff2_adam/stats/${tensors[i]}/mean.pickle" \
-        "ff2_sgd/stats/${tensors[i]}/mean.pickle" -d "ff2_adam/stats/${tensors[i]}/stddev.pickle" \
-        "ff2_sgd/stats/${tensors[i]}/stddev.pickle" -n -o "plots/adam-sgd/${tensors[i]}_plot_data.pickle"
-    python3 ${PLOT}/plot_from_pickle.py "plots/adam-sgd/${tensors[i]}_plot_data.pickle" \
-        -x step -y "${ylabels[i]}" -X symlog -o "plots/adam-sgd/${tensors[i]}_plot" \
+        -s "${step_file}" "${step_file}" \
+        -m "ff2_adam/stats/${tensors[i]}/mean.pickle" \
+        "ff2_sgd/stats/${tensors[i]}/mean.pickle" \
+        -d "ff2_adam/stats/${tensors[i]}/stddev.pickle" \
+        "ff2_sgd/stats/${tensors[i]}/stddev.pickle" -n \
+        -o "plots/adam-sgd/${tensors[i]}_plot_data.pickle"
+    python3 ${PLOT}/plot_from_pickle.py \
+        "plots/adam-sgd/${tensors[i]}_plot_data.pickle" \
+        -x step -y "${ylabels[i]}" -X symlog \
+        -o "plots/adam-sgd/${tensors[i]}_plot" \
         -t fill -d best -O -s png -r 900 -g -w both
 done
-python3 ${PLOT}/plot_data_from_txt.py ff2_adam/stats/loss.txt ff2_sgd/stats/loss.txt \
-    -l adam sgd -x 0 -y 1 -e 2 -o plots/adam-sgd/loss_plot_data.pickle -n
+python3 ${PLOT}/plot_data_from_txt.py ff2_adam/stats/loss.txt \
+    ff2_sgd/stats/loss.txt -l adam sgd -x 0 -y 1 -e 2 \
+    -o plots/adam-sgd/loss_plot_data.pickle -n
 python3 ${PLOT}/plot_from_pickle.py plots/adam-sgd/loss_plot_data.pickle \
-    -x step -y loss -X symlog -o plots/adam-sgd/loss_plot -t fill -d best -O -s png -r 900 -g -w both
+    -x step -y loss -X symlog -o plots/adam-sgd/loss_plot -t fill -d best -O \
+    -s png -r 900 -g -w both
+
+
+# Draw long dropout plots
+cd ~/h-elmo/expres/correlation/batch/long_dropout
+mkdir plots
+step_file=0/0/results/loss_valid.txt
+declare -a labels steps corrs losses
+for dp in 0 0.4 0.7; do
+  labels+=("dropout ${dp}")
+  steps+=("${dp}/0/results/loss_valid.txt")
+  corrs+=("${dp}/0/tensors/valid/pickle_mean_tensors/correlation.pickle")
+  losses+=("${dp}/0/results/loss_valid.txt")
+done
+python3 ${PLOT}/plot_data_from_pickle.py -l "${labels[@]}" -s "${steps[@]}" \
+  -m "${corrs[@]}" -n -o plots/corr_data.pickle -p sqrt
+python3 ${PLOT}/plot_data_from_txt.py "${steps[@]}" -l "${labels[@]}" -x 0 \
+    -y 1 -o plots/loss_data.pickle -n
+python3 ${PLOT}/plot_from_pickle.py plots/corr_data.pickle \
+    -x step -y "mean square correlation" -X symlog -o "plots/corr_plot" \
+    -t noerr -d best -O -s png -r 900 -g -w both
+python3 ${PLOT}/plot_from_pickle.py plots/loss_data.pickle \
+    -x step -y loss -X symlog -o plots/loss_plot -t noerr -d best -O \
+    -s png -r 900 -g -w both
