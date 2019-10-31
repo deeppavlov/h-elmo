@@ -20,11 +20,15 @@
 # Using source command is obligatory because the script needs aliases defined
 # in .bashrc
 #
-# Example
+# Examples
 # for ds in enwiki1G text8;do for opt in sgd adam; do for nn in 100 100_100 \
 #     500_500; do echo ${ds}/${opt}/${nn}; done; done; done | source \
 #     /home/anton/h-elmo/helmo/util/scripts/scp_results_and_tensors_fast_2.sh \
 #     hidden_state_rms
+#
+# for dp in 0 0.4 0.7;do echo "long_dropout/${dp}"; done | source \
+#     /home/anton/h-elmo/helmo/util/scripts/scp_results_and_tensors_fast_2.sh \
+#     correlation/batch
 #
 # `ssh-agent` in remote host.
 # ```
@@ -57,9 +61,14 @@ function main() {
 
   scp -q dirs_for_copy.txt ${LSERV}:"${remote_expres}/$1/"
 
-  dgx1 "source ${remote_scripts}/create_tar_for_copy.sh ${remote_expres}/$1/dirs_for_copy.txt ${remote_expres}/$1"
+  dgx1 "source ${remote_scripts}/create_tar_for_copy.sh \
+      ${remote_expres}/$1/dirs_for_copy.txt ${remote_expres}/$1"
   scp -q ${LSERV}:"${remote_expres}/$1/for_copy.tar.gz" for_copy.tar.gz
   tar -xzf for_copy.tar.gz
+
+  rm for_copy.tar.gz
+  dgx1 "rm ${remote_expres}/$1/dirs_for_copy.txt \
+      ${remote_expres}/$1/for_copy.tar.gz"
 
   cd "${starting_dir}"
 }

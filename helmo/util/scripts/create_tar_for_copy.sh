@@ -26,13 +26,17 @@ function main () {
 
   while read line
   do
-    bash "${remote_scripts}/form_list_of_files_for_copy_1_dir.sh" "${line}" files_for_copy.txt
+    bash "${remote_scripts}/form_list_of_files_for_copy_1_dir.sh" "${line}" \
+        files_for_copy.txt
   done < "${input_file}"
 
   local -a file_names
-  mapfile -t file_names < <(while read line; do echo "${line}"; done < files_for_copy.txt)
+  mapfile -t file_names \
+      < <(while read line; do echo "${line}"; done < files_for_copy.txt)
 
   tar -czf for_copy.tar.gz "${file_names[@]}"
+
+  rm files_for_copy.txt
 
   cd "${starting_dir}"
 }
