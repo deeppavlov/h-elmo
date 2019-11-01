@@ -187,6 +187,8 @@ def L2_norm_vec(vec):
 
 def get_start_point(nd, dim_num, frac):
     center = [1/nd for _ in range(nd)]
+    # Choosing vertex to which radius vector is directed.
+    # Any vertex except for `dim_num` fits.
     dim_num = (dim_num + 1) % nd
     vertice = [0 for _ in range(nd)]
     vertice[dim_num] = 1
@@ -197,9 +199,11 @@ def get_start_point(nd, dim_num, frac):
 
 
 def get_sum_prism_faces(nd, frac):
+    # `faces` is a list of prism faces. Each face is a tuple of two vectors:
+    # a normal to the face and a radius-vector to a point on the face.
     faces = [
-        ([-1 for _ in range(nd)], [1/3 for _ in range(nd)]),
-        ([1 for _ in range(nd)], [-1/3 for _ in range(nd)]),
+        ([-1 for _ in range(nd)], [1/nd for _ in range(nd)]),
+        ([1 for _ in range(nd)], [-1/nd for _ in range(nd)]),
     ]
     for dim_num in range(nd):
         normal = [-1 for _ in range(nd)]
@@ -274,7 +278,30 @@ def get_hidden_sizes_from_num_param(num_param, input_size):
 
 
 def sample_hidden_sizes(total_num_param, frac, num_layers, input_size, n):
-    num_param = [sample_point_from_sum_triangle(total_num_param, num_layers, frac) for _ in range(n)]
+    """Sample sizes of hidden states which give specified number of params.
+    The number of parameters for a layer is sampled from a uniform
+    distribution.
+
+    Two limitations are applied to parameter distribution. The first is that
+    parameter point is laying on a hyperplane
+      `total_num_param = num_layer_1 + num_layer_2 + ...`
+    The second is that `num_layer_i > frac * 1 / num_layers * total_num_param`.
+
+    Args:
+        total_num_param (int): sum of numbers of parameters on layers of
+            LSTM. A network parameters include neurons weights and biases.
+        frac (float): the parameter defines a minimum number of parameters for
+            one layer.
+        num_layers (int): the number of LSTM layers.
+        input_size (int): the size of the vector.
+        n (int): number of samples.
+    Returns:
+        list of lists of int: hidden sizes of LSTM.
+    """
+    num_param = [
+        sample_point_from_sum_triangle(total_num_param, num_layers, frac)
+        for _ in range(n)
+    ]
     hidden_sizes = []
     for np in num_param:
         hidden_sizes.append(get_hidden_sizes_from_num_param(np, input_size))
