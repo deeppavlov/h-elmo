@@ -15,9 +15,11 @@ import matplotlib.patches as mpatches
 
 import helmo.util.python as python
 from helmo.util.algo import SortedDict, sorting_key_float
-from learning_to_learn.useful_functions import synchronous_sort, create_path, get_pupil_evaluation_results, \
-    BadFormattingError, all_combs, get_optimizer_evaluation_results, select_for_plot, convert, retrieve_lines, \
-    add_index_to_filename_if_needed, nested2string, isnumber, add_scalar_iterable
+from learning_to_learn.useful_functions import synchronous_sort, create_path, \
+    get_pupil_evaluation_results, BadFormattingError, all_combs, \
+    get_optimizer_evaluation_results, select_for_plot, convert, \
+    retrieve_lines, add_index_to_filename_if_needed, nested2string, isnumber, \
+    add_scalar_iterable
 
 
 # from pathlib import Path  # if you haven't already done so
@@ -372,8 +374,11 @@ class PatchHandler:
         x0, y0 = handlebox.xdescent, handlebox.ydescent
         width, height = handlebox.width, handlebox.height
         patch = mpatches.Rectangle(
-            [x0, y0], width, height,
-            facecolor=orig_handle.get_color() if self._color is None else self._color,
+            [x0, y0],
+            width,
+            height,
+            facecolor=orig_handle.get_color() if self._color is None
+                else self._color,
             transform=handlebox.get_transform()
         )
         handlebox.add_artist(patch)
@@ -399,12 +404,23 @@ def add_legend(artists, position, only_color_as_marker_in_legend):
     elif position == 'best':
         pos_dict = {'loc': 'best'}
     if only_color_as_marker_in_legend:
-        handler_map = dict(list(zip(artists, [PatchHandler() for _ in range(len(artists))])))
+        handler_map = dict(
+            list(zip(artists, [PatchHandler() for _ in range(len(artists))])))
     else:
-        handler_map = dict(list(zip(artists, [HandlerLine2D(numpoints=1) for _ in range(len(artists))])))
+        handler_map = dict(
+            list(
+                zip(
+                    artists,
+                    [HandlerLine2D(numpoints=1) for _ in range(len(artists))]
+                )
+            )
+        )
     ax = plt.gca()
     handles, labels = ax.get_legend_handles_labels()
-    handles = [h[0] if isinstance(h, container.ErrorbarContainer) else h for h in handles]
+    handles = [
+        h[0] if isinstance(h, container.ErrorbarContainer) else h
+        for h in handles
+    ]
     lgd = ax.legend(
         handles,
         labels,
@@ -429,7 +445,8 @@ def add_special_artists(artists):
             for spec in artist_specs:
                 add_axvspan(spec)
         else:
-            raise ValueError("Unsupported artist type:\n{}".format(artist_type))
+            raise ValueError(
+                "Unsupported artist type:\n{}".format(artist_type))
 
 
 def plot_outer_legend(
@@ -472,7 +489,8 @@ def plot_outer_legend(
     plot_data.shift_lines('x', shifts[0])
     plot_data.shift_lines('y', shifts[1])
     if labels_of_drawn_lines is not None:
-        plot_data = python.filter_dict_by_keys(plot_data, labels_of_drawn_lines)
+        plot_data = python.filter_dict_by_keys(
+            plot_data, labels_of_drawn_lines)
     if formats is None:
         formats = FORMATS
     rc('font', **FONT)
@@ -485,7 +503,11 @@ def plot_outer_legend(
         if label is None or label == 'None':
             label = ''
         if idx > len(COLORS) - 1:
-            color = [random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)]
+            color = [
+                random.uniform(0, 1),
+                random.uniform(0, 1),
+                random.uniform(0, 1)
+            ]
         else:
             color = COLORS[idx]
 
@@ -586,12 +608,12 @@ def get_parameter_names(conf_file):
         plot_name = ' '.join(plot_name)
         plot_parameter_names[inner_name] = plot_name
         idx += 1
-    # print("(plot_helpers.get_parameter_names)plot_parameter_names:", plot_parameter_names)
     return plot_parameter_names
 
 
 def create_plot_hp_layout(plot_dir, hp_plot_order, changing_hp):
-    file_with_hp_layout_description = os.path.join(plot_dir, 'plot_hp_layout.txt')
+    file_with_hp_layout_description = os.path.join(
+        plot_dir, 'plot_hp_layout.txt')
     num_of_hps = len(hp_plot_order)
     if num_of_hps > 2:
         tmpl = '%s ' * (num_of_hps - 3) + '%s'
@@ -602,7 +624,11 @@ def create_plot_hp_layout(plot_dir, hp_plot_order, changing_hp):
     else:
         line_hp_name = ''
     with open(file_with_hp_layout_description, 'w') as f:
-        f.write('fixed hyper parameters: ' + tmpl % tuple(hp_plot_order[:-2]) + '\n')
+        f.write(
+            'fixed hyper parameters: '
+            + tmpl % tuple(hp_plot_order[:-2])
+            + '\n'
+        )
 
         f.write('line hyper parameter: ' + line_hp_name + '\n')
         f.write('changing hyper parameter: ' + changing_hp)
@@ -618,7 +644,18 @@ def get_y_specs(res_type, plot_parameter_names, metric_scales):
     return ylabel, yscale
 
 
-def launch_plotting(data, line_label_format, fixed_hp_tmpl, path, xlabel, ylabel, xscale, yscale, style, select):
+def launch_plotting(
+        data,
+        line_label_format,
+        fixed_hp_tmpl,
+        path,
+        xlabel,
+        ylabel,
+        xscale,
+        yscale,
+        style,
+        select
+):
     if select is not None:
         data = select_for_plot(data, select)
     on_descriptions = dict()
@@ -628,20 +665,25 @@ def launch_plotting(data, line_label_format, fixed_hp_tmpl, path, xlabel, ylabel
             label = line_label_format.format(line_hp_value)
             if label in plot_data_on_labels:
                 warnings.warn(
-                    "specified formatting does not allow to distinguish '%s' in legend\n"
+                    "specified formatting does not allow "
+                    "to distinguish '%s' in legend\n"
                     "fixed_hps_tuple: %s\n"
-                    "falling to string formatting" % (line_hp_value, fixed_hps_tuple)
+                    "falling to string formatting"
+                    % (line_hp_value, fixed_hps_tuple)
                 )
                 label = '%s' % line_hp_value
                 if label in plot_data_on_labels:
                     raise BadFormattingError(
                         line_label_format,
                         line_hp_value,
-                        "Specified formatting does not allow to distinguish '%s' in legend\n"
+                        "Specified formatting does not allow "
+                        "to distinguish '%s' in legend\n"
                         "fixed_hps_tuple: %s\n"
-                        "String formatting failed to fix the problem" % (line_hp_value, fixed_hps_tuple)
+                        "String formatting failed to fix the problem"
+                        % (line_hp_value, fixed_hps_tuple)
                     )
-            plot_data_on_labels[line_label_format.format(line_hp_value)] = line_data
+            plot_data_on_labels[line_label_format.format(line_hp_value)] = \
+                line_data
         on_descriptions[fixed_hp_tmpl % fixed_hps_tuple] = plot_data_on_labels
         # print("(plot_helpers.plot_hp_search)plot_data:", plot_data)
 
@@ -649,7 +691,14 @@ def launch_plotting(data, line_label_format, fixed_hp_tmpl, path, xlabel, ylabel
     for description, plot_data in on_descriptions.items():
         file_name_without_ext = os.path.join(path, str(counter))
         plot_outer_legend(
-            plot_data, description, xlabel, ylabel, xscale, yscale, file_name_without_ext, style
+            plot_data,
+            description,
+            xlabel,
+            ylabel,
+            xscale,
+            yscale,
+            file_name_without_ext,
+            style
         )
         counter += 1
 
@@ -666,23 +715,36 @@ def plot_hp_search_optimizer(
         select,
 ):
     changing_hp = hp_plot_order[-1]
-    for_plotting = get_optimizer_evaluation_results(eval_dir, hp_plot_order, AVERAGING_NUMBER)
+    for_plotting = get_optimizer_evaluation_results(
+        eval_dir, hp_plot_order, AVERAGING_NUMBER)
     pupil_names = sorted(list(for_plotting.keys()))
     result_types = sorted(list(for_plotting[pupil_names[0]].keys()))
-    regimes = sorted(list(for_plotting[pupil_names[0]][result_types[0]].keys()))
+    regimes = sorted(
+        list(
+            for_plotting[pupil_names[0]][result_types[0]].keys()))
     fixed_hp_tmpl = create_plot_hp_layout(plot_dir, hp_plot_order, changing_hp)
     # print("(plot_hp_search)plot_parameter_names:", plot_parameter_names)
     xlabel = get_parameter_name(plot_parameter_names, changing_hp)
 
     for pupil_name in pupil_names:
         for res_type in result_types:
-            ylabel, yscale = get_y_specs(res_type, plot_parameter_names, metric_scales)
+            ylabel, yscale = get_y_specs(
+                res_type, plot_parameter_names, metric_scales)
             for regime in sorted(regimes):
                 path = os.path.join(plot_dir, pupil_name, res_type, regime)
                 create_path(path)
                 data = for_plotting[pupil_name][res_type][regime]
                 launch_plotting(
-                    data, line_label_format, fixed_hp_tmpl, path, xlabel, ylabel, xscale, yscale, style, select
+                    data,
+                    line_label_format,
+                    fixed_hp_tmpl,
+                    path,
+                    xlabel,
+                    ylabel,
+                    xscale,
+                    yscale,
+                    style,
+                    select
                 )
 
 
@@ -705,12 +767,25 @@ def plot_hp_search_pupil(
     xlabel = get_parameter_name(plot_parameter_names, changing_hp)
     for dataset_name in dataset_names:
         for res_type in result_types:
-            ylabel, yscale = get_y_specs(res_type, plot_parameter_names, metric_scales)
+            ylabel, yscale = get_y_specs(
+                res_type,
+                plot_parameter_names,
+                metric_scales
+            )
             path = os.path.join(plot_dir, dataset_name, res_type)
             create_path(path)
             data = for_plotting[dataset_name][res_type]
             launch_plotting(
-                data, line_label_format, fixed_hp_tmpl, path, xlabel, ylabel, xscale, yscale, style, select
+                data,
+                line_label_format,
+                fixed_hp_tmpl,
+                path,
+                xlabel,
+                ylabel,
+                xscale,
+                yscale,
+                style,
+                select
             )
 
 
@@ -726,17 +801,29 @@ def plot_lines_from_diff_hp_searches(
         model,
 ):
     # print(line_retrieve_inf)
-    lines = retrieve_lines(line_retrieve_inf, x_select, model, AVERAGING_NUMBER)
+    lines = retrieve_lines(
+        line_retrieve_inf, x_select, model, AVERAGING_NUMBER)
     xlabel = get_parameter_name(plot_parameter_names, changing_hp)
     create_path(plot_dir)
     plot_description_file = os.path.join(plot_dir, 'description.txt')
     with open(plot_description_file, 'w') as f:
         f.write(nested2string(line_retrieve_inf))
     for res_type, plot_data in lines.items():
-        ylabel, yscale = get_y_specs(res_type, plot_parameter_names, metric_scales)
-        file_name_without_ext = add_index_to_filename_if_needed(os.path.join(plot_dir, res_type))
+        ylabel, yscale = get_y_specs(
+            res_type,
+            plot_parameter_names,
+            metric_scales)
+        file_name_without_ext = add_index_to_filename_if_needed(
+            os.path.join(plot_dir, res_type))
         plot_outer_legend(
-            plot_data, None, xlabel, ylabel, xscale, yscale, file_name_without_ext, style
+            plot_data,
+            None,
+            xlabel,
+            ylabel,
+            xscale,
+            yscale,
+            file_name_without_ext,
+            style
         )
 
 
@@ -747,4 +834,5 @@ def density_plot(data, bandwidth, label, color, range_=None):
 
     density = gaussian_kde(data)
     density.covariance_factor = lambda: bandwidth
-    return plt.plot(xs, density(np.reshape(xs, (1, -1))), label=label, color=color)
+    return plt.plot(
+        xs, density(np.reshape(xs, (1, -1))), label=label, color=color)
