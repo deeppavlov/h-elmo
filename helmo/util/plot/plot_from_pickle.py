@@ -53,7 +53,9 @@ parser.add_argument(
 parser.add_argument(
     "--marker",
     "-m",
-    help="Point marker as specified in https://matplotlib.org/api/markers_api.html#module-matplotlib.markers."
+    help="Point marker as specified in "
+         "https://matplotlib.org/api/markers_api.html#"
+         "module-matplotlib.markers."
          " Default is ','",
     default=',',
 )
@@ -86,7 +88,8 @@ parser.add_argument(
 parser.add_argument(
     "--only_color_as_marker_in_legend",
     "-O",
-    help="If provided markers in legend will be replaced by rectangular patches"
+    help="If provided markers in legend will be "
+         "replaced by rectangular patches"
          " of required color.",
     action="store_true",
 )
@@ -103,7 +106,8 @@ parser.add_argument(
     "-S",
     help="Two numbers or one number. If `xselect` is 2 numbers,"
          " only points with X values within the ends of specified "
-         "line segment are plotted. If `xselect` one number only points with X more"
+         "line segment are plotted. If `xselect` one number only "
+         "points with X more"
          " than `xselect` are plotted.",
     nargs='+',
     type=float,
@@ -120,7 +124,14 @@ parser.add_argument(
     "--exec_code",
     "-e",
     help="Code that needs to be executed for correct plot_data loading. "
-         "It is provided as python file name."
+         "It is provided as python file name. The script usually contains "
+         "definition of the function used as sorting key in "
+         "`plot_helpers.PlotData` instance saved in plot_data argument. "
+         "For correct loading of the `plot_helpers.PlotData` instance "
+         "the script with sorting key has to be executed. The name of the "
+         "script is generated automatically in plot_data_from_pickle.py "
+         "or plot_data_from_txt.py scripts and consists of plot_data name "
+         "without extension and _exec.py postfix."
 )
 parser.add_argument(
     "--dpi",

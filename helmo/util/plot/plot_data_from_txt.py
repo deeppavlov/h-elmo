@@ -63,7 +63,11 @@ parser.add_argument(
          "containing definition of function with name "
          "'sorting_key'. For instance \n"
          "-k 'def sorting_key(x):\n\treturn int(x[-1])'\n\n"
-         "ATTENTION. anonymous functions are not supported."
+         "ATTENTION. anonymous functions are not supported. "
+         "The sorting key code is stored in the file with name "
+         "of the form {args.output}_exec.py. For plotting with "
+         "script 'plot_from_pickle.py' you need to pass path to "
+         "sorting key script in parameter -e."
 )
 args = parser.parse_args()
 

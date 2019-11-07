@@ -736,6 +736,40 @@ for f in ff2_adam ff2_adam_sh ff2_sgd ff2_sgd_sh; do
 done
 
 
+# Average MNIST tensors nc-ff vary lr
+cd ~/nc-ff/results
+tensors=(hs0_corr hs0_rms hs1_corr hs1_rms hs2_corr hs2_rms hs2_corr hs2_rms \
+    hs3_corr hs3_rms hs4_corr hs4_rms hs5_corr hs5_rms)
+for f in ff6_adam ff6_sgd; do
+    if [[ "${f}" == "ff6_adam" ]]; then
+        lrs=(0.1 0.01 0.001 0.0001 0.00001 0.03 0.003 \
+            0.0003 0.00003 1e-6 1e-7 3e-6 3e-7)
+    elif [[ "${f}" == "ff6_sgd" ]]; then
+        lrs=(0.1 0.01 0.3 0.03 1)
+    else
+        echo "Error! not supported experiment '${f}'. \
+            Only experiments 'ff6_adam' and 'ff6_sgd' are supported." 1>&2
+    fi
+    for lr in "${lrs[@]}"; do
+        stats="${f}/lr${lr}/stats"
+        mkdir "${stats}"
+        for tensor in "${tensors[@]}"; do
+            d=${f}/lr${lr}/stats/${tensor}
+            mkdir "${d}"
+            python3 ${SCRIPTS}/average_pickle_values.py \
+                "${f}/lr${lr}/"{0..9}"/tensors/${tensor}.pickle" \
+                --mean ${d}/mean.pickle \
+                --stddev ${d}/stddev.pickle \
+                --stderr_of_mean ${d}/stdder_of_mean.pickle \
+                --preprocess "np.sqrt({array})"
+        done
+        python3 ${SCRIPTS}/average_txt.py \
+            "${f}/lr${lr}/"{0..9}"/results/valid/loss.txt" \
+            -o "${stats}/loss.txt"
+    done
+done
+
+
 # Draw nc-ff plots
 cd ~/nc-ff/results
 mkdir plots
@@ -765,6 +799,68 @@ python3 ${PLOT}/plot_from_pickle.py plots/adam-sgd/loss_plot_data.pickle \
     -s png -r 900 -g -w both
 
 
+# Draw nc-ff plots vary lr
+cd ~/nc-ff/results
+mkdir plots
+step_file=ff6_adam/lr0.1/0/results/valid/loss.txt
+tensors=(hs0_corr hs0_rms hs1_corr hs1_rms hs2_corr hs2_rms \
+    hs3_corr hs3_rms hs4_corr hs4_rms hs5_corr hs5_rms)
+ylabels=("mean square correlation" "mean square element")
+sorting_key="def sorting_key(x):
+    return float(x.split()[-1])
+"
+sorting_key_script="ff6_adam/plots/hs0_corr/data_exec.py"
+for f in ff6_adam ff6_sgd; do
+    if [[ "${f}" == "ff6_adam" ]]; then
+        lrs=(0.001 0.0001 0.00001 \
+            0.0003 0.00003 1e-6 1e-7 3e-6 3e-7)
+    elif [[ "${f}" == "ff6_sgd" ]]; then
+        lrs=(0.1 0.01 0.3 0.03 1)
+    else
+        echo "Error! not supported experiment '${f}'. \
+            Only experiments 'ff6_adam' and 'ff6_sgd' are supported." 1>&2
+    fi
+
+    labels=()
+    step_files=()
+    loss_files=()
+    for lr in "${lrs[@]}"; do
+        stats="${f}/lr${lr}/stats"
+        labels+=("learning rate ${lr}")
+        step_files+=("${step_file}")
+        loss_files+=("${stats}/loss.txt")
+    done
+    for i in {0..11}; do
+        let j=i%2
+        mean_files=()
+        stddev_files=()
+        for lr in "${lrs[@]}"; do
+            stats="${f}/lr${lr}/stats"
+            mean_files+=("${stats}/${tensors[i]}/mean.pickle")
+            stddev_files+=("${stats}/${tensors[i]}/stddev.pickle")
+        done
+
+        python3 ${PLOT}/plot_data_from_pickle.py -l "${labels[@]}" \
+            -s "${step_files[@]}" -m "${mean_files[@]}" \
+            -d "${stddev_files[@]}" -n \
+            -o "${f}/plots/${tensors[i]}/data.pickle" -k="${sorting_key}"
+        python3 ${PLOT}/plot_from_pickle.py \
+            "${f}/plots/${tensors[i]}/data.pickle" \
+            -x step -y "${ylabels[j]}" -X symlog \
+            -o "${f}/plots/${tensors[i]}/plot" \
+            -t fill -d best -O -s png -r 900 -g -w both \
+            -e "${sorting_key_script}"
+    done
+    python3 ${PLOT}/plot_data_from_txt.py "${loss_files[@]}" \
+        -l "${labels[@]}" -x 0 -y 1 -e 2 \
+        -o "${f}/plots/loss/data.pickle" -n -k="${sorting_key}"
+    python3 ${PLOT}/plot_from_pickle.py \
+        "${f}/plots/loss/data.pickle" -x step -y loss -X symlog -o \
+        "${f}/plots/loss/plot" -t fill -d best -O -s png -r 900 -g -w both \
+        -e "${sorting_key_script}"
+done
+
+
 # Draw long dropout plots
 cd ~/h-elmo/expres/correlation/batch/long_dropout
 mkdir plots
@@ -786,3 +882,45 @@ python3 ${PLOT}/plot_from_pickle.py plots/corr_data.pickle \
 python3 ${PLOT}/plot_from_pickle.py plots/loss_data.pickle \
     -x step -y loss -X symlog -o plots/loss_plot -t noerr -d best -O \
     -s png -r 900 -g -w both
+
+
+# Fix histograms for entropy and mutual information
+cd /media/anton/DATA/results/h-elmo/expres/entropy/first_experiment/hist
+path=tensors/valid/accumulator_postprocessing
+for i in {4..9}; do
+  for h in "${i}/${path}/"*; do
+    python3 "${SCRIPTS}/fix_no_hist_reset.py" \
+      "${h}" "${h%.*}_fixed.pickle"
+    rm "${h}"
+    mv "${h%.*}_fixed.pickle" "${h}"
+  done
+done
+
+
+# Compute entropy and mutual information
+cd /media/anton/DATA/results/h-elmo/expres/entropy/first_experiment/hist
+path=tensors/valid/accumulator_postprocessing
+for i in {4..9}; do
+  launch_path="${i}/${path}"
+  for h in "${launch_path}/"hist_*; do
+    h_name=$(basename -- "${h}")      # histogram file name
+    hs_name="${h_name#hist}"          # hidden state name
+    cr_h_name="cross_hist${hs_name}"  # cross histogram file name
+
+    e_name="entropy${hs_name}"
+    mean_e_name="mean_${e_name}"
+    e_path="${launch_path}/${e_name}"
+    mean_e_path="${launch_path}/${mean_e_name}"
+
+    mi_name="mi${hs_name}"
+    mean_mi_name="mean_${mi_name}"
+    mi_path="${launch_path}/${mi_name}"
+    mean_mi_path="${launch_path}/${mean_mi_name}"
+
+    python3 "${SCRIPTS}/hist2entropy.py" "${h}" "${e_path}"
+    python3 "${SCRIPTS}/hist2mi.py" "${h}" "${launch_path}/${cr_h_name}" \
+      "${mi_path}"
+    python3 "${SCRIPTS}/array_mean.py" "${e_path}" "${mean_e_path}"
+    python3 "${SCRIPTS}/array_mean.py" "${mi_path}" "${mean_mi_path}"
+  done
+done

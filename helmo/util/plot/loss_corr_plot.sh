@@ -36,12 +36,15 @@ function main () {
     y_sources+=("${exp_dir}/mean/corr/mean.pickle")
     yerr_sources+=("${exp_dir}/mean/corr/stddev.pickle")
   done
-  python3 ${PLOT}/merge_data_from_diff_sources.py --xsrc "${x_sources[@]}" --ysrc "${y_sources[@]}" \
-    --yerrsrc "${yerr_sources[@]}" --colx 1 --xerrcol 2 --labels "${labels[@]}" \
-    -o $3/loss-corr_data.pickle --no_sort "${sorting_str}"
-  python3 ${PLOT}/plot_from_pickle.py $3/loss-corr_data.pickle -x loss -y "mean square correlation" \
+  python3 ${PLOT}/merge_data_from_diff_sources.py --xsrc "${x_sources[@]}" \
+    --ysrc "${y_sources[@]}" --yerrsrc "${yerr_sources[@]}" --colx 1 \
+    --xerrcol 2 --labels "${labels[@]}" -o $3/loss-corr_data.pickle \
+    --no_sort "${sorting_str}"
+  python3 ${PLOT}/plot_from_pickle.py $3/loss-corr_data.pickle -x loss \
+    -y "mean square correlation" \
     -X linear -o $3/loss_corr_plot -t bar -d best -O -s png -r 900 -g -w both \
-    --no_line ${exec_scr_str} ${additional_artists_str:+"${additional_artists_str[@]}"} \
+    --no_line ${exec_scr_str} \
+    ${additional_artists_str:+"${additional_artists_str[@]}"} \
     ${xselect_params:+"${xselect_params[@]}"} ${lw_params:+"${lw_params[@]}"}
 }
 

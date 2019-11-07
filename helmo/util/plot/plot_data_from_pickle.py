@@ -73,7 +73,11 @@ parser.add_argument(
          "containing definition of function with name "
          "'sorting_key'. For instance \n"
          "-k 'def sorting_key(x):\n\treturn int(x[-1])'\n\n"
-         "ATTENTION. anonymous functions are not supported."
+         "ATTENTION. anonymous functions are not supported. "
+         "The sorting key code is stored in the file with name "
+         "of the form {args.output}_exec.py. For plotting with "
+         "script 'plot_from_pickle.py' you need to pass path to "
+         "sorting key script in parameter -e."
 )
 parser.add_argument(
     '--preprocess',
@@ -167,7 +171,11 @@ for lbl, stp, mn, std in zip(args.labels, steps, means, stddevs):
     mn = list(map(f, mn))
     std = list(map(std_f, zip(std, mn)))
     # print(std)
-    plot_data[lbl] = {'x': stp[args.start_idx:], 'y': mn[args.start_idx:], 'y_err': std[args.start_idx:]}
+    plot_data[lbl] = {
+        'x': stp[args.start_idx:],
+        'y': mn[args.start_idx:],
+        'y_err': std[args.start_idx:]
+    }
 
 with open(args.output, 'wb') as f:
     pickle.dump(plot_data, f)

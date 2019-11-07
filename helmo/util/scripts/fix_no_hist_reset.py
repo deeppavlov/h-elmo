@@ -11,7 +11,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "output",
-    help="Path to file with output. Has to have '.pickle'"
+    help="Path to file with output. Has to have `.pickle`"
          " extension."
 )
 args = parser.parse_args()

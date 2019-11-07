@@ -20,11 +20,13 @@ parser.add_argument(
 parser.add_argument(
     '--bin_axis',
     help="The axis of bin counts for histogram.",
+    type=int,
     default=0,
 )
 parser.add_argument(
     "--cross_bin_axis",
     help="The axis of bin counts for cross histograms.",
+    type=int,
     default=0,
 )
 parser.add_argument(

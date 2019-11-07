@@ -14,6 +14,7 @@ parser.add_argument(
 parser.add_argument(
     '--bin_axis',
     help="The axis of bin counts.",
+    type=int,
     default=0,
 )
 parser.add_argument(
