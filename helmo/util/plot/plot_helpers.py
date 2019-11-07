@@ -62,7 +62,8 @@ class Line(UserDict):
                     if len(self['x']) != len(self['y']):
                         raise ValueError(
                             "numbers of x and y values are not equal"
-                            "\nkey: {}\nlen(self['x']): {}\nlen(self['y']): {}".format(
+                            "\nkey: {}\nlen(self['x']): {}\nlen(self['y']): "
+                            "{}".format(
                                 key, len(self['x']), len(self['y']))
                         )
 
@@ -89,7 +90,8 @@ class Line(UserDict):
         # print("(Line.expand_errors)self[error_key]:", self[error_key])
         err_msg = (
             "wrong '{}' error format. Error has to be either "
-            "list of numbers or iterable of 2 iterables of equal length.".format(error_key)
+            "list of numbers or iterable of 2 iterables of "
+            "equal length.".format(error_key)
         )
         if not python.is_iterable(self[error_key]):
             self[error_key] = [self[error_key]] * len(self[value_key])
@@ -100,16 +102,21 @@ class Line(UserDict):
             if len(self[error_key]) == 2:
                 if len(errors[0]) != len(errors[1]):
                     raise ValueError(
-                        err_msg + "Lengths of iterables are not equal.\nlen(a) == {}\nlen(b) == {}".format(
-                            len(errors[0]), len(errors[1])
-                        )
+                        err_msg + "Lengths of iterables are not equal."
+                                  "\nlen(a) == {}\nlen(b) == {}".format(
+                                      len(errors[0]), len(errors[1])
+                                  )
                     )
                 self[error_key] = [list(errors[0]), list(errors[1])]
             else:
-                raise ValueError(err_msg + " More than 2 iterables are provided")
+                raise ValueError(
+                    err_msg + " More than 2 iterables are provided")
         else:
             if any([python.is_iterable(elem) for elem in self[error_key]]):
-                raise ValueError(err_msg + " Some elements of error are iterables and some are not.")
+                raise ValueError(
+                    err_msg \
+                    + " Some elements of error are iterables and some are not."
+                )
             self[error_key] = [list(self[error_key]), list(self[error_key])]
         
     def expand_values(self, value_key):
@@ -132,7 +139,10 @@ class Line(UserDict):
 
     def get_bounds(self):
         if 'x_err' in self:
-            raise NotImplementedError("bounds computation is not implemented when 'x_err' is not zero")
+            raise NotImplementedError(
+                "bounds computation is not implemented "
+                "when 'x_err' is not zero"
+            )
         else:
             if 'y_err' in self:
                 lower_err, upper_err = self['y_err']
@@ -140,7 +150,8 @@ class Line(UserDict):
                 upper = python.add_iterable(self['y'], upper_err)
                 return (self['x'].copy(), lower), (self['x'].copy(), upper)
             else:
-                return (self['x'].copy(), self['y'].copy()), (self['x'].copy(), self['y'].copy())
+                return (self['x'].copy(), self['y'].copy()), \
+                       (self['x'].copy(), self['y'].copy())
 
     def get_all_values(self, spec):
         if spec in self.value_keys:
@@ -171,7 +182,8 @@ class Line(UserDict):
                 ]
 
     def __repr__(self):
-        elements = ', '.join(['({}, {})'.format(repr(k), repr(v)) for k, v in self.items()])
+        elements = ', '.join(
+            ['({}, {})'.format(repr(k), repr(v)) for k, v in self.items()])
         return '{}([{}])'.format(self.__class__.__name__, elements)
 
     def __str__(self):
@@ -216,7 +228,6 @@ class PlotData(SortedDict):
         return list(self.values())
 
     def __setitem__(self, key, value):
-        # print("(PlotData.__setitem__)value:", value)
         if not isinstance(key, str):
             warnings.warn(
                 "only keys of type `str` are allowed."
@@ -492,9 +503,6 @@ def plot_outer_legend(
             x_err, y_err = line_data.get('x_err'), line_data.get('y_err')
         else:
             x_err, y_err = None, None
-        # print("(plot_helpers.plot_outer_legend)line_data['y_err']:", line_data['y_err'])
-        # print("(plot_helpers.plot_outer_legend)line_data['x'][:10]:", line_data['x'][:10])
-        # print("(plot_helpers.plot_outer_legend)line_data['y'][:10]:", line_data['y'][:10])
         lines.append(
             plt.errorbar(
                 line_data['x'],
@@ -530,7 +538,8 @@ def plot_outer_legend(
     if additional_artists is not None:
         add_special_artists(additional_artists)
     if plot_data.labels_are_provided():
-        bbox_extra_artists = [add_legend(lines, legend_pos, only_color_as_marker_in_legend)]
+        bbox_extra_artists = [
+            add_legend(lines, legend_pos, only_color_as_marker_in_legend)]
     else:
         bbox_extra_artists = ()
     fig = plt.gcf()

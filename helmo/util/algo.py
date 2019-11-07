@@ -18,6 +18,8 @@ def bin_search_and_insert_pos_search(sorted_seq, value, sorting_key=lambda x: x)
             elif sorting_key(sorted_seq[mid]) > value:
                 hi = mid - 1
             else:
+                while mid > 0 and sorting_key(sorted_seq[mid-1]) == value:
+                    mid -= 1
                 return mid
         if sorting_key(sorted_seq[lo]) == value:
             return lo
@@ -96,7 +98,8 @@ class SortedDict(MutableMapping):
                     raise TypeError(msg)
                 self.__setitem__(_element[0], _element[1])
         elif len(args) > 1:
-            raise TypeError("SortedDict expected at most 1 positional arguments, got 2")
+            raise TypeError(
+                "SortedDict expected at most 1 positional arguments, got 2")
         for key, value in kwargs.items():
             self.__setitem__(key, value)
         self._sort()
@@ -112,22 +115,62 @@ class SortedDict(MutableMapping):
 
     def __getitem__(self, key):
         try:
-            idx = bin_search_and_insert_pos_search(self._elements, self._sorting_key(key), self._items_sorting_key)
+            v = self._sorting_key(key)
+            idx = bin_search_and_insert_pos_search(
+                self._elements, v, self._items_sorting_key)
+            while idx < len(self._elements) - 1 \
+                    and v == self._sorting_key(self._elements[idx+1][0]) \
+                    and self._elements[idx][0] != key:
+                idx += 1
+            if self._elements[idx][0] != key:
+                raise NotFoundError(
+                    "An item with key {} is not in dictionary.".format(
+                        repr(key)
+                    ),
+                    idx + 1
+                )
         except NotFoundError:
             raise KeyError("key {} is not in dictionary".format(key))
         return self._elements[idx][1]
 
     def __setitem__(self, key, value):
         try:
-            idx = bin_search_and_insert_pos_search(self._elements, self._sorting_key(key), self._items_sorting_key)
-            self._elements[idx] = [key, value]
+            v = self._sorting_key(key)
+            idx = bin_search_and_insert_pos_search(
+                self._elements, v, self._items_sorting_key)
+            while idx < len(self._elements) - 1 \
+                    and v == self._sorting_key(self._elements[idx+1][0]) \
+                    and self._elements[idx][0] != key:
+                idx += 1
+            if self._elements[idx][0] == key:
+                self._elements[idx] = [key, value]
+            else:
+                raise NotFoundError(
+                    "An item with key {} is not in dictionary.".format(
+                        repr(key)
+                    ),
+                    idx + 1
+                )
         except NotFoundError as e:
             ins_pos = e.insert_position
             self._elements.insert(ins_pos, [key, value])
 
     def __delitem__(self, key):
         try:
-            idx = bin_search_and_insert_pos_search(self._elements, self._sorting_key(key), self._items_sorting_key)
+            v = self._sorting_key(key)
+            idx = bin_search_and_insert_pos_search(
+                self._elements, v, self._items_sorting_key)
+            while idx < len(self._elements) - 1 \
+                    and v == self._sorting_key(self._elements[idx+1][0]) \
+                    and self._elements[idx][0] != key:
+                idx += 1
+            if self._elements[idx][0] != key:
+                raise NotFoundError(
+                    "An item with key {} is not in dictionary.".format(
+                        repr(key)
+                    ),
+                    idx + 1
+                )
             del self._elements[idx]
         except NotFoundError:
             raise KeyError("key {} is not in dictionary".format(key))

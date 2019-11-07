@@ -61,17 +61,20 @@ function main () {
 #  do
 #    echo $lbl
 #  done
-  python3 ${PLOT}/plot_data_from_pickle.py -l "${labels[@]}" -s "${step_corr[@]}" \
-    -m "${mean_rms[@]}" -d "${err_rms[@]}" -n -o $3/rms_plot_data.pickle \
-    ${sorting_str:+"$sorting_str"}
-  python3 ${PLOT}/plot_from_pickle.py $3/rms_plot_data.pickle -x step -y "RMS of hidden state elements" \
-    -X symlog -o $3/rms_plot -t ${err_style} -d best -O -s png -r 900 -g -w both \
+  python3 ${PLOT}/plot_data_from_pickle.py -l "${labels[@]}" \
+    -s "${step_corr[@]}" -m "${mean_rms[@]}" -d "${err_rms[@]}" -n \
+    -o $3/rms_plot_data.pickle ${sorting_str:+"$sorting_str"}
+  python3 ${PLOT}/plot_from_pickle.py $3/rms_plot_data.pickle -x step \
+    -y "RMS of hidden state elements" -X symlog -o $3/rms_plot \
+    -t ${err_style} -d best -O -s png -r 900 -g -w both \
     ${rms_exec_scr_str:+$rms_exec_scr_str} ${lw_params:+"${lw_params[@]}"}
-  python3 ${PLOT}/plot_data_from_txt.py "${loss_files[@]}" -l "${labels[@]}" -x 0 -y 1 -e 2 \
-    -o $3/loss_plot_data.pickle ${sorting_str:+"$sorting_str"} -n
-  python3 ${PLOT}/plot_from_pickle.py $3/loss_plot_data.pickle -x step -y loss \
-    -X symlog -o $3/loss_plot -t ${err_style} -d best -O -s png -r 900 -g -w both \
-    ${loss_exec_scr_str:+$loss_exec_scr_str} ${lw_params:+"${lw_params[@]}"}
+  python3 ${PLOT}/plot_data_from_txt.py "${loss_files[@]}" -l "${labels[@]}" \
+    -x 0 -y 1 -e 2 -o $3/loss_plot_data.pickle ${sorting_str:+"$sorting_str"} \
+    -n
+  python3 ${PLOT}/plot_from_pickle.py $3/loss_plot_data.pickle -x step \
+    -y loss -X symlog -o $3/loss_plot -t ${err_style} -d best -O -s png \
+    -r 900 -g -w both ${loss_exec_scr_str:+$loss_exec_scr_str} \
+    ${lw_params:+"${lw_params[@]}"}
 }
 
 

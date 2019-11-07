@@ -652,7 +652,7 @@ cd ~/h-elmo/expres/hidden_state_rms
 sorting_key2="def sorting_key(x):
     words = x.split()
     nn = eval(' '.join(words[:-1]))
-    score = 0 if words[-1] == 'ADAM' else 1000
+    score = 0 if words[-1] == 'adam' else 1000
     if len(nn) > 1:
         score += 100
     score += nn[0] // 10
@@ -672,7 +672,7 @@ cd ~/h-elmo/expres/hidden_state_rms
 sorting_key2="def sorting_key(x):
     words = x.split()
     nn = eval(' '.join(words[:-1]))
-    score = 0 if words[-1] == 'ADAM' else 1000
+    score = 0 if words[-1] == 'adam' else 1000
     if len(nn) > 1:
         score += 100
     score += nn[0] // 10
