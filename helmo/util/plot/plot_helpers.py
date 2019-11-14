@@ -467,6 +467,7 @@ def plot_outer_legend(
         show=False,
         axes_to_invert=(),
         select=None,
+        bottom=None,
         dpi=300,
         size_factor=1,
         grid=False,
@@ -543,6 +544,8 @@ def plot_outer_legend(
         plt.gca().invert_xaxis()
     if 'y' in axes_to_invert:
         plt.gca().invert_yaxis()
+    if bottom is not None:
+        plt.gca().set_ylim(bottom=bottom)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     if select is not None:
@@ -555,7 +558,8 @@ def plot_outer_legend(
         scale_kwargs['linthreshx'] = linthreshx
     plt.xscale(xscale, **scale_kwargs)
     plt.yscale(yscale)
-
+    if which_grid in ['minor', 'both']:
+        plt.minorticks_on()
     plt.grid(b=grid, which=which_grid)
     if additional_artists is not None:
         add_special_artists(additional_artists)

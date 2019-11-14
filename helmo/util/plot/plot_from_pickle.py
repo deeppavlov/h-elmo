@@ -79,6 +79,12 @@ parser.add_argument(
     default=0,
 )
 parser.add_argument(
+    "--bottom",
+    help="If provided sets lower limit on Y axis.",
+    type=float,
+    default=None,
+)
+parser.add_argument(
     "--lgd",
     "-d",
     help="Specifies legend position. Possible options are (1)outside,"
@@ -117,26 +123,27 @@ parser.add_argument(
     "-s",
     nargs='+',
     help="List of formats in which plot will be saved. Possible options are"
-         " (1)png, (2)pdf. At list one format has to specified.",
+         " (1)png, (2)pdf. At list one format has to specified. Default is "
+         "`['png', 'pdf']`.",
     default=['pdf', 'png'],
 )
 parser.add_argument(
     "--exec_code",
     "-e",
-    help="Code that needs to be executed for correct plot_data loading. "
-         "It is provided as python file name. The script usually contains "
-         "definition of the function used as sorting key in "
+    help="The code that has to be executed for correct plot_data loading. "
+         "It is provided as a path to Python file. The script usually "
+         "contains the definition of the function used as the sorting key in "
          "`plot_helpers.PlotData` instance saved in plot_data argument. "
          "For correct loading of the `plot_helpers.PlotData` instance "
-         "the script with sorting key has to be executed. The name of the "
-         "script is generated automatically in plot_data_from_pickle.py "
+         "the script with the sorting key has to be executed. The name of the "
+         "script is generated automatically by plot_data_from_pickle.py "
          "or plot_data_from_txt.py scripts and consists of plot_data name "
          "without extension and _exec.py postfix."
 )
 parser.add_argument(
     "--dpi",
     "-r",
-    help="Saved image resolution.",
+    help="Saved image resolution. Default is 300.",
     type=int,
     default=300,
 )
@@ -232,6 +239,7 @@ plot_helpers.plot_outer_legend(
     save=not args.only_show,
     show=args.only_show,
     select=args.xselect,
+    bottom=args.bottom,
     dpi=args.dpi,
     size_factor=args.size_factor,
     grid=args.grid,

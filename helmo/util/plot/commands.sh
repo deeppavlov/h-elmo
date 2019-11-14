@@ -186,10 +186,45 @@ additional_artists_str=( "-a"\
   "shuffled/noise_best_loss_axvspan.pickle" )
 sorting_key="${sorting_key2}" \
   source ${PLOT}/loss_corr_plot.sh \
-  "[100] enwiki1G@[100, 100] enwiki1G@[500, 500] enwiki1G@[100] text8@[100, 100] text8@[500, 500] text8" \
-  sgd/100@sgd/100_100@sgd/500_500@text8/sgd/100@text8/sgd/100_100@text8/sgd/500_500 enwiki1G-text8/plots/sgd
+  "[100] enwiki1G@[100, 100] enwiki1G@[500, 500] enwiki1G@[100] \
+      text8@[100, 100] text8@[500, 500] text8" \
+  sgd/100@sgd/100_100@sgd/500_500@text8/sgd/100@text8/sgd/100_100@\
+      text8/sgd/500_500 enwiki1G-text8/plots/sgd
 unset sorting_key
 unset additional_artists_str
+
+
+# for sgd vary dropout loss - corr plots
+cd ~/h-elmo/expres/correlation/batch/vary_dropout
+lw_params=( "--linewidth" "1.0" )
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    return -float(words[-1])
+"
+additional_artists_str=( "-a" \
+  "${EXPRES}/correlation/nocorrloss/shuffled/enwiki1G/\
+      noise_best_loss_axvspan.pickle" )
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "dropout 0.7@dropout 0.6@dropout 0.5@dropout 0.4@\
+      dropout 0.3@dropout 0.2@dropout 0" \
+  0.7@0.6@0.5@0.4@0.3@0.2@0 plots
+unset sorting_key
+unset additional_artists_str
+unset lw_params
+
+
+# for sgd vary dropout loss AND corr plots
+cd ~/h-elmo/expres/correlation/batch/vary_dropout
+sorting_key="def sorting_key(x):
+    words = x.split()
+    return -float(words[-1])
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "dropout 0.7@dropout 0.6@dropout 0.5@dropout 0.4@\
+      dropout 0.3@dropout 0.2@dropout 0" \
+  0.7@0.6@0.5@0.4@0.3@0.2@0 plots
+unset sorting_key
 
 
 # for sgd vary learning rate loss - corr plots
@@ -200,10 +235,12 @@ sorting_key2="def sorting_key(x):
     return -float(words[-1])
 "
 additional_artists_str=( "-a" \
-  "${EXPRES}/correlation/nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+  "${EXPRES}/correlation/nocorrloss/shuffled/text8/\
+      noise_best_loss_axvspan.pickle" )
 sorting_key="${sorting_key2}" \
   source ${PLOT}/loss_corr_plot.sh \
-  "learning rate 3@learning rate 1@learning rate 0.3@learning rate 0.1@learning rate 0.03@learning rate 0.01" \
+  "learning rate 3@learning rate 1@learning rate 0.3@learning rate 0.1@\
+      learning rate 0.03@learning rate 0.01" \
   3@1@0.3@0.1@0.03@0.01 plots
 unset sorting_key
 unset additional_artists_str
@@ -217,7 +254,8 @@ sorting_key="def sorting_key(x):
     return -float(words[-1])
 "
 source ${PLOT}/correlation_and_loss_plots.sh \
-  "learning rate 3@learning rate 1@learning rate 0.3@learning rate 0.1@learning rate 0.03@learning rate 0.01" \
+  "learning rate 3@learning rate 1@learning rate 0.3@learning rate 0.1@\
+      learning rate 0.03@learning rate 0.01" \
   3@1@0.3@0.1@0.03@0.01 plots
 unset sorting_key
 
@@ -230,10 +268,13 @@ sorting_key2="def sorting_key(x):
     return -float(words[-1])
 "
 additional_artists_str=( "-a" \
-  "${EXPRES}/correlation/nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+  "${EXPRES}/correlation/nocorrloss/shuffled/text8/\
+      noise_best_loss_axvspan.pickle" )
 sorting_key="${sorting_key2}" \
   source ${PLOT}/loss_corr_plot.sh \
-  "learning rate 0.01@learning rate 0.005@learning rate 0.002@learning rate 0.001@learning rate 0.0003@learning rate 0.0001@learning rate 0.00003@learning rate 0.00001" \
+  "learning rate 0.01@learning rate 0.005@learning rate 0.002@\
+      learning rate 0.001@learning rate 0.0003@learning rate 0.0001@\
+      learning rate 0.00003@learning rate 0.00001" \
   0.01@0.005@0.002@0.001@0.0003@0.0001@0.00003@0.00001 plots
 unset sorting_key
 unset additional_artists_str
@@ -247,7 +288,9 @@ sorting_key="def sorting_key(x):
     return -float(words[-1])
 "
 source ${PLOT}/correlation_and_loss_plots.sh \
-  "learning rate 0.01@learning rate 0.005@learning rate 0.002@learning rate 0.001@learning rate 0.0003@learning rate 0.0001@learning rate 0.00003@learning rate 0.00001" \
+  "learning rate 0.01@learning rate 0.005@learning rate 0.002@\
+      learning rate 0.001@learning rate 0.0003@learning rate 0.0001@\
+      learning rate 0.00003@learning rate 0.00001" \
   0.01@0.005@0.002@0.001@0.0003@0.0001@0.00003@0.00001 plots
 unset sorting_key
 
@@ -260,10 +303,12 @@ sorting_key2="def sorting_key(x):
     return -float(words[-1])
 "
 additional_artists_str=( "-a" \
-  "${EXPRES}/correlation/nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+  "${EXPRES}/correlation/nocorrloss/shuffled/text8/\
+      noise_best_loss_axvspan.pickle" )
 sorting_key="${sorting_key2}" \
   source ${PLOT}/loss_corr_plot.sh \
-  "batch size 1024@batch size 512@batch size 256@batch size 128@batch size 64@batch size 32@batch size 20@batch size 10" \
+  "batch size 1024@batch size 512@batch size 256@batch size 128@batch size 64@\
+      batch size 32@batch size 20@batch size 10" \
   1024@512@256@128@64@32@20@10 plots
 unset sorting_key
 unset additional_artists_str
@@ -277,7 +322,8 @@ sorting_key="def sorting_key(x):
     return -float(words[-1])
 "
 source ${PLOT}/correlation_and_loss_plots.sh \
-  "batch size 1024@batch size 512@batch size 256@batch size 128@batch size 64@batch size 32@batch size 20@batch size 10" \
+  "batch size 1024@batch size 512@batch size 256@batch size 128@batch size 64@\
+      batch size 32@batch size 20@batch size 10" \
   1024@512@256@128@64@32@20@10 plots
 unset sorting_key
 
@@ -290,10 +336,13 @@ sorting_key2="def sorting_key(x):
     return -float(words[-1])
 "
 additional_artists_str=( "-a" \
-  "${EXPRES}/correlation/nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+  "${EXPRES}/correlation/nocorrloss/shuffled/text8/\
+      noise_best_loss_axvspan.pickle" )
 sorting_key="${sorting_key2}" \
   source ${PLOT}/loss_corr_plot.sh \
-  "sequence length 1000@sequence length 400@sequence length 200@sequence length 100@sequence length 50@sequence length 20@sequence length 10@sequence length 5" \
+  "sequence length 1000@sequence length 400@sequence length 200@\
+      sequence length 100@sequence length 50@sequence length 20@\
+      sequence length 10@sequence length 5" \
   1000@400@200@100@50@20@10@5 plots
 unset sorting_key
 unset additional_artists_str
@@ -307,7 +356,9 @@ sorting_key="def sorting_key(x):
     return -float(words[-1])
 "
 source ${PLOT}/correlation_and_loss_plots.sh \
-  "sequence length 1000@sequence length 400@sequence length 200@sequence length 100@sequence length 50@sequence length 20@sequence length 10@sequence length 5" \
+  "sequence length 1000@sequence length 400@sequence length 200@\
+      sequence length 100@sequence length 50@sequence length 20@\
+      sequence length 10@sequence length 5" \
   1000@400@200@100@50@20@10@5 plots
 unset sorting_key
 
@@ -385,7 +436,8 @@ function gen_exp_dirs () {
     echo "vary_unr/text8/sgd/100/${unr}"
   done
 }
-source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh correlation/batch < <(gen_exp_dirs)
+source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh correlation/batch \
+    < <(gen_exp_dirs)
 unset gen_exp_dirs
 
 # process experiment results
@@ -723,6 +775,8 @@ cd ~/nc-ff/results
 for f in ff2_adam ff2_adam_sh ff2_sgd ff2_sgd_sh; do
   mkdir ${f}/stats
   for tensor in hs0_corr hs0_rms hs1_corr hs1_rms; do
+
+  *
     d=${f}/stats/${tensor}
     mkdir d
     python3 ${SCRIPTS}/average_pickle_values.py \
@@ -924,3 +978,82 @@ for i in {4..9}; do
     python3 "${SCRIPTS}/array_mean.py" "${mi_path}" "${mean_mi_path}"
   done
 done
+
+
+# Average correlation for the second layer of LSTM
+cd ~/h-elmo/expres/correlation/batch/second_layer
+for dp in dp0 dp0.7; do
+  python3 "${SCRIPTS}/average_pickle_values.py" \
+      "${dp}"/{0..19}/tensors/valid/pickle_mean_tensors/correlation2.pickle \
+      --mean "${dp}"/mean/corr2/mean.pickle \
+      --stddev "${dp}"/mean/corr2/stddev.pickle \
+      --stderr_of_mean "${dp}"/mean/corr2/stderr_of_mean.pickle \
+      --preprocess "np.sqrt({array})"
+  python3 "${SCRIPTS}/average_pickle_values.py" \
+      "${dp}"/{0..19}/tensors/valid/pickle_mean_tensors/correlation12.pickle \
+      --mean "${dp}"/mean/corr12/mean.pickle \
+      --stddev "${dp}"/mean/corr12/stddev.pickle \
+      --stderr_of_mean "${dp}"/mean/corr12/stderr_of_mean.pickle \
+      --preprocess "np.sqrt({array})"
+  python3 "${SCRIPTS}/average_txt.py" "${dp}"/{0..19}/results/loss_valid.txt \
+      --output "${dp}/mean/loss.txt"
+done
+
+
+# Compare correlation on the first and the second layers
+cd ~/h-elmo/expres/correlation/batch/second_layer/dp0
+python3 "${PLOT}/plot_data_from_pickle.py" -l "layer 1" "layer 2" \
+  -s ../../vary_dropout/0/0/results/loss_valid.txt 0/results/loss_valid.txt \
+  -m ../../vary_dropout/0/mean/corr/mean.pickle mean/corr2/mean.pickle \
+  -d ../../vary_dropout/0/mean/corr/stddev.pickle mean/corr2/stddev.pickle \
+  -o plots/comp_1st_2nd.pickle
+python3 "${PLOT}/plot_from_pickle.py" plots/comp_1st_2nd.pickle \
+  -y "mean square correlation" -X symlog -t fill -d best -g -w both \
+  -s png -o plots/comp_1st_2nd
+
+
+# Entropy and mutual information
+cd ~/h-elmo/expres/entropy/first_experiment/hist
+declare -a ent_files_1
+declare -a mi_files_1
+declare -a ent_files_2
+declare -a mi_files_2
+for i in {0..7}; do
+  path="${i}/tensors/valid/accumulator_postprocessing"
+  ent_files_1+=("${path}/mean_entropy_level0_0_hidden_state.pickle")
+  mi_files_1+=("${path}/mean_mi_level0_0_hidden_state.pickle")
+  ent_files_2+=("${path}/mean_entropy_level0_1_hidden_state.pickle")
+  mi_files_2+=("${path}/mean_mi_level0_1_hidden_state.pickle")
+done
+python3 "${SCRIPTS}/average_pickle_values.py" \
+    "${ent_files_1[@]}" --mean mean/entropy1/mean.pickle \
+    --stddev mean/entropy1/stddev.pickle \
+    --stderr_of_mean mean/entropy1/stderr_of_mean.pickle
+python3 "${SCRIPTS}/average_pickle_values.py" \
+    "${mi_files_1[@]}" --mean mean/mi1/mean.pickle \
+    --stddev mean/mi1/stddev.pickle \
+    --stderr_of_mean mean/mi1/stderr_of_mean.pickle
+python3 "${SCRIPTS}/average_pickle_values.py" \
+    "${ent_files_2[@]}" --mean mean/entropy2/mean.pickle \
+    --stddev mean/entropy2/stddev.pickle \
+    --stderr_of_mean mean/entropy2/stderr_of_mean.pickle
+python3 "${SCRIPTS}/average_pickle_values.py" \
+    "${mi_files_2[@]}" --mean mean/mi2/mean.pickle \
+    --stddev mean/mi2/stddev.pickle \
+    --stderr_of_mean mean/mi2/stderr_of_mean.pickle
+python3 "${PLOT}/plot_data_from_pickle.py" -l "layer 1" "layer 2" \
+    -s 0/results/loss_valid.txt 0/results/loss_valid.txt \
+    -m mean/entropy1/mean.pickle mean/entropy2/mean.pickle \
+    -d mean/entropy1/stddev.pickle mean/entropy2/stddev.pickle \
+    -o plots/entropy.pickle
+python3 "${PLOT}/plot_data_from_pickle.py" -l "layer 1" "layer 2" \
+    -s 0/results/loss_valid.txt 0/results/loss_valid.txt \
+    -m mean/mi1/mean.pickle mean/mi2/mean.pickle \
+    -d mean/mi1/stddev.pickle mean/mi2/stddev.pickle \
+    -o plots/mi.pickle
+python3 "${PLOT}/plot_from_pickle.py" plots/entropy.pickle \
+    -y "entropy, bits" -X symlog -t fill -d best -g -w both -s png \
+    -o plots/entropy
+python3 "${PLOT}/plot_from_pickle.py" plots/mi.pickle \
+    -y "mutual information, bits" -X symlog -t fill -d best -g -w both \
+    -s png -o plots/mi --bottom 0
