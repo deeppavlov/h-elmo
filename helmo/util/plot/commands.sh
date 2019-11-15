@@ -699,7 +699,26 @@ unset sorting_key
 unset additional_artists_str
 
 
-# for plotting loss and RMS of hidden state elements 100, 100_100, 500_500 enwiki1G BATCH ADAM - SGD
+# for plotting loss and correlation 100, 100_100, 500_500
+# enwiki1G BATCH ADAM - SGD
+cd ~/h-elmo/expres/correlation/batch/text8
+sorting_key="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam/100@adam/100_100@adam/500_500@sgd/100@sgd/100_100@sgd/500_500 plots
+unset sorting_key
+
+
+# for plotting loss and RMS of hidden state elements 100, 100_100, 500_500
+# enwiki1G BATCH ADAM - SGD
 cd ~/h-elmo/expres/hidden_state_rms
 sorting_key2="def sorting_key(x):
     words = x.split()
@@ -719,7 +738,8 @@ unset sorting_key
 unset additional_artists_str
 
 
-# for plotting loss and RMS of hidden state elements 100, 100_100, 500_500 text8 BATCH ADAM - SGD
+# for plotting loss and RMS of hidden state elements 100, 100_100, 500_500
+# text8 BATCH ADAM - SGD
 cd ~/h-elmo/expres/hidden_state_rms
 sorting_key2="def sorting_key(x):
     words = x.split()
