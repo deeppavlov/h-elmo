@@ -88,7 +88,8 @@ parser.add_argument(
     "--lgd",
     "-d",
     help="Specifies legend position. Possible options are (1)outside,"
-         " (2)upper_right, (3)upper_left, (4)best. Default is 'outside'.",
+         " (2)upper_right, (3)upper_left, (4)best, (5)None. "
+         "Default is 'outside'.",
     default="outside",
 )
 parser.add_argument(

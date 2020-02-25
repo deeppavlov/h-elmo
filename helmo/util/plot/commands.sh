@@ -1077,3 +1077,45 @@ python3 "${PLOT}/plot_from_pickle.py" plots/entropy.pickle \
 python3 "${PLOT}/plot_from_pickle.py" plots/mi.pickle \
     -y "mutual information, bits" -X symlog -t fill -d best -g -w both \
     -s png -o plots/mi --bottom 0
+
+
+# Eigen values of kernels of feedforward neural networks
+cd ~/nc-ff/results/eigen/no_reg/truncated_normal/
+
+tensors=(kernel0 kernel1 kernel2)
+stats="stats"
+mkdir "${stats}"
+for tensor in "${tensors[@]}"; do
+    d="stats/${tensor}"
+    mkdir "${d}"
+    python3 ${SCRIPTS}/average_pickle_values.py \
+        {0..9}"/tensors/${tensor}.pickle" --mean ${d}/mean.pickle \
+        --stddev ${d}/stddev.pickle \
+        --stderr_of_mean ${d}/stdder_of_mean.pickle \
+        --preprocess "np.sqrt({array})"
+done
+python3 ${SCRIPTS}/average_txt.py {0..9}"/results/valid/loss.txt" \
+    -o "${stats}/loss.txt"
+
+cd ~/nc-ff/results/eigen/no_reg/truncated_normal/
+mkdir plots
+step_file=0/results/valid/loss.txt
+tensors=(kernel0 kernel1 kernel2)
+ylabel="fraction of real eigen values"
+for i in {0..2}; do
+    python3 ${PLOT}/plot_data_from_pickle.py -l first -s "${step_file}" \
+        -m "stats/${tensors[i]}/mean.pickle" \
+        -d "stats/${tensors[i]}/stddev.pickle" \
+        -o "plots/${tensors[i]}/step/data.pickle"
+    python3 ${PLOT}/plot_from_pickle.py \
+        "plots/${tensors[i]}/step/data.pickle" \
+        -x step -y "${ylabel}" -X symlog \
+        -o "plots/${tensors[i]}/step/plot" \
+        -t fill -d None -O -s png -r 900 -g -w both
+done
+
+python3 ${PLOT}/plot_data_from_txt.py stats/loss.txt -l first -x 0 -y 1 -e 2 \
+    -o plots/loss/data.pickle
+python3 ${PLOT}/plot_from_pickle.py plots/loss/data.pickle -x step -y loss \
+    -X symlog -o plots/loss/plot -t fill -d None -O -s png -r 900 -g \
+    -w both

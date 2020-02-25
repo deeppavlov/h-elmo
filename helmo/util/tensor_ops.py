@@ -187,14 +187,26 @@ def get_saved_state_vars(num_layers, rnn_type, name_scope='lstm_states'):
     with tf.name_scope(name_scope):
         if rnn_type == 'cudnn_lstm':
             state = (
-                tf.Variable(0., trainable=False, validate_shape=False, name='lstm_h'),
-                tf.Variable(0., trainable=False, validate_shape=False, name='lstm_c'),
+                tf.Variable(
+                    0., trainable=False, validate_shape=False, name='lstm_h'),
+                tf.Variable(
+                    0., trainable=False, validate_shape=False, name='lstm_c'),
             )
         elif rnn_type == 'cudnn_lstm_stacked':
             state = [
                 (
-                    tf.Variable(0., trainable=False, validate_shape=False, name='lstm_%s_h' % idx),
-                    tf.Variable(0., trainable=False, validate_shape=False, name='lstm_%s_c' % idx),
+                    tf.Variable(
+                        0.,
+                        trainable=False,
+                        validate_shape=False,
+                        name='lstm_%s_h' % idx
+                    ),
+                    tf.Variable(
+                        0.,
+                        trainable=False,
+                        validate_shape=False,
+                        name='lstm_%s_c' % idx
+                    ),
                 ) for idx in range(num_layers)
             ]
         elif rnn_type == 'cell':
@@ -208,12 +220,26 @@ def get_saved_state_vars(num_layers, rnn_type, name_scope='lstm_states'):
             #         for i in range(num_layers)
             #     ],
             # )
-            state = tf.Variable(0., trainable=False, validate_shape=False, name='cell_state')
+            state = tf.Variable(
+                0.,
+                trainable=False,
+                validate_shape=False,
+                name='cell_state'
+            )
         elif rnn_type == 'cudnn_gru':
-            state = (tf.Variable(0., trainable=False, validate_shape=False, name='gru_c'), )
+            state = (
+                tf.Variable(
+                    0., trainable=False, validate_shape=False, name='gru_c'), )
         elif rnn_type == 'cudnn_gru_stacked':
             state = [
-                (tf.Variable(0., trainable=False, validate_shape=False, name='gru_%s_c' % idx), )
+                (
+                    tf.Variable(
+                        0.,
+                        trainable=False,
+                        validate_shape=False,
+                        name='gru_%s_c' % idx
+                    ),
+                )
                 for idx in range(num_layers)
             ]
         else:
@@ -260,7 +286,8 @@ def squeezing_sparse_matrix(N, M):
     init_indices, init_weights = [], []
     for i in range(M):
         # print("(util.tensor.squeezing_sparse_matrix)N, M:", N, M)
-        indices, weights = indices_and_weights_for_squeezing_of_1_neuron(i, N, M)
+        indices, weights = indices_and_weights_for_squeezing_of_1_neuron(
+            i, N, M)
         init_indices.extend(zip(indices, [i] * len(indices)))
         init_weights += weights
     return init_indices, init_weights
@@ -300,16 +327,22 @@ def tile_to_match_target(inp_tensor, target_tensor):
         num_dims = tf.shape(tf.shape(inp_tensor))
         num_repeats = tf.shape(target_tensor) // tf.shape(inp_tensor)
         repeated = tf.tile(inp_tensor, num_repeats + 1)
-        return tf.slice(repeated, tf.zeros(num_dims, dtype=tf.int32), tf.shape(target_tensor))
+        return tf.slice(
+            repeated,
+            tf.zeros(num_dims, dtype=tf.int32),
+            tf.shape(target_tensor)
+        )
 
 
 def adjust_last_dim(inp_tensor, target_dim):
     with tf.name_scope('adjust_last_dim'):
         num_dims = tf.shape(tf.shape(inp_tensor))
-        target_shape = tf.concat([tf.shape(inp_tensor)[:-1], tf.reshape(target_dim, [1])], 0)
+        target_shape = tf.concat(
+            [tf.shape(inp_tensor)[:-1], tf.reshape(target_dim, [1])], 0)
         num_repeats = target_shape // tf.shape(inp_tensor)
         repeated = tf.tile(inp_tensor, num_repeats + 1)
-        return tf.slice(repeated, tf.zeros(num_dims, dtype=tf.int32), target_shape)
+        return tf.slice(
+            repeated, tf.zeros(num_dims, dtype=tf.int32), target_shape)
 
 
 def get_shapes(nested):
@@ -320,7 +353,8 @@ def get_shapes(nested):
     elif type(nested) == dict:
         res = {k: get_shapes(v) for k, v in nested.items()}
     elif type(nested) == collections.OrderedDict:
-        res = collections.OrderedDict([(k, get_shapes(v)) for k, v in nested.items()])
+        res = collections.OrderedDict(
+            [(k, get_shapes(v)) for k, v in nested.items()])
     elif python.is_namedtuple_instance(nested):
         tuple_type = type(nested)
         res = tuple_type(**{k: get_shapes(v) for k, v in nested._asdict()})
@@ -332,7 +366,9 @@ def get_shapes(nested):
 def sample_tensor_slices(tensor, n, axis):
     if isinstance(n, int):
         n = tf.constant(n, dtype=tf.int32)
-    indices = tf.slice(tf.random_shuffle(tf.range(0, n, dtype=tf.int32)), [0], tf.reshape(n, [1]))
+    indices = tf.slice(
+        tf.random_shuffle(
+            tf.range(0, n, dtype=tf.int32)), [0], tf.reshape(n, [1]))
     return tf.gather(tensor, indices, axis=axis)
 
 
@@ -349,12 +385,17 @@ def average_k(tensor, k, axis, random_sampling=False):
             for_averaging = tf.slice(
                 tensor, [0]*num_dims,
                 tf.concat(
-                    [tensor_shape[:axis], tf.reshape(num_sampled, [1]), tensor_shape[axis+1:]],
+                    [
+                        tensor_shape[:axis],
+                        tf.reshape(num_sampled, [1]),
+                        tensor_shape[axis+1:]
+                    ],
                     0
                 )
             )
         sh = tf.shape(for_averaging)
-        k = tf.constant([k]) if isinstance(k, int) else tf.reshape(k, shape=[1])
+        k = tf.constant([k]) if isinstance(k, int) \
+            else tf.reshape(k, shape=[1])
         new_shape = tf.concat(
             [
                 sh[:axis],
@@ -386,7 +427,9 @@ def self_outer_product(tensor, axis):
 
 
 def outer_product(tensor1, tensor2, axis):
-    """Only for tensors which have similar dims on all axes except for `axis`"""
+    """Only for tensors which have similar dims
+    on all axes except for `axis`
+    """
     with tf.name_scope('outer_product'):
         num_dims = len(tensor1.get_shape().as_list())
         eq = self_outer_product_eq(num_dims, axis)
@@ -627,6 +670,9 @@ def corcov_loss(
     :param epsilon: a small float for division by zero when computing correlation
     :return: tf.Tensor of shape []
     """
+    # print(tensor.get_shape())
+    # print(reduced_axes, cor_axis)
+    # print()
     with tf.name_scope('corcov_loss'):
         f = correlation if punish == 'correlation' else covariance
         tensor_nd = len(tensor.get_shape().as_list())
@@ -644,6 +690,7 @@ def corcov_loss(
         corcov = tf.transpose(corcov, perm=perm)
         norm_func = lambda x: x**2 if norm == 'sqr' else tf.abs(x)
         norm_m = norm_func(corcov)
+        # print(norm_m.get_shape())
         frob_norm = tf.reduce_sum(norm_m, axis=[-2, -1])
         trace = tf.linalg.trace(norm_m)
         s = tf.reduce_sum(frob_norm - trace, keepdims=False)

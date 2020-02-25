@@ -26,4 +26,11 @@ helmo/lstm_computation_effectiveness/results/
 test.txt
 *.pyc
 **/*.pyc
-
+dataset_info/
+dataset_tags/
+helmo/interact/damir_dialogs*.txt
+helmo/interact/preppost_dialogs*.txt
+helmo/interact/results_pp/
+helmo/interact/sudo
+helmo/util/plot/special_plot.py
+plots/

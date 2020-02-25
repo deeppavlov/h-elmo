@@ -563,7 +563,7 @@ def plot_outer_legend(
     plt.grid(b=grid, which=which_grid)
     if additional_artists is not None:
         add_special_artists(additional_artists)
-    if plot_data.labels_are_provided():
+    if plot_data.labels_are_provided() and legend_pos != 'None':
         bbox_extra_artists = [
             add_legend(lines, legend_pos, only_color_as_marker_in_legend)]
     else:
