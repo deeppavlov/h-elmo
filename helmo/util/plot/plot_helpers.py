@@ -63,7 +63,7 @@ class Line(UserDict):
                     # print(self['y'])
                     if len(self['x']) != len(self['y']):
                         if kwargs.get('truncate') is None \
-                                or kwargs.get('truncate'):
+                                or not kwargs.get('truncate'):
                             raise ValueError(
                                 "numbers of x and y values are not equal"
                                 "\nkey: {}\nlen(self['x']): "
