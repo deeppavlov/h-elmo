@@ -62,12 +62,25 @@ class Line(UserDict):
                     self.expand_values(key)
                     # print(self['y'])
                     if len(self['x']) != len(self['y']):
-                        raise ValueError(
-                            "numbers of x and y values are not equal"
-                            "\nkey: {}\nlen(self['x']): {}\nlen(self['y']): "
-                            "{}".format(
-                                key, len(self['x']), len(self['y']))
-                        )
+                        if kwargs.get('truncate') is None \
+                                or kwargs.get('truncate'):
+                            raise ValueError(
+                                "numbers of x and y values are not equal"
+                                "\nkey: {}\nlen(self['x']): "
+                                "{}\nlen(self['y']): {}".format(
+                                    key, len(self['x']), len(self['y']))
+                            )
+                        else:
+                            warnings.warn(
+                                "numbers of x and y values are not equal. "
+                                "The longest list will be truncated."
+                                "\nkey: {}\nlen(self['x']): "
+                                "{}\nlen(self['y']): {}".format(
+                                    key, len(self['x']), len(self['y']))
+                            )
+                            length = min(len(self['x']), len(self['y']))
+                            self['x'] = self['x'][:length]
+                            self['y'] = self['y'][:length]
 
                     if len(self['x']) == 0:
                         raise ValueError("no points were provided")
@@ -236,7 +249,7 @@ class PlotData(SortedDict):
                 " Element with key '{}' will be set.".format(str(key))
             )
             key = self._transform_key_to_str(key)
-        super().__setitem__(str(key), Line(value))
+        super().__setitem__(str(key), Line(value, truncate=True))
 
     def get_spec(self, spec, labels=None):
         if labels is None:
