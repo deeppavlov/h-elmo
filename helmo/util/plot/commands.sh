@@ -935,6 +935,103 @@ for f in ff6_adam ff6_sgd; do
 done
 
 
+# Average MNIST tensors nc-ff vary lr. Convolutional NN conv5_adam, conv5_sgd
+cd ~/nc-ff/results
+tensors=(hs0_corr hs0_rms hs1_corr hs1_rms hs3_corr hs3_rms \
+    hs4_corr hs4_rms hs6_corr hs6_rms hs9_corr hs9_rms hs10_corr hs10_rms)
+for f in conv5_adam conv5_sgd; do
+    if [[ "${f}" == "conv5_adam" ]]; then
+        lrs=(0.001 0.0001 0.00001 0.000001 \
+            0.0003 0.00003 0.000003)
+    elif [[ "${f}" == "conv5_sgd" ]]; then
+        lrs=(0.1 0.001 0.0001 0.03 0.003 0.0003 0.00003)
+    else
+        echo "Error! not supported experiment '${f}'. \
+            Only experiments 'conv5_adam' and 'conv5_sgd' are supported." 1>&2
+    fi
+    for lr in "${lrs[@]}"; do
+        stats="${f}/lr${lr}/stats"
+        mkdir "${stats}"
+        for tensor in "${tensors[@]}"; do
+            d=${f}/lr${lr}/stats/${tensor}
+            mkdir "${d}"
+            python3 ${SCRIPTS}/average_pickle_values.py \
+                "${f}/lr${lr}/"{0..9}"/tensors/${tensor}.pickle" \
+                --mean ${d}/mean.pickle \
+                --stddev ${d}/stddev.pickle \
+                --stderr_of_mean ${d}/stdder_of_mean.pickle \
+                --preprocess "np.sqrt({array})"
+        done
+        python3 ${SCRIPTS}/average_txt.py \
+            "${f}/lr${lr}/"{0..9}"/results/valid/loss.txt" \
+            -o "${stats}/loss.txt"
+    done
+done
+
+
+# Draw nc-ff plots vary lr. Convolutional neural networks conv5_adam and
+# conv5_sgd.
+cd ~/nc-ff/results
+mkdir plots
+step_file=conv5_adam/lr0.001/0/results/valid/loss.txt
+tensors=(hs0_corr hs0_rms hs1_corr hs1_rms hs3_corr hs3_rms \
+    hs4_corr hs4_rms hs6_corr hs6_rms hs9_corr hs9_rms hs10_corr hs10_rms)
+ylabels=("mean square correlation" "mean square element")
+sorting_key="def sorting_key(x):
+    return float(x.split()[-1])
+"
+sorting_key_script="conv5_adam/plots/hs0_corr/data_exec.py"
+for f in conv5_adam conv5_sgd; do
+    if [[ "${f}" == "conv5_adam" ]]; then
+        lrs=(0.001 0.0001 0.00001 0.000001 \
+            0.0003 0.00003 0.000003)
+    elif [[ "${f}" == "conv5_sgd" ]]; then
+        lrs=(0.1 0.001 0.0001 0.03 0.003 0.0003 0.00003)
+    else
+        echo "Error! not supported experiment '${f}'. \
+            Only experiments 'conv5_adam' and 'conv5_sgd' are supported." 1>&2
+    fi
+
+    labels=()
+    step_files=()
+    loss_files=()
+    for lr in "${lrs[@]}"; do
+        stats="${f}/lr${lr}/stats"
+        labels+=("learning rate ${lr}")
+        step_files+=("${step_file}")
+        loss_files+=("${stats}/loss.txt")
+    done
+    for i in {0..11}; do
+        let j=i%2
+        mean_files=()
+        stddev_files=()
+        for lr in "${lrs[@]}"; do
+            stats="${f}/lr${lr}/stats"
+            mean_files+=("${stats}/${tensors[i]}/mean.pickle")
+            stddev_files+=("${stats}/${tensors[i]}/stddev.pickle")
+        done
+
+        python3 ${PLOT}/plot_data_from_pickle.py -l "${labels[@]}" \
+            -s "${step_files[@]}" -m "${mean_files[@]}" \
+            -d "${stddev_files[@]}" -n \
+            -o "${f}/plots/${tensors[i]}/data.pickle" -k="${sorting_key}"
+        python3 ${PLOT}/plot_from_pickle.py \
+            "${f}/plots/${tensors[i]}/data.pickle" \
+            -x step -y "${ylabels[j]}" -X symlog \
+            -o "${f}/plots/${tensors[i]}/plot" \
+            -t fill -d best -O -s png -r 900 -g -w both \
+            -e "${sorting_key_script}"
+    done
+    python3 ${PLOT}/plot_data_from_txt.py "${loss_files[@]}" \
+        -l "${labels[@]}" -x 0 -y 1 -e 2 \
+        -o "${f}/plots/loss/data.pickle" -n -k="${sorting_key}"
+    python3 ${PLOT}/plot_from_pickle.py \
+        "${f}/plots/loss/data.pickle" -x step -y loss -X symlog -o \
+        "${f}/plots/loss/plot" -t fill -d best -O -s png -r 900 -g -w both \
+        -e "${sorting_key_script}"
+done
+
+
 # Draw long dropout plots
 cd ~/h-elmo/expres/correlation/batch/long_dropout
 mkdir plots
@@ -1119,3 +1216,7 @@ python3 ${PLOT}/plot_data_from_txt.py stats/loss.txt -l first -x 0 -y 1 -e 2 \
 python3 ${PLOT}/plot_from_pickle.py plots/loss/data.pickle -x step -y loss \
     -X symlog -o plots/loss/plot -t fill -d None -O -s png -r 900 -g \
     -w both
+
+# Copy nc-ff with very long training
+source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh correlation/batch \
+    < <(gen_exp_dirs)
