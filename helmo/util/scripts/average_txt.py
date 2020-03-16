@@ -24,6 +24,13 @@ parser.add_argument(
     default='mean.txt'
 )
 parser.add_argument(
+    '--truncate',
+    '-t',
+    help="If averaged files have different length, truncate them to the "
+         "length of the shortest.",
+    action='store_true'
+)
+parser.add_argument(
     '--preprocess',
     '-p',
     help="Function applied to values before averaging. Possible "
@@ -51,6 +58,7 @@ N = len(args.files)
 
 Y = []
 x_list = None
+min_len = float('+inf')
 
 for f in args.files:
     x_l = []
@@ -60,19 +68,29 @@ for f in args.files:
         x_l.append(x)
         y_l.append(func(y))
     Y.append(y_l)
-    if x_list is not None:
-        if x_list != x_l:
-            raise ValuesDontMatchError(
-                "X values in averaged files don't match.",
-                target_values=x_list,
-                tested_values=x_l,
-            )
+    if len(x_l) < min_len:
+        min_len = len(x_l)
+    if not args.truncate:
+        if x_list is not None:
+            if x_list != x_l:
+                raise ValuesDontMatchError(
+                    "Lengths of X values in averaged files do not match.",
+                    target_values=x_list,
+                    tested_values=x_l,
+                )
     x_list = x_l
+
+if args.truncate:
+    x_list = x_list[:min_len]
+    for y_idx, y in enumerate(Y):
+        Y[y_idx] = y[:min_len]
 
 for_averaging = np.array(Y)
 mean = np.mean(Y, axis=0)
 std = np.std(Y, axis=0, ddof=1)
 stderr_of_mean = std / N**0.5
 
-for x, y_mean, y_std, y_stderr_of_mean in zip(x_list, mean, std, stderr_of_mean):
-    args.output.write("{} {} {} {}\n".format(x, y_mean, y_std, y_stderr_of_mean))
+for x, y_mean, y_std, y_stderr_of_mean in zip(
+        x_list, mean, std, stderr_of_mean):
+    args.output.write("{} {} {} {}\n".format(
+        x, y_mean, y_std, y_stderr_of_mean))

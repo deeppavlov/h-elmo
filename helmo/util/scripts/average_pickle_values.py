@@ -46,7 +46,13 @@ parser.add_argument(
          "Used when pickle files contain single array each.",
     action='store_true',
 )
-
+parser.add_argument(
+    '--truncate',
+    '-t',
+    help="If averaged files have different length, truncate them to the "
+         "length of the shortest.",
+    action='store_true'
+)
 args = parser.parse_args()
 
 
@@ -61,14 +67,21 @@ def load_pickle_file(file):
 
 
 for_averaging = []
+min_len = float('+inf')
 for file in args.files:
     loaded = load_pickle_file(file)
     if args.no_stack:
         loaded = loaded[0]
     else:
         loaded = np.stack(loaded)
+    if len(loaded) < min_len:
+        min_len = len(loaded)
     for_averaging.append(loaded)
     file.close()
+
+if args.truncate:
+    for i, l in enumerate(for_averaging):
+        for_averaging[i] = l[:min_len]
 
 for_averaging = np.stack(for_averaging)
 
