@@ -827,19 +827,19 @@ class Rnn(Pupil):
             self._out_vars = list()
             for layer_idx in range(self._num_out_layers):
                 inp_dim, out_dim, stddev = self._compute_output_matrix_parameters(layer_idx)
-                self._out_vars.append(
-                    dict(
-                        matrix=tf.Variable(
-                            tf.truncated_normal([inp_dim, out_dim], stddev=stddev),
-                            name='output_matrix_%s' % layer_idx,
-                            collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
-                        ),
-                        bias=tf.Variable(
-                            tf.zeros([out_dim]),
-                            name='output_bias_%s' % layer_idx
-                        )
+                layer_vars =  dict(
+                    matrix=tf.Variable(
+                        tf.truncated_normal([inp_dim, out_dim], stddev=stddev),
+                        name='output_matrix_%s' % layer_idx,
+                        collections=[tf.GraphKeys.WEIGHTS, tf.GraphKeys.GLOBAL_VARIABLES],
                     )
                 )
+                if layer_idx < self._num_out_layers - 1 or self._add_bias_before_softmax:
+                    layer_vars['bias'] = tf.Variable(
+                        tf.zeros([out_dim]),
+                        name='output_bias_%s' % layer_idx
+                    )
+                self._out_vars.append(layer_vars)
             self._build_rnn_branch_variables()
 
     def _get_save_dict_for_rnns(self, rnn_map, accumulated_module_name, module_name=None):
