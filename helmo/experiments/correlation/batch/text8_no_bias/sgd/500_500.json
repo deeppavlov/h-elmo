@@ -10,10 +10,10 @@
     "cls_name": "Rnn"
   },
   "dataset": {
-    "path": "enwiki1G.txt",
+    "path": "text8.txt",
     "test_size": 6.4e6,
     "valid_size": 6.4e5,
-    "vocab_path": "enwiki1G_voc.txt"
+    "vocab_path": "text8_voc.txt"
   },
   "graph": {
     "rnn_map": {

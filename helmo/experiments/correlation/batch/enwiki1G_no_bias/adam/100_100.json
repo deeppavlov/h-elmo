@@ -23,6 +23,7 @@
       "output_idx": null
     },
     "num_output_nodes": [],
+    "add_bias_before_softmax": false,
     "emb_size": 256,
     "init_parameter": 1.0,
     "num_gpus": 1,

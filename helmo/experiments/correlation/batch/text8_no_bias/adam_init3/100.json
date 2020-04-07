@@ -10,25 +10,25 @@
     "cls_name": "Rnn"
   },
   "dataset": {
-    "path": "enwiki1G.txt",
+    "path": "text8.txt",
     "test_size": 6.4e6,
     "valid_size": 6.4e5,
-    "vocab_path": "enwiki1G_voc.txt"
+    "vocab_path": "text8_voc.txt"
   },
   "graph": {
     "rnn_map": {
       "module_name": "char_enc_dec",
-      "num_nodes": [500, 500],
+      "num_nodes": [100],
       "input_idx": null,
       "output_idx": null
     },
     "num_output_nodes": [],
     "add_bias_before_softmax": false,
     "emb_size": 256,
-    "init_parameter": 1.0,
+    "init_parameter": 3.0,
     "num_gpus": 1,
     "metrics": ["bpc", "perplexity", "accuracy"],
-    "optimizer_type": "sgd",
+    "optimizer_type": "adam",
     "clip_norm": 1,
     "correlation_reduced_axes": [1],
     "corcov_norm": "sqr"
@@ -40,7 +40,7 @@
       "type": "adaptive_change",
       "max_no_progress_points": 50,
       "decay": 0.5,
-      "init": 3.0,
+      "init": 0.002,
       "path_to_target_metric_storage": ["valid", "loss"]
     },
     "batch_size": 32,
@@ -61,8 +61,7 @@
     "valid_batch_kwargs": {"num_unrollings": 25},
     "validation_tensor_schedule": {
       "valid_pickle_mean_tensors": {
-        "correlation": 1,
-        "correlation2": 1
+        "correlation": 1
       }
     },
     "train_batch_kwargs": {"random_batch_initiation": true},
