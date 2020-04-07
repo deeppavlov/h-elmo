@@ -874,7 +874,8 @@ class Rnn(Pupil):
             save_dict['embedding_bias'] = self._emb_vars['bias']
         for layer_idx, out_core in enumerate(self._out_vars):
             save_dict['output_matrix_%s' % layer_idx] = out_core['matrix']
-            save_dict['output_bias_%s' % layer_idx] = out_core['bias']
+            if layer_idx < self._num_out_layers - 1 or self._add_bias_before_softmax:
+                save_dict['output_bias_%s' % layer_idx] = out_core['bias']
         return save_dict
 
     def _create_saver(self):
