@@ -139,7 +139,9 @@ class Rnn(Pupil):
     def _output_module(self, inp):
         with tf.name_scope('output_module'):
             for idx, out_core in enumerate(self._out_vars):
-                inp = tf.einsum('ijk,kl->ijl', inp, out_core['matrix']) + out_core['bias']
+                inp = tf.einsum('ijk,kl->ijl', inp, out_core['matrix'])
+                if self._add_bias_before_softmax:
+                    inp += out_core['bias']
                 if idx < len(self._out_vars) - 1:
                     inp = tf.nn.relu(inp)
         return inp
@@ -1029,6 +1031,8 @@ class Rnn(Pupil):
         self._emb_size = kwargs.get('emb_size', 128)
         self._num_out_nodes = kwargs.get('num_out_nodes', [])
         self._num_out_layers = len(self._num_out_nodes) + 1
+        self._add_bias_before_softmax = kwargs.get(
+            'add_bias_before_softmax', True)
         self._init_parameter = kwargs.get('init_parameter', 3.)
         self._reg_rate = kwargs.get('reg_rate', 6e-6)
         self._metrics = kwargs.get('metrics', [])
