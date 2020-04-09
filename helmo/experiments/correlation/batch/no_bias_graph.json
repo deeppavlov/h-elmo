@@ -1,0 +1,60 @@
+{
+  "num_repeats": 1,
+  "seed": null,
+  "batch_gen": {
+    "path": "resrnn",
+    "cls_name": "LmFastBatchGenerator"
+  },
+  "net": {
+    "path": "resrnn",
+    "cls_name": "Rnn"
+  },
+  "dataset": {
+    "path": "enwiki1G.txt",
+    "test_size": 6.4e6,
+    "valid_size": 6.4e5,
+    "vocab_path": "enwiki1G_voc.txt"
+  },
+  "graph": {
+    "rnn_map": {
+      "module_name": "char_enc_dec",
+      "num_nodes": [100],
+      "input_idx": null,
+      "output_idx": null
+    },
+    "num_output_nodes": [],
+    "add_bias_before_softmax": false,
+    "emb_size": 256,
+    "init_parameter": 1.0,
+    "num_gpus": 1,
+    "metrics": ["bpc", "perplexity", "accuracy"],
+    "optimizer_type": "adam",
+    "clip_norm": 1,
+    "correlation_reduced_axes": [1],
+    "corcov_norm": "sqr"
+  },
+  "train": {
+    "allow_growth": true,
+    "restore_path": null,
+    "learning_rate": {
+      "type": "fixed_value",
+      "value": 0
+    },
+    "batch_size": 32,
+    "num_unrollings": 10,
+    "checkpoint_steps": null,
+    "stop": 2,
+    "no_validation": false,
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "validation_batch_size": 256,
+    "valid_batch_kwargs": {"num_unrollings": 25},
+    "train_batch_kwargs": {"random_batch_initiation": true}
+  },
+  "test": {
+    "printed_result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "result_types": ["perplexity", "loss", "bpc", "accuracy"],
+    "validation_batch_size": 256,
+    "valid_batch_kwargs": {"num_unrollings": 25}
+  }
+}

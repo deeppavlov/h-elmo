@@ -1412,6 +1412,204 @@ python3 ${PLOT}/plot_from_pickle.py plots/loss/data.pickle -x step -y loss \
     -X symlog -o plots/loss/plot -t fill -d None -O -s png -r 900 -g \
     -w both
 
-# Copy nc-ff with very long training
+# Copy no bias before softmax
+function gen_exp_dirs () {
+  for ds_dir in enwiki1G_no_bias text8_no_bias
+  do
+    for opt_dir in adam adam_init3 sgd
+    do
+      for size_dir in 100 100_100 500_500
+      do
+        echo "${ds_dir}/${opt_dir}/${size_dir}"
+      done
+    done
+  done
+}
 source ${SCRIPTS}/scp_results_and_tensors_fast_2.sh correlation/batch \
     < <(gen_exp_dirs)
+
+
+# plotting loss -- correlation
+# for plotting loss - correlation 100 100_100 500_500 for 2 optimizers text8 BATCH
+# average correlation
+cd ~/h-elmo/expres/correlation/batch/
+for ds in enwiki1G_no_bias text8_no_bias; do
+  for opt in adam adam_init3 sgd; do
+    for nn in 100 100_100 500_500; do
+      cd ${ds}/${opt}/${nn}
+      mkdir -p mean/corr
+      python3 ${SCRIPTS}/average_pickle_values.py \
+          {0..19}/tensors/valid/pickle_mean_tensors/correlation.pickle \
+          --stddev mean/corr/stddev.pickle --mean mean/corr/mean.pickle \
+          --stderr_of_mean mean/corr/stderr_of_mean.pickle
+      python3 ${SCRIPTS}/average_txt.py {0..19}/results/loss_valid.txt \
+          -o mean/loss.txt
+      cd ../../..
+    done
+  done
+done
+
+# for plotting loss and correlation 100, 100_100, 500_500
+# text8 no bias BATCH ADAM - SGD
+cd ~/h-elmo/expres/correlation/batch/text8_no_bias/
+sorting_key="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam/100@adam/100_100@adam/500_500@sgd/100@sgd/100_100@sgd/500_500 plots_adam_sgd
+unset sorting_key
+
+# for plotting loss and correlation 100, 100_100, 500_500
+# text 8 no bias BATCH ADAM init 3 - SGD
+cd ~/h-elmo/expres/correlation/batch/text8_no_bias/
+sorting_key="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam_init3/100@adam_init3/100_100@adam_init3/500_500@sgd/100@sgd/100_100@sgd/500_500 \
+  plots_adam_init_3_sgd
+unset sorting_key
+
+# loss - corr
+cd ~/h-elmo/expres/correlation/batch/text8_no_bias/
+additional_artists_str=( "-a"\
+  "../../nocorrloss/shuffled/text8/noise_best_loss_axvspan.pickle" )
+# xselect_params=( "-S" "1.5" "3.5" )
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam/100@adam/100_100@adam/500_500@sgd/100@sgd/100_100@sgd/500_500 plots_adam_sgd
+unset sorting_key
+unset xselect_params
+unset additional_artists_str
+
+# for plotting loss and correlation 100, 100_100, 500_500
+# enwiki1G no bias BATCH ADAM - SGD
+cd ~/h-elmo/expres/correlation/batch/enwiki1G_no_bias/
+sorting_key="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam/100@adam/100_100@adam/500_500@sgd/100@sgd/100_100@sgd/500_500 plots_adam_sgd
+unset sorting_key
+
+# for plotting loss and correlation 100, 100_100, 500_500
+# enwiki1G no bias BATCH ADAM init 3 - SGD
+cd ~/h-elmo/expres/correlation/batch/enwiki1G_no_bias/
+sorting_key="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+source ${PLOT}/correlation_and_loss_plots.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam_init3/100@adam_init3/100_100@adam_init3/500_500@sgd/100@sgd/100_100@sgd/500_500 \
+  plots_adam_init_3_sgd
+unset sorting_key
+
+# loss - corr
+cd ~/h-elmo/expres/correlation/batch/enwiki1G_no_bias/
+additional_artists_str=( "-a"\
+  "../../nocorrloss/shuffled/enwiki1G/noise_best_loss_axvspan.pickle" )
+# xselect_params=( "-S" "1.5" "3.5" )
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'adam' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "[100] adam@[100, 100] adam@[500, 500] adam@[100] sgd@[100, 100] sgd@[500, 500] sgd" \
+  adam/100@adam/100_100@adam/500_500@sgd/100@sgd/100_100@sgd/500_500 plots_adam_sgd
+unset sorting_key
+unset xselect_params
+unset additional_artists_str
+
+
+# for plotting loss - corrrelation 100 100_100 500_500 for adam enwiki1G-text8
+# with shuffled vspans
+cd ~/h-elmo/expres/correlation/batch
+mkdir enwiki1G-text8_no_bias
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'enwiki1G' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+additional_artists_str=( "-a"\
+  "../nocorrloss/shuffled/noise_best_loss_axvspan.pickle" )
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "[100] enwiki1G@[100, 100] enwiki1G@[500, 500] enwiki1G@[100] text8@[100, 100] text8@[500, 500] text8" \
+  "enwiki1G_no_bias/adam/100@enwiki1G_no_bias/adam/100_100@\
+enwiki1G_no_bias/adam/500_500@text8_no_bias/adam/100@text8_no_bias/adam/100_100@\
+text8_no_bias/adam/500_500@text8_no_bias/adam/500_500" \
+  enwiki1G-text8_no_bias/plots/adam
+unset sorting_key
+unset additional_artists_str
+
+
+# for sgd
+cd ~/h-elmo/expres/correlation/batch
+mkdir enwiki1G-text8_no_bias
+sorting_key2="def sorting_key(x):
+    words = x.split()
+    nn = eval(' '.join(words[:-1]))
+    score = 0 if words[-1] == 'enwiki1G' else 1000
+    if len(nn) > 1:
+        score += 100
+    score += nn[0] // 10
+    return score
+"
+additional_artists_str=( "-a"\
+  "../nocorrloss/shuffled/noise_best_loss_axvspan.pickle" )
+sorting_key="${sorting_key2}" \
+  source ${PLOT}/loss_corr_plot.sh \
+  "[100] enwiki1G@[100, 100] enwiki1G@[500, 500] enwiki1G@[100] text8@[100, 100] text8@[500, 500] text8" \
+  "enwiki1G_no_bias/sgd/100@enwiki1G_no_bias/sgd/100_100@\
+enwiki1G_no_bias/sgd/500_500@text8_no_bias/sgd/100@text8_no_bias/sgd/100_100@\
+text8_no_bias/sgd/500_500@text8_no_bias/sgd/500_500" \
+  enwiki1G-text8_no_bias/plots/sgd
+unset sorting_key
+unset additional_artists_str
